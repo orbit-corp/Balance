@@ -1,0 +1,58 @@
+<div class="w-full flex-1">
+  <nav class="flex items-center justify-between py-5 border-b border-gray-200">
+    <div class="flex items-center gap-2">
+      <span class="font-semibold text-lg">stubby</span>
+    </div>
+    <span class="text-xs text-gray-500 bg-gray-100 rounded-md px-2.5 py-1">Beta</span>
+  </nav>
+
+  <div class="max-w-xl mx-auto text-center pt-16 pb-12 px-4">
+    <h1 class="text-3xl font-semibold mb-3">Long links, made short</h1>
+    <p class="text-gray-500 mb-10">Paste any URL below. No account, no length limit.</p>
+
+    <%= form_with url: links_path, method: :post, class: "flex gap-2 mb-5 text-left" do |form| %>
+      <%= form.text_field :long_url,
+            value: @short_link&.long_url,
+            placeholder: "https://example.com/a/very/long/path/that/needs/shortening",
+            class: "flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" %>
+      <%= form.submit "Shorten", class: "whitespace-nowrap border border-gray-300 rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-50" %>
+    <% end %>
+
+    <% if @short_link&.errors&.any? %>
+      <p class="text-sm text-red-600 text-left mb-5"><%= @short_link.errors.full_messages.to_sentence %></p>
+    <% end %>
+
+    <% if flash[:short_url] %>
+      <div class="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between gap-3 text-left"
+           data-controller="clipboard" data-clipboard-text-value="<%= flash[:short_url] %>">
+        <div class="min-w-0">
+          <p class="text-xs text-gray-500 mb-1">Your short link</p>
+          <%= link_to flash[:short_url], flash[:short_url], target: "_blank", rel: "noopener", class: "text-sm font-medium text-indigo-600 truncate block hover:underline" %>
+        </div>
+        <button type="button" data-action="clipboard#copy"
+                class="shrink-0 flex items-center gap-1.5 border border-gray-300 rounded-md px-3 py-1.5 text-sm hover:bg-gray-50">
+          <span data-clipboard-target="label">Copy</span>
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="bg-gray-50 py-10">
+    <div class="max-w-xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 px-4 text-center">
+      <div>
+        <p class="font-medium text-sm mb-1">Fast redirects</p>
+        <p class="text-sm text-gray-500">Under 100ms, cached at the edge.</p>
+      </div>
+      <div>
+        <p class="font-medium text-sm mb-1">Any link</p>
+        <p class="text-sm text-gray-500">No scheme restrictions, no length cap.</p>
+      </div>
+      <div>
+        <p class="font-medium text-sm mb-1">No signup</p>
+        <p class="text-sm text-gray-500">Shorten a link in one step.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-gray-400 py-6">stubby -- built to learn system design</p>
+</div>
