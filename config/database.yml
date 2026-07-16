@@ -88,6 +88,7 @@ production:
   primary: &primary_production
     <<: *default
     database: stubby_production
+    host: <%= ENV["DB_HOST"] %>
     username: stubby
     password: <%= ENV["STUBBY_DATABASE_PASSWORD"] %>
   cache:

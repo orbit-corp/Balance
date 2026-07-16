@@ -60,6 +60,14 @@ This is the direct answer to "why would anyone pay for this": the redirect itsel
 - **White-labeling** — agencies/resellers running stubby under their own brand for their clients.
 - **SLA/uptime guarantees** — meaningful for business customers where a broken redirect has real cost; ties back to the durability/availability NFRs we already discussed for the core.
 
+## Infrastructure and delivery
+
+- **CI/CD pipeline (e.g. CircleCI) with a build-once-deploy-everywhere flow** — build the Docker image exactly once per change, run the test suite inside that same built container (not on the CI runner's bare environment, so tests reflect the real production Ruby/OS/gem versions), push it to a registry tagged by commit, then promote that identical image through staging and production rather than rebuilding per environment. Directly catches the class of bug we hit tonight testing the Dockerfile locally (missing deps, asset pipeline issues, env mismatches) automatically on every push instead of manually.
+- **Staging environment** — a real deployment of the same promoted image to a non-production server, used as a final check before production. Kamal already supports this natively via multiple named destinations (`config/deploy.yml` for production, `config/deploy.staging.yml` for staging, deployed via `kamal deploy -d staging`), so this is mostly an infra/sequencing decision rather than a new tool.
+- **Local dev convenience via Docker Compose** — not for production (Kamal owns that), but for collapsing the manual `docker network create` + multiple `docker run` commands we did by hand into a single `docker compose up` for local testing. Already discussed as a near-term, low-stakes addition.
+
+Open questions to resolve when this gets its own brainstorming session: which registry (Docker Hub vs GitHub Container Registry), how staging and production coexist given we're on Oracle's free tier (a second small instance vs. sharing one instance without them interfering), and how much the CI pipeline should run per push (fast feedback vs. thorough/slower testing).
+
 ## Revisit if
 
 - Any single feature above starts blocking a real, current need (not hypothetical) — that's the trigger to schedule a proper brainstorming session for it, following the same process we used for the core: problem, 2+ approaches, trade-offs, explicit agreement before code.
