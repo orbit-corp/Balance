@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Geist";
+  src: url("Geist-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("Geist-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("Geist-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --radius: 0.625rem;
+
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-muted-foreground: #737373;
+  --color-border: #e5e5e5;
+  --color-sidebar: #fafafa;
+  --color-accent: #f5f5f5;
+}

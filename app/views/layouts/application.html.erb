@@ -23,20 +23,38 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-gray-50">
+  <body class="bg-white text-neutral-900">
     <% if authenticated? %>
-      <header class="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-3">
-        <div class="mx-auto flex max-w-lg items-center justify-between">
-          <%= link_to "Stubby", dashboard_path, class: "text-lg font-semibold text-gray-900" %>
-          <nav class="flex items-center gap-4 text-sm text-gray-600">
-            <%= link_to "Customers", customers_path %>
-            <%= button_to "Sign out", session_path, method: :delete, class: "text-sm text-gray-600 bg-transparent p-0" %>
-          </nav>
-        </div>
-      </header>
-    <% end %>
+      <div class="md:flex" data-controller="sidebar">
+        <div data-sidebar-target="backdrop" data-action="click->sidebar#toggle" class="fixed inset-0 z-10 hidden bg-black/30 md:hidden"></div>
 
-    <main class="mx-auto max-w-lg px-4 py-6">
+        <aside data-sidebar-target="panel" class="fixed inset-y-0 left-0 z-20 flex w-72 -translate-x-full flex-col border-r border-neutral-200 bg-(--color-sidebar) transition-transform md:sticky md:top-0 md:h-screen md:w-72 md:translate-x-0">
+          <%= render "layouts/sidebar" %>
+        </aside>
+
+        <div class="flex min-h-screen flex-1 flex-col">
+          <div class="flex items-center gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:hidden">
+            <button type="button" data-action="sidebar#toggle" aria-label="Toggle menu" class="rounded-md p-2 text-neutral-600 hover:bg-neutral-100">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            </button>
+            <span class="text-base font-semibold"><%= content_for(:title) || "Stubby" %></span>
+          </div>
+
+          <main class="flex-1 p-4 md:p-6">
+            <div class="mx-auto max-w-3xl">
+              <% if notice %>
+                <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700"><%= notice %></div>
+              <% end %>
+              <% if alert %>
+                <div class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= alert %></div>
+              <% end %>
+
+              <%= yield %>
+            </div>
+          </main>
+        </div>
+      </div>
+    <% else %>
       <% if notice %>
         <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700"><%= notice %></div>
       <% end %>
@@ -45,6 +63,6 @@
       <% end %>
 
       <%= yield %>
-    </main>
+    <% end %>
   </body>
 </html>

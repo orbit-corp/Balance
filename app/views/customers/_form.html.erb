@@ -10,14 +10,14 @@
   <% end %>
 
   <div>
-    <%= form.label :name, "Name", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :name, required: true, autofocus: true, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <%= form.label :name, "Name", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
+    <%= form.text_field :name, required: true, autofocus: true, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
   </div>
 
   <div>
-    <%= form.label :phone, "Phone (optional)", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= form.telephone_field :phone, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <%= form.label :phone, "Phone (optional)", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
+    <%= form.telephone_field :phone, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
   </div>
 
-  <%= form.submit customer.persisted? ? "Save changes" : "Add customer", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+  <%= form.submit customer.persisted? ? "Save changes" : "Add customer", class: "w-full rounded-md bg-neutral-900 px-4 py-3 text-base font-medium text-white" %>
 <% end %>

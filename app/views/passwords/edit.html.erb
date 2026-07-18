@@ -1,15 +1,15 @@
-<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+<div class="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
   <div class="w-full max-w-sm space-y-6">
-    <h1 class="text-2xl font-semibold text-gray-900">Update your password</h1>
+    <h1 class="text-2xl font-semibold text-neutral-900">Update your password</h1>
 
     <% if flash[:alert] %>
       <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
     <% end %>
 
     <%= form_with url: password_path(params[:token]), method: :put, class: "space-y-4" do |form| %>
-      <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "New password", maxlength: 72, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
-      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "Confirm new password", maxlength: 72, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
-      <%= form.submit "Save", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+      <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "New password", maxlength: 72, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
+      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "Confirm new password", maxlength: 72, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
+      <%= form.submit "Save", class: "w-full rounded-md bg-neutral-900 px-4 py-3 text-base font-medium text-white" %>
     <% end %>
   </div>
 </div>

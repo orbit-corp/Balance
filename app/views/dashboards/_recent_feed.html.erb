@@ -1,9 +1,11 @@
 <% transactions = summary.recent_transactions %>
 <% if transactions.empty? %>
-  <div class="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-    <p class="text-gray-600">No entries yet.</p>
-    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), class: "mt-2 inline-block font-medium text-gray-900 underline" %>
+  <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
+    <p class="text-neutral-600">No entries yet.</p>
+    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block font-medium text-neutral-900 underline" %>
   </div>
 <% else %>
-  <%= render partial: "transactions/transaction", collection: transactions %>
+  <div class="rounded-xl border border-(--color-border) bg-white px-4">
+    <%= render partial: "transactions/transaction", collection: transactions %>
+  </div>
 <% end %>

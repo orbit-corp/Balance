@@ -1,0 +1,26 @@
+<div class="flex h-full flex-col p-4">
+  <div class="flex items-center gap-2 px-2 py-2">
+    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-white">S</span>
+    <span class="text-base font-semibold text-neutral-900">Stubby</span>
+  </div>
+
+  <%= link_to "+ Quick add", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-4 rounded-md bg-neutral-900 px-3 py-2 text-center text-sm font-medium text-white" %>
+
+  <nav class="mt-6 flex flex-col gap-1 text-sm">
+    <%= link_to dashboard_path, class: "rounded-md px-3 py-2 font-medium text-neutral-700 hover:bg-(--color-accent)" do %>
+      Dashboard
+    <% end %>
+    <%= link_to customers_path, class: "rounded-md px-3 py-2 font-medium text-neutral-700 hover:bg-(--color-accent)" do %>
+      Customers
+    <% end %>
+  </nav>
+
+  <div class="mt-auto flex flex-col gap-1 border-t border-neutral-200 pt-4 text-sm">
+    <%= button_to "Sign out", session_path, method: :delete, class: "w-full rounded-md px-3 py-2 text-left font-medium text-neutral-700 hover:bg-(--color-accent) bg-transparent" %>
+
+    <div class="mt-2 rounded-md px-3 py-2">
+      <p class="truncate text-sm font-medium text-neutral-900"><%= current_workspace.name %></p>
+      <p class="truncate text-xs text-(--color-muted-foreground)"><%= Current.user.email_address %></p>
+    </div>
+  </div>
+</div>

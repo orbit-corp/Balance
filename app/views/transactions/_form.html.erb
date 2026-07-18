@@ -10,10 +10,10 @@
   <% end %>
 
   <div>
-    <label class="mb-1 block text-sm font-medium text-gray-700">Type</label>
+    <label class="mb-1 block text-sm font-medium text-(--color-muted-foreground)">Type</label>
     <div class="grid grid-cols-2 gap-2">
       <% %w[income expense].each do |kind| %>
-        <label class="flex items-center justify-center rounded-md border border-gray-300 px-4 py-3 text-sm font-medium has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+        <label class="flex items-center justify-center rounded-md border border-(--color-border) px-4 py-3 text-sm font-medium has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
           <%= form.radio_button :kind, kind, checked: transaction.kind == kind, class: "sr-only", data: { transaction_form_target: "kindInput", action: "change->transaction-form#toggleKind" } %>
           <%= kind == "income" ? "Sale" : "Expense" %>
         </label>
@@ -22,12 +22,12 @@
   </div>
 
   <div>
-    <%= form.label :amount, "Amount (₦)", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= form.text_field :amount, value: transaction.amount, inputmode: "decimal", required: true, placeholder: "0.00", class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <%= form.label :amount, "Amount (₦)", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
+    <%= form.text_field :amount, value: transaction.amount, inputmode: "decimal", required: true, placeholder: "0.00", class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
   </div>
 
   <div>
-    <%= form.label :category_id, "Category", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.label :category_id, "Category", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
     <%= form.select :category_id,
           grouped_options_for_select(
             { "Sales" => current_workspace.categories.income.order(:name).map { |c| [c.name, c.id] },
@@ -35,30 +35,30 @@
             transaction.category_id
           ),
           {},
-          class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base",
+          class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base",
           data: { transaction_form_target: "categorySelect" } %>
   </div>
 
   <div data-transaction-form-target="customerField" class="<%= "hidden" if transaction.kind == "expense" %>">
-    <%= form.label :customer_id, "Customer (optional)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.label :customer_id, "Customer (optional)", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
     <%= form.select :customer_id,
           options_from_collection_for_select(current_workspace.customers.order(:name), :id, :name, transaction.customer_id),
           { include_blank: "No customer" },
-          class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
-    <p class="mt-1 text-xs text-gray-500">
+          class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
+    <p class="mt-1 text-xs text-(--color-muted-foreground)">
       Need a new customer? <%= link_to "Add one", new_customer_path, class: "underline" %> first.
     </p>
   </div>
 
   <div>
-    <%= form.label :occurred_on, "Date", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= form.date_field :occurred_on, value: transaction.occurred_on || Date.current, required: true, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <%= form.label :occurred_on, "Date", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
+    <%= form.date_field :occurred_on, value: transaction.occurred_on || Date.current, required: true, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
   </div>
 
   <div>
-    <%= form.label :note, "Note (optional)", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= form.text_area :note, rows: 2, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <%= form.label :note, "Note (optional)", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
+    <%= form.text_area :note, rows: 2, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
   </div>
 
-  <%= form.submit transaction.persisted? ? "Save changes" : "Add entry", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+  <%= form.submit transaction.persisted? ? "Save changes" : "Add entry", class: "w-full rounded-md bg-neutral-900 px-4 py-3 text-base font-medium text-white" %>
 <% end %>
