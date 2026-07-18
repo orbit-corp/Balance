@@ -1,0 +1,27 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="w-full max-w-sm space-y-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Sign in</h1>
+
+    <% if flash[:alert] %>
+      <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
+    <% end %>
+    <% if flash[:notice] %>
+      <div class="rounded-md bg-green-50 px-4 py-3 text-sm text-green-700"><%= flash[:notice] %></div>
+    <% end %>
+
+    <%= form_with url: session_path, class: "space-y-4" do |form| %>
+      <div>
+        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Email address", value: params[:email_address], class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+      </div>
+      <div>
+        <%= form.password_field :password, required: true, autocomplete: "current-password", placeholder: "Password", maxlength: 72, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+      </div>
+      <%= form.submit "Sign in", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+    <% end %>
+
+    <div class="flex items-center justify-between text-sm">
+      <%= link_to "Forgot password?", new_password_path, class: "text-gray-600" %>
+      <%= link_to "Create an account", new_registration_path, class: "text-gray-600" %>
+    </div>
+  </div>
+</div>

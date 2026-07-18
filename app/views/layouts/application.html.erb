@@ -23,8 +23,27 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-gray-50">
+    <% if authenticated? %>
+      <header class="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-3">
+        <div class="mx-auto flex max-w-lg items-center justify-between">
+          <%= link_to "Stubby", dashboard_path, class: "text-lg font-semibold text-gray-900" %>
+          <nav class="flex items-center gap-4 text-sm text-gray-600">
+            <%= link_to "Customers", customers_path %>
+            <%= button_to "Sign out", session_path, method: :delete, class: "text-sm text-gray-600 bg-transparent p-0" %>
+          </nav>
+        </div>
+      </header>
+    <% end %>
+
+    <main class="mx-auto max-w-lg px-4 py-6">
+      <% if notice %>
+        <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700"><%= notice %></div>
+      <% end %>
+      <% if alert %>
+        <div class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= alert %></div>
+      <% end %>
+
       <%= yield %>
     </main>
   </body>

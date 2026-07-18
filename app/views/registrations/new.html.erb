@@ -1,0 +1,26 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="w-full max-w-sm space-y-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Create your workspace</h1>
+
+    <% if @user.errors.any? %>
+      <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+        <ul class="list-disc pl-4">
+          <% @user.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with url: registration_path, class: "space-y-4" do |form| %>
+      <input type="text" name="business_name" required autofocus placeholder="Business name" value="<%= params[:business_name] %>" class="w-full rounded-md border border-gray-300 px-4 py-3 text-base">
+      <input type="email" name="email_address" required autocomplete="username" placeholder="Email address" value="<%= params[:email_address] %>" class="w-full rounded-md border border-gray-300 px-4 py-3 text-base">
+      <input type="password" name="password" required autocomplete="new-password" placeholder="Password" maxlength="72" class="w-full rounded-md border border-gray-300 px-4 py-3 text-base">
+      <%= form.submit "Create account", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+    <% end %>
+
+    <div class="text-sm">
+      <%= link_to "Already have an account? Sign in", new_session_path, class: "text-gray-600" %>
+    </div>
+  </div>
+</div>

@@ -9,8 +9,13 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  root "short_links#new"
+  resource :session
+  resource :registration, only: %i[new create]
+  resources :passwords, param: :token
 
-  post "links", to: "short_links#create"
-  get ":short_code", to: "short_links#show", as: :short_link, constraints: { short_code: /[0-9a-zA-Z]+/ }
+  resource :dashboard, only: [ :show ]
+  resources :transactions
+  resources :customers
+
+  root "dashboards#show"
 end

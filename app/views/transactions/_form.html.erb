@@ -1,0 +1,64 @@
+<%= form_with model: transaction, class: "space-y-4", data: { controller: "transaction-form" } do |form| %>
+  <% if transaction.errors.any? %>
+    <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+      <ul class="list-disc pl-4">
+        <% transaction.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <label class="mb-1 block text-sm font-medium text-gray-700">Type</label>
+    <div class="grid grid-cols-2 gap-2">
+      <% %w[income expense].each do |kind| %>
+        <label class="flex items-center justify-center rounded-md border border-gray-300 px-4 py-3 text-sm font-medium has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+          <%= form.radio_button :kind, kind, checked: transaction.kind == kind, class: "sr-only", data: { transaction_form_target: "kindInput", action: "change->transaction-form#toggleKind" } %>
+          <%= kind == "income" ? "Sale" : "Expense" %>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :amount, "Amount (₦)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :amount, value: transaction.amount, inputmode: "decimal", required: true, placeholder: "0.00", class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+  </div>
+
+  <div>
+    <%= form.label :category_id, "Category", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.select :category_id,
+          grouped_options_for_select(
+            { "Sales" => current_workspace.categories.income.order(:name).map { |c| [c.name, c.id] },
+              "Expense" => current_workspace.categories.expense.order(:name).map { |c| [c.name, c.id] } },
+            transaction.category_id
+          ),
+          {},
+          class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base",
+          data: { transaction_form_target: "categorySelect" } %>
+  </div>
+
+  <div data-transaction-form-target="customerField" class="<%= "hidden" if transaction.kind == "expense" %>">
+    <%= form.label :customer_id, "Customer (optional)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.select :customer_id,
+          options_from_collection_for_select(current_workspace.customers.order(:name), :id, :name, transaction.customer_id),
+          { include_blank: "No customer" },
+          class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+    <p class="mt-1 text-xs text-gray-500">
+      Need a new customer? <%= link_to "Add one", new_customer_path, class: "underline" %> first.
+    </p>
+  </div>
+
+  <div>
+    <%= form.label :occurred_on, "Date", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.date_field :occurred_on, value: transaction.occurred_on || Date.current, required: true, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+  </div>
+
+  <div>
+    <%= form.label :note, "Note (optional)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :note, rows: 2, class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+  </div>
+
+  <%= form.submit transaction.persisted? ? "Save changes" : "Add entry", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+<% end %>

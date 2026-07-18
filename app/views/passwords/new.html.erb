@@ -1,0 +1,14 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="w-full max-w-sm space-y-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Forgot your password?</h1>
+
+    <% if flash[:alert] %>
+      <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
+    <% end %>
+
+    <%= form_with url: passwords_path, class: "space-y-4" do |form| %>
+      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", placeholder: "Email address", value: params[:email_address], class: "w-full rounded-md border border-gray-300 px-4 py-3 text-base" %>
+      <%= form.submit "Email reset instructions", class: "w-full rounded-md bg-gray-900 px-4 py-3 text-base font-medium text-white" %>
+    <% end %>
+  </div>
+</div>

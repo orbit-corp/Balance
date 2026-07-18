@@ -1,0 +1,21 @@
+<div class="grid grid-cols-1 gap-3">
+  <% [["Today", summary.today], ["This week", summary.this_week], ["This month", summary.this_month]].each do |label, period| %>
+    <div class="rounded-lg border border-gray-200 bg-white p-4">
+      <p class="text-sm font-medium text-gray-500"><%= label %></p>
+      <div class="mt-2 grid grid-cols-3 gap-2 text-sm">
+        <div>
+          <p class="text-gray-500">In</p>
+          <p class="font-semibold text-gray-900"><%= format_naira(period.income_kobo) %></p>
+        </div>
+        <div>
+          <p class="text-gray-500">Out</p>
+          <p class="font-semibold text-gray-900"><%= format_naira(period.expense_kobo) %></p>
+        </div>
+        <div>
+          <p class="text-gray-500">Profit</p>
+          <p class="font-semibold <%= period.profit_kobo.negative? ? "text-red-600" : "text-green-700" %>"><%= format_naira(period.profit_kobo) %></p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

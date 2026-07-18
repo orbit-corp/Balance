@@ -1,0 +1,23 @@
+<div id="<%= dom_id(transaction) %>" class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3">
+  <div>
+    <div class="flex items-center gap-2">
+      <span class="rounded px-2 py-0.5 text-xs font-medium <%= transaction.income? ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700" %>">
+        <%= transaction.income? ? "Sale" : "Expense" %>
+      </span>
+      <span class="text-sm text-gray-500"><%= transaction.category.name %></span>
+    </div>
+    <p class="mt-1 text-sm text-gray-500">
+      <%= transaction.occurred_on.strftime("%b %-d, %Y") %>
+      <% if transaction.customer %>
+        &middot; <%= transaction.customer.name %>
+      <% end %>
+    </p>
+  </div>
+  <div class="text-right">
+    <p class="font-semibold text-gray-900"><%= format_naira(transaction.amount_kobo) %></p>
+    <div class="mt-1 flex gap-2 text-xs">
+      <%= link_to "Edit", edit_transaction_path(transaction), data: { turbo_frame: "transaction_form" }, class: "text-gray-500 underline" %>
+      <%= button_to "Delete", transaction_path(transaction), method: :delete, class: "text-red-600 underline bg-transparent p-0", form: { data: { turbo_confirm: "Delete this entry?" } } %>
+    </div>
+  </div>
+</div>

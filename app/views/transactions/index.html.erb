@@ -1,0 +1,12 @@
+<h1 class="mb-4 text-xl font-semibold text-gray-900">All entries</h1>
+
+<div class="space-y-2">
+  <% if @transactions.empty? %>
+    <div class="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
+      <p class="text-gray-600">No entries yet.</p>
+      <%= link_to "Log your first sale", new_transaction_path(kind: "income"), class: "mt-2 inline-block font-medium text-gray-900 underline" %>
+    </div>
+  <% else %>
+    <%= render partial: "transaction", collection: @transactions %>
+  <% end %>
+</div>
