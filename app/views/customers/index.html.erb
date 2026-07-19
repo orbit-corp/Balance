@@ -1,25 +1,50 @@
-<div class="mb-4 flex items-center justify-between">
-  <h1 class="text-xl font-semibold text-neutral-900">Customers</h1>
-  <%= link_to "+ New customer", new_customer_path, class: "text-sm font-medium text-neutral-900 underline" %>
-</div>
+<% content_for :title, "Customers" %>
 
-<% if @customers.empty? %>
-  <div class="rounded-lg border border-dashed border-(--color-border) bg-white p-8 text-center">
-    <p class="text-(--color-muted-foreground)">No customers yet.</p>
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-semibold text-neutral-900">Customers</h1>
+      <p class="text-sm text-(--color-muted-foreground)"><%= pluralize(@customers.size, "customer") %></p>
+    </div>
+    <%= link_to "+ New customer", new_customer_path, class: "rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
   </div>
-<% else %>
-  <div class="space-y-2">
-    <% @customers.each do |customer| %>
-      <div class="flex items-center justify-between rounded-lg border border-(--color-border) bg-white p-3">
-        <div>
-          <p class="font-medium text-neutral-900"><%= customer.name %></p>
-          <p class="text-sm text-(--color-muted-foreground)"><%= customer.phone %></p>
-        </div>
-        <div class="flex gap-2 text-xs">
-          <%= link_to "Edit", edit_customer_path(customer), class: "text-(--color-muted-foreground) underline" %>
-          <%= button_to "Delete", customer_path(customer), method: :delete, class: "text-red-600 underline bg-transparent p-0", form: { data: { turbo_confirm: "Delete this customer?" } } %>
-        </div>
-      </div>
-    <% end %>
-  </div>
-<% end %>
+
+  <% if @customers.empty? %>
+    <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
+      <p class="text-sm text-(--color-muted-foreground)">No customers yet.</p>
+      <%= link_to "Add your first customer", new_customer_path, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
+    </div>
+  <% else %>
+    <div class="overflow-x-auto rounded-xl border border-(--color-border) bg-white">
+      <table class="w-full min-w-[420px] text-left">
+        <thead>
+          <tr class="border-b border-(--color-border) bg-(--color-accent)/60 text-xs text-(--color-muted-foreground)">
+            <th class="px-4 py-2.5 font-medium">Name</th>
+            <th class="px-4 py-2.5 font-medium">Phone</th>
+            <th class="w-10"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @customers.each do |customer| %>
+            <tr class="border-b border-(--color-border) transition last:border-0 hover:bg-(--color-accent)/60">
+              <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= customer.name %></td>
+              <td class="px-4 py-3 text-sm text-(--color-muted-foreground)"><%= customer.phone.presence || "—" %></td>
+              <td class="w-10 px-2 py-3 text-right">
+                <div data-controller="menu" class="relative inline-block text-left">
+                  <button type="button" data-menu-target="button" data-action="menu#toggle" class="rounded-md p-1.5 text-neutral-500 transition hover:bg-(--color-accent) hover:text-neutral-900" aria-label="Row actions">
+                    <%= inline_svg_tag "icons/dots-vertical.svg", class: "h-4 w-4" %>
+                  </button>
+                  <div data-menu-target="menu" class="hidden w-36 rounded-md border border-(--color-border) bg-white py-1 shadow-md">
+                    <%= link_to "Edit", edit_customer_path(customer), class: "block px-3 py-1.5 text-sm text-neutral-700 transition hover:bg-(--color-accent)" %>
+                    <div class="my-1 h-px bg-(--color-border)"></div>
+                    <%= button_to "Delete", customer_path(customer), method: :delete, class: "block w-full bg-transparent px-3 py-1.5 text-left text-sm text-red-600 transition hover:bg-red-50", form: { data: { turbo_confirm: "Delete this customer?" } } %>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

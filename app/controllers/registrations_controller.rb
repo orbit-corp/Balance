@@ -12,7 +12,6 @@ class RegistrationsController < ApplicationController
       workspace = Workspace.create!(name: params[:business_name])
       @user.workspace = workspace
       @user.save!
-      Category.seed_defaults_for(workspace)
     end
 
     start_new_session_for @user

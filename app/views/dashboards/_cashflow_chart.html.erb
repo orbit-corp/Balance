@@ -1,0 +1,19 @@
+<% series = summary.daily_series(days: 90).map { |d| { date: d[:date].iso8601, net_kobo: d[:net_kobo] } } %>
+
+<%= tag.div class: "rounded-xl border border-(--color-border) bg-white p-5 shadow-sm", data: { controller: "chart", chart_series_value: series.to_json } do %>
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2 class="text-base font-semibold text-neutral-900">Cash flow</h2>
+      <p class="text-sm text-(--color-muted-foreground)">Running balance over the selected period</p>
+    </div>
+    <div class="inline-flex rounded-lg border border-(--color-border) bg-(--color-accent) p-0.5 text-xs font-medium">
+      <button type="button" data-chart-target="range" data-days="90" data-action="chart#setRange" class="rounded-md px-3 py-1.5 text-neutral-500 transition">Last 3 months</button>
+      <button type="button" data-chart-target="range" data-days="30" data-action="chart#setRange" class="rounded-md bg-gradient-to-b from-white to-neutral-50 px-3 py-1.5 text-neutral-900 shadow-sm transition">Last 30 days</button>
+      <button type="button" data-chart-target="range" data-days="7" data-action="chart#setRange" class="rounded-md px-3 py-1.5 text-neutral-500 transition">Last 7 days</button>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <svg data-chart-target="svg" viewBox="0 0 720 220" class="h-[220px] w-full" role="img" aria-label="Cash flow chart"></svg>
+  </div>
+<% end %>

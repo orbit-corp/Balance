@@ -31,7 +31,7 @@ class LoggingASaleTest < ApplicationSystemTestCase
     click_on "Add expense", match: :first
 
     assert_no_selector "[data-transaction-form-target='customerField']", visible: true
-    assert_selector "select#transaction_category_id option[selected]", text: "Other"
+    assert_selector "select#transaction_category option[selected]", text: "Other"
 
     fill_in "Amount (₦)", with: "300"
     click_on "Add entry"

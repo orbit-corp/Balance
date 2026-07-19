@@ -1,6 +1,9 @@
+<% field_classes = "w-full rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm shadow-sm transition focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10" %>
+<% label_classes = "mb-1.5 block text-sm font-medium text-neutral-700" %>
+
 <%= form_with model: customer, class: "space-y-4" do |form| %>
   <% if customer.errors.any? %>
-    <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       <ul class="list-disc pl-4">
         <% customer.errors.full_messages.each do |message| %>
           <li><%= message %></li>
@@ -10,14 +13,14 @@
   <% end %>
 
   <div>
-    <%= form.label :name, "Name", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
-    <%= form.text_field :name, required: true, autofocus: true, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
+    <%= form.label :name, "Name", class: label_classes %>
+    <%= form.text_field :name, required: true, autofocus: true, class: field_classes %>
   </div>
 
   <div>
-    <%= form.label :phone, "Phone (optional)", class: "mb-1 block text-sm font-medium text-(--color-muted-foreground)" %>
-    <%= form.telephone_field :phone, class: "w-full rounded-md border border-(--color-border) px-4 py-3 text-base" %>
+    <%= form.label :phone, "Phone (optional)", class: label_classes %>
+    <%= form.telephone_field :phone, class: field_classes %>
   </div>
 
-  <%= form.submit customer.persisted? ? "Save changes" : "Add customer", class: "w-full rounded-md bg-neutral-900 px-4 py-3 text-base font-medium text-white" %>
+  <%= form.submit customer.persisted? ? "Save changes" : "Add customer", class: "w-full cursor-pointer rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
 <% end %>

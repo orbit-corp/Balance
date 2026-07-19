@@ -1,14 +1,19 @@
-<% content_for :title, "All entries" %>
+<% content_for :title, "Transactions" %>
 
-<h1 class="mb-4 text-xl font-semibold text-neutral-900">All entries</h1>
+<div class="space-y-4">
+  <div>
+    <h1 class="text-xl font-semibold text-neutral-900">All entries</h1>
+    <p class="text-sm text-(--color-muted-foreground)">Every sale and expense in your books</p>
+  </div>
 
-<% if @transactions.empty? %>
-  <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
-    <p class="text-neutral-600">No entries yet.</p>
-    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block font-medium text-neutral-900 underline" %>
-  </div>
-<% else %>
-  <div class="rounded-xl border border-(--color-border) bg-white px-4">
-    <%= render partial: "transaction", collection: @transactions %>
-  </div>
-<% end %>
+  <%= turbo_frame_tag "transaction_form", class: "block empty:hidden [&:not(:empty)]:mb-2" %>
+
+  <% if @transactions.empty? %>
+    <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
+      <p class="text-sm text-(--color-muted-foreground)">No entries yet.</p>
+      <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
+    </div>
+  <% else %>
+    <%= render "transactions/table", transactions: @transactions %>
+  <% end %>
+</div>

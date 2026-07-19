@@ -7,4 +7,8 @@ export default class extends Controller {
     this.panelTarget.classList.toggle("-translate-x-full")
     this.backdropTarget.classList.toggle("hidden")
   }
+
+  collapse() {
+    this.panelTarget.classList.toggle("md:hidden")
+  }
 }

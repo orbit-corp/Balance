@@ -1,3 +1,5 @@
-<h1 class="mb-4 text-xl font-semibold text-neutral-900">New customer</h1>
+<% content_for :title, "New customer" %>
 
-<%= render "form", customer: @customer %>
+<div class="max-w-lg rounded-xl border border-(--color-border) bg-white p-6 shadow-sm">
+  <%= render "form", customer: @customer %>
+</div>

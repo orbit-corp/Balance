@@ -1,26 +1,38 @@
-<div class="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-  <div class="w-full max-w-sm space-y-6">
-    <h1 class="text-2xl font-semibold text-neutral-900">Create your workspace</h1>
+<% field_classes = "w-full rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm shadow-sm transition focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10" %>
 
-    <% if @user.errors.any? %>
-      <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
-        <ul class="list-disc pl-4">
-          <% @user.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
+<div class="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+  <div class="w-full max-w-sm">
+    <div class="mb-6 flex items-center justify-center gap-2">
+      <span class="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-900 text-sm font-semibold text-white">S</span>
+      <span class="text-lg font-semibold text-neutral-900">Stubby</span>
+    </div>
+
+    <div class="space-y-5 rounded-xl border border-(--color-border) bg-white p-6 shadow-sm">
+      <div>
+        <h1 class="text-lg font-semibold text-neutral-900">Create your workspace</h1>
+        <p class="text-sm text-(--color-muted-foreground)">Start keeping your books in one place.</p>
       </div>
-    <% end %>
 
-    <%= form_with url: registration_path, class: "space-y-4" do |form| %>
-      <input type="text" name="business_name" required autofocus placeholder="Business name" value="<%= params[:business_name] %>" class="w-full rounded-md border border-(--color-border) px-4 py-3 text-base">
-      <input type="email" name="email_address" required autocomplete="username" placeholder="Email address" value="<%= params[:email_address] %>" class="w-full rounded-md border border-(--color-border) px-4 py-3 text-base">
-      <input type="password" name="password" required autocomplete="new-password" placeholder="Password" maxlength="72" class="w-full rounded-md border border-(--color-border) px-4 py-3 text-base">
-      <%= form.submit "Create account", class: "w-full rounded-md bg-neutral-900 px-4 py-3 text-base font-medium text-white" %>
-    <% end %>
+      <% if @user.errors.any? %>
+        <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <ul class="list-disc pl-4">
+            <% @user.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
 
-    <div class="text-sm">
-      <%= link_to "Already have an account? Sign in", new_session_path, class: "text-(--color-muted-foreground)" %>
+      <%= form_with url: registration_path, class: "space-y-4" do |form| %>
+        <input type="text" name="business_name" required autofocus placeholder="Business name" value="<%= params[:business_name] %>" class="<%= field_classes %>">
+        <input type="email" name="email_address" required autocomplete="username" placeholder="Email address" value="<%= params[:email_address] %>" class="<%= field_classes %>">
+        <input type="password" name="password" required autocomplete="new-password" placeholder="Password" maxlength="72" class="<%= field_classes %>">
+        <%= form.submit "Create account", class: "w-full cursor-pointer rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+      <% end %>
+
+      <div class="text-sm">
+        <%= link_to "Already have an account? Sign in", new_session_path, class: "text-(--color-muted-foreground) hover:text-neutral-900" %>
+      </div>
     </div>
   </div>
 </div>

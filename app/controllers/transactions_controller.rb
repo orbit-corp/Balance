@@ -2,13 +2,12 @@ class TransactionsController < ApplicationController
   before_action :set_transaction, only: %i[edit update destroy]
 
   def index
-    @transactions = current_workspace.transactions.includes(:category, :customer).order(occurred_on: :desc, id: :desc)
+    @transactions = current_workspace.transactions.includes(:customer).order(occurred_on: :desc, id: :desc)
   end
 
   def new
     kind = params[:kind] || "income"
-    default_category_name = kind == "expense" ? "Other" : "Sales"
-    default_category = current_workspace.categories.find_by(kind: kind, name: default_category_name)
+    default_category = kind == "expense" ? "Other" : "Sales"
 
     @transaction = current_workspace.transactions.build(kind: kind, category: default_category, occurred_on: Date.current)
   end
@@ -57,6 +56,6 @@ class TransactionsController < ApplicationController
     end
 
     def transaction_params
-      params.require(:transaction).permit(:kind, :amount, :category_id, :customer_id, :occurred_on, :note)
+      params.require(:transaction).permit(:kind, :amount, :category, :customer_id, :occurred_on, :description)
     end
 end

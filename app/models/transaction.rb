@@ -1,6 +1,5 @@
 class Transaction < ApplicationRecord
   belongs_to :workspace
-  belongs_to :category
   belongs_to :customer, optional: true
 
   enum :kind, { income: 0, expense: 1 }
@@ -8,9 +7,8 @@ class Transaction < ApplicationRecord
   validates :amount_kobo, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :kind, presence: true
   validates :occurred_on, presence: true
+  validates :category, presence: true, inclusion: { in: ->(transaction) { ApplicationHelper::TRANSACTION_CATEGORIES.fetch(transaction.kind, []) } }
 
-  validate :category_kind_matches_transaction_kind
-  validate :category_belongs_to_same_workspace
   validate :customer_belongs_to_same_workspace
   validate :customer_only_present_for_income
 
@@ -25,18 +23,6 @@ class Transaction < ApplicationRecord
   end
 
   private
-    def category_kind_matches_transaction_kind
-      return if category.nil? || kind.nil?
-
-      errors.add(:category, "must match transaction kind") unless category.kind == kind
-    end
-
-    def category_belongs_to_same_workspace
-      return if category.nil? || workspace.nil?
-
-      errors.add(:category, "must belong to the same workspace") unless category.workspace_id == workspace_id
-    end
-
     def customer_belongs_to_same_workspace
       return if customer.nil? || workspace.nil?
 

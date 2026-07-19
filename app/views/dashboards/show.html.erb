@@ -5,16 +5,14 @@
     <%= render "dashboards/period_cards", summary: @summary %>
   </div>
 
-  <div class="grid grid-cols-2 gap-3">
-    <%= link_to "+ Add sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "rounded-md bg-neutral-900 px-4 py-4 text-center text-base font-medium text-white" %>
-    <%= link_to "+ Add expense", new_transaction_path(kind: "expense"), data: { turbo_frame: "transaction_form" }, class: "rounded-md border border-(--color-border) px-4 py-4 text-center text-base font-medium text-neutral-900" %>
-  </div>
-
-  <%= turbo_frame_tag "transaction_form" %>
+  <%= render "dashboards/cashflow_chart", summary: @summary %>
 
   <div>
-    <h2 class="mb-3 text-sm font-medium text-(--color-muted-foreground)">Recent activity</h2>
-    <div id="recent_feed" class="space-y-2">
+    <h2 class="mb-3 text-base font-semibold text-neutral-900">Recent activity</h2>
+
+    <%= turbo_frame_tag "transaction_form", class: "block empty:hidden [&:not(:empty)]:mb-4" %>
+
+    <div id="recent_feed">
       <%= render "dashboards/recent_feed", summary: @summary %>
     </div>
   </div>

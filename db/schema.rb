@@ -14,16 +14,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "categories", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "kind", null: false
-    t.string "name", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "workspace_id", null: false
-    t.index ["workspace_id", "kind"], name: "index_categories_on_workspace_id_and_kind"
-    t.index ["workspace_id"], name: "index_categories_on_workspace_id"
-  end
-
   create_table "customers", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -45,15 +35,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000006) do
 
   create_table "transactions", force: :cascade do |t|
     t.integer "amount_kobo", null: false
-    t.bigint "category_id", null: false
+    t.string "category", null: false
     t.datetime "created_at", null: false
     t.bigint "customer_id"
+    t.text "description"
     t.integer "kind", null: false
-    t.text "note"
     t.date "occurred_on", null: false
     t.datetime "updated_at", null: false
     t.bigint "workspace_id", null: false
-    t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["customer_id"], name: "index_transactions_on_customer_id"
     t.index ["workspace_id", "kind"], name: "index_transactions_on_workspace_id_and_kind"
     t.index ["workspace_id", "occurred_on"], name: "index_transactions_on_workspace_id_and_occurred_on"
@@ -76,10 +65,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000006) do
     t.datetime "updated_at", null: false
   end
 
-  add_foreign_key "categories", "workspaces"
   add_foreign_key "customers", "workspaces"
   add_foreign_key "sessions", "users"
-  add_foreign_key "transactions", "categories"
   add_foreign_key "transactions", "customers"
   add_foreign_key "transactions", "workspaces"
   add_foreign_key "users", "workspaces"

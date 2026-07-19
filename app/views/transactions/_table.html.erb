@@ -1,0 +1,61 @@
+<% all_count = transactions.size %>
+<% sales_count = transactions.count(&:income?) %>
+<% expense_count = all_count - sales_count %>
+<% tab_pill = "flex items-center gap-1.5 rounded-md px-3 py-1.5 transition" %>
+<% tab_badge = "rounded bg-(--color-accent) px-1.5 py-0.5 text-xs text-neutral-600 tabular-nums" %>
+
+<div class="space-y-3" data-controller="datatable">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="inline-flex rounded-lg border border-(--color-border) bg-(--color-accent) p-0.5 text-sm font-medium">
+      <button type="button" data-datatable-target="tab" data-kind="all" data-action="datatable#filter" class="<%= tab_pill %> bg-gradient-to-b from-white to-neutral-50 text-neutral-900 shadow-sm">
+        All <span class="<%= tab_badge %>"><%= all_count %></span>
+      </button>
+      <button type="button" data-datatable-target="tab" data-kind="income" data-action="datatable#filter" class="<%= tab_pill %> text-neutral-500">
+        Sales <span class="<%= tab_badge %>"><%= sales_count %></span>
+      </button>
+      <button type="button" data-datatable-target="tab" data-kind="expense" data-action="datatable#filter" class="<%= tab_pill %> text-neutral-500">
+        Expenses <span class="<%= tab_badge %>"><%= expense_count %></span>
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <%= link_to new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "flex items-center gap-1.5 rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+        <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
+        Add sale
+      <% end %>
+      <%= link_to "Add expense", new_transaction_path(kind: "expense"), data: { turbo_frame: "transaction_form" }, class: "rounded-md border border-(--color-border) bg-white px-3.5 py-2 text-sm font-medium text-neutral-900 transition hover:bg-(--color-accent)" %>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-(--color-border) bg-white">
+    <div class="hidden md:block overflow-x-auto">
+      <table class="w-full min-w-[720px] text-left">
+        <thead>
+          <tr class="border-b border-(--color-border) bg-(--color-accent)/60 text-xs text-(--color-muted-foreground)">
+            <th class="w-8 px-0 pl-4">
+              <input type="checkbox" data-datatable-target="selectAll" data-action="datatable#toggleAll" class="ui-checkbox" aria-label="Select all">
+            </th>
+            <th class="px-4 py-2.5 font-medium w-full">Description</th>
+            <th class="px-4 py-2.5 font-medium">Party</th>
+            <th class="px-4 py-2.5 font-medium">Amount</th>
+            <th class="px-4 py-2.5 font-medium">Type</th>
+            <th class="px-4 py-2.5 font-medium">Date</th>
+            <th class="w-10"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= render partial: "transactions/transaction", collection: transactions %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="md:hidden divide-y divide-(--color-border)">
+      <%= render partial: "transactions/mobile_card", collection: transactions, as: :transaction %>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 border-t border-(--color-border) px-4 py-3 text-sm text-(--color-muted-foreground)">
+      <span data-datatable-target="count">0 of <%= all_count %> row(s) selected.</span>
+      <span class="tabular-nums">Showing <%= pluralize(all_count, "entry") %></span>
+    </div>
+  </div>
+</div>

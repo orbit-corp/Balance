@@ -1,5 +1,6 @@
+<% content_for :title, "Edit entry" %>
 <%= turbo_frame_tag "transaction_form" do %>
-  <div class="rounded-lg border border-(--color-border) bg-white p-4">
+  <div class="max-w-lg rounded-xl border border-(--color-border) bg-white p-5 shadow-sm">
     <h2 class="mb-4 text-lg font-semibold text-neutral-900">Edit entry</h2>
 
     <%= render "form", transaction: @transaction %>
