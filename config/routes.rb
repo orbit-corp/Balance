@@ -13,7 +13,18 @@ Rails.application.routes.draw do
   resource :registration, only: %i[new create]
   resources :passwords, param: :token
 
+  namespace :webhooks do
+    resource :whatsapp, only: %i[show create], controller: "whatsapp"
+  end
+
   resource :dashboard, only: [ :show ]
+  resources :integrations, only: [ :index ]
+  namespace :integrations do
+    resource :whatsapp, only: [], controller: "whatsapp" do
+      post :connect
+      delete :disconnect
+    end
+  end
   resources :transactions
   resources :customers
 

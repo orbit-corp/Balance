@@ -31,6 +31,13 @@
     </nav>
   </div>
 
+  <div class="mt-5">
+    <p class="px-3 pb-1 text-xs font-medium text-(--color-muted-foreground)">Workspace</p>
+    <nav class="flex flex-col gap-1">
+      <%= nav_link.call(integrations_path, "Integrations", current_page?(integrations_path), "icons/puzzle.svg") %>
+    </nav>
+  </div>
+
   <div class="mt-auto border-t border-(--color-border) pt-3">
     <div data-controller="menu" class="relative">
       <button type="button" data-menu-target="button" data-action="menu#toggle" class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition hover:bg-(--color-accent)">

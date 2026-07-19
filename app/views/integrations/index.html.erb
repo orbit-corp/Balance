@@ -1,0 +1,14 @@
+<% content_for :title, "Integrations" %>
+
+<%= turbo_stream_from "workspace_#{current_workspace.id}_integrations" %>
+
+<div class="space-y-4">
+  <div>
+    <h1 class="text-xl font-semibold text-neutral-900">Integrations</h1>
+    <p class="text-sm text-(--color-muted-foreground)">Connect the tools your business already runs on.</p>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <%= render "integrations/whatsapp_card", link: @whatsapp_link, token: @whatsapp_token %>
+  </div>
+</div>
