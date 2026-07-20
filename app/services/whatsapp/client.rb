@@ -1,5 +1,10 @@
 # Required ENV: WHATSAPP_VERIFY_TOKEN, WHATSAPP_APP_SECRET, WHATSAPP_ACCESS_TOKEN,
 # WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_BUSINESS_NUMBER
+# Media downloads live in Whatsapp::MediaDownloader.
+require "net/http"
+require "uri"
+require "json"
+
 module Whatsapp
   class Client
     GRAPH_API_VERSION = "v25.0"

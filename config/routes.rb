@@ -27,6 +27,7 @@ Rails.application.routes.draw do
   end
   resources :transactions
   resources :customers
+  resources :messages, only: [ :index ]
 
   root "dashboards#show"
 end

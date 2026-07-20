@@ -22,6 +22,7 @@
   <nav class="mt-4 flex flex-col gap-1">
     <%= nav_link.call(dashboard_path, "Dashboard", current_page?(dashboard_path) || current_page?(root_path), "icons/home.svg") %>
     <%= nav_link.call(transactions_path, "Transactions", current_page?(transactions_path), "icons/list.svg") %>
+    <%= nav_link.call(messages_path, "Messages", current_page?(messages_path), "icons/message-circle.svg") %>
   </nav>
 
   <div class="mt-5">

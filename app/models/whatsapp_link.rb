@@ -1,5 +1,6 @@
 class WhatsappLink < ApplicationRecord
   belongs_to :workspace
+  has_many :whatsapp_messages, dependent: :nullify
 
   enum :status, { pending: 0, active: 1 }
 

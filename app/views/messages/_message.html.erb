@@ -1,0 +1,26 @@
+<div id="<%= dom_id(message) %>" class="flex flex-col items-start gap-1">
+  <div class="max-w-[85%] rounded-lg rounded-tl-sm bg-(--color-accent) px-3 py-2 text-sm text-neutral-900 sm:max-w-[60%]">
+    <% if message.message_type == "text" %>
+      <p class="whitespace-pre-wrap break-words"><%= message.body %></p>
+    <% elsif message.media_image? %>
+      <% if message.media.attached? %>
+        <%= image_tag message.media, class: "rounded-lg max-w-[240px]" %>
+      <% elsif message.media_status == "failed" %>
+        <p class="text-red-600 italic">Couldn't download this image</p>
+      <% else %>
+        <p class="text-(--color-muted-foreground) italic">Downloading image…</p>
+      <% end %>
+    <% elsif %w[document audio video sticker].include?(message.message_type) %>
+      <% if message.media.attached? %>
+        <%= link_to message.media.filename, url_for(message.media), class: "inline-flex items-center gap-2 rounded-md border border-(--color-border) bg-white px-2 py-1 text-sm text-neutral-900 hover:bg-(--color-accent)" %>
+      <% elsif message.media_status == "failed" %>
+        <p class="text-red-600 italic">Couldn't download this attachment</p>
+      <% else %>
+        <p class="text-(--color-muted-foreground) italic">Downloading attachment…</p>
+      <% end %>
+    <% else %>
+      <p class="text-(--color-muted-foreground) italic">[<%= message.message_type %>]</p>
+    <% end %>
+  </div>
+  <p class="px-1 text-xs text-(--color-muted-foreground)"><%= message.sent_at&.strftime("%b %-d, %-l:%M %p") %></p>
+</div>

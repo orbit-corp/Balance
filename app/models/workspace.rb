@@ -4,6 +4,7 @@ class Workspace < ApplicationRecord
   has_many :customers, dependent: :destroy
   has_many :linking_tokens, dependent: :destroy
   has_many :whatsapp_links, dependent: :destroy
+  has_many :whatsapp_messages, dependent: :destroy
 
   validates :name, presence: true
 
