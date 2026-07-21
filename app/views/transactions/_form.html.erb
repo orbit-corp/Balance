@@ -2,6 +2,10 @@
 <% label_classes = "mb-1.5 block text-sm font-medium text-neutral-700" %>
 
 <%= form_with model: transaction, class: "space-y-4", data: { controller: "transaction-form" } do |form| %>
+  <% if params[:whatsapp_document_extraction_id].present? %>
+    <%= hidden_field_tag :whatsapp_document_extraction_id, params[:whatsapp_document_extraction_id] %>
+  <% end %>
+
   <% if transaction.errors.any? %>
     <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       <ul class="list-disc pl-4">

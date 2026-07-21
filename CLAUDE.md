@@ -1,7 +1,5 @@
 # stubby
 
-An advanced URL shortener (Rails app). The point of this project is not just to ship it — it's for Victor to learn system design and engineering trade-offs by building it incrementally.
-
 ## Working rule (non-negotiable)
 
 Do not implement any new feature, endpoint, schema change, or architectural component until it has been brainstormed and discussed with Victor first. This applies at the start of every session, including new ones — check this file before writing code.

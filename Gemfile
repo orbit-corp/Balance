@@ -47,6 +47,12 @@ gem "image_processing", "~> 1.2"
 # Loads environment variables from .env [https://github.com/bkeepers/dotenv]
 gem "dotenv-rails"
 
+# Vision layer: extract text from forwarded bank-transfer attachments (no external API).
+# Read text-based PDFs directly [https://github.com/yob/pdf-reader]
+gem "pdf-reader"
+# OCR image screenshots via the Tesseract engine [https://github.com/dannnylo/rtesseract]
+gem "rtesseract"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

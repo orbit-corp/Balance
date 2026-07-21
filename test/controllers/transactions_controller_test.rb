@@ -65,4 +65,48 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :not_found
   end
+
+  test "recording from a WhatsApp extraction stamps provenance and marks it recorded" do
+    extraction = recordable_extraction
+
+    assert_difference "@workspace.transactions.count", 1 do
+      post transactions_path, params: {
+        transaction: { kind: "expense", amount: "800.00", category: "Restock", occurred_on: Date.new(2026, 7, 4) },
+        whatsapp_document_extraction_id: extraction.id
+      }
+    end
+
+    assert_redirected_to document_reviews_path
+    transaction = @workspace.transactions.last
+    assert transaction.source_whatsapp?
+    assert_equal extraction.whatsapp_message_id, transaction.whatsapp_message_id
+    assert extraction.reload.review_recorded?
+    assert_equal transaction.id, extraction.transaction_id
+  end
+
+  test "refuses to record the same extraction twice" do
+    extraction = recordable_extraction
+    extraction.update!(review_status: :recorded)
+
+    assert_no_difference "Transaction.count" do
+      post transactions_path, params: {
+        transaction: { kind: "expense", amount: "800.00", category: "Restock", occurred_on: Date.new(2026, 7, 4) },
+        whatsapp_document_extraction_id: extraction.id
+      }
+    end
+
+    assert_redirected_to document_reviews_path
+  end
+
+  private
+    def recordable_extraction
+      message = @workspace.whatsapp_messages.create!(
+        wamid: "wamid.rec.#{rand(1_000_000)}", message_type: "document", media_id: "m",
+        sent_at: Time.current, classification_status: :classified
+      )
+      message.create_document_extraction!(
+        document_type: :bank_transfer, currency: "NGN", currency_supported: true,
+        amount_kobo: 80_000, direction_guess: :outward
+      )
+    end
 end

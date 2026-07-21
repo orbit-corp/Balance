@@ -1,8 +1,10 @@
 class Transaction < ApplicationRecord
   belongs_to :workspace
   belongs_to :customer, optional: true
+  belongs_to :whatsapp_message, optional: true
 
   enum :kind, { income: 0, expense: 1 }
+  enum :source, { manual: 0, whatsapp: 1 }, prefix: :source
 
   validates :amount_kobo, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :kind, presence: true

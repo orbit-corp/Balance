@@ -49,4 +49,34 @@ class WhatsappMediaDownloadJobTest < ActiveJob::TestCase
       WhatsappMediaDownloadJob.perform_now(-1)
     end
   end
+
+  test "enqueues classification for image attachments" do
+    Whatsapp::MediaDownloader.stub :call, { io: StringIO.new("bytes"), content_type: "image/jpeg", filename: "m.jpg" } do
+      assert_enqueued_with(job: WhatsappDocumentExtractionJob, args: [ @message.id ]) do
+        WhatsappMediaDownloadJob.perform_now(@message.id)
+      end
+    end
+  end
+
+  test "enqueues classification for document attachments" do
+    doc = @workspace.whatsapp_messages.create!(
+      wamid: "wamid.media.doc", message_type: "document", media_id: "d1", sent_at: Time.current
+    )
+    Whatsapp::MediaDownloader.stub :call, { io: StringIO.new("bytes"), content_type: "application/pdf", filename: "d1.pdf" } do
+      assert_enqueued_with(job: WhatsappDocumentExtractionJob, args: [ doc.id ]) do
+        WhatsappMediaDownloadJob.perform_now(doc.id)
+      end
+    end
+  end
+
+  test "does not enqueue classification for non-classifiable types" do
+    audio = @workspace.whatsapp_messages.create!(
+      wamid: "wamid.media.audio", message_type: "audio", media_id: "a1", sent_at: Time.current
+    )
+    Whatsapp::MediaDownloader.stub :call, { io: StringIO.new("bytes"), content_type: "audio/ogg", filename: "a1.ogg" } do
+      assert_no_enqueued_jobs only: WhatsappDocumentExtractionJob do
+        WhatsappMediaDownloadJob.perform_now(audio.id)
+      end
+    end
+  end
 end

@@ -28,6 +28,9 @@ Rails.application.routes.draw do
   resources :transactions
   resources :customers
   resources :messages, only: [ :index ]
+  resources :document_reviews, only: [ :index ] do
+    patch :dismiss, on: :member
+  end
 
   root "dashboards#show"
 end

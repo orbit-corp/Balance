@@ -5,6 +5,7 @@ class Workspace < ApplicationRecord
   has_many :linking_tokens, dependent: :destroy
   has_many :whatsapp_links, dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy
+  has_many :whatsapp_document_extractions, through: :whatsapp_messages, source: :document_extraction
 
   validates :name, presence: true
 

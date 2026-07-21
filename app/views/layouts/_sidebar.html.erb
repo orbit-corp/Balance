@@ -19,10 +19,18 @@
     <% end %>
   </div>
 
+  <% review_count = current_workspace.whatsapp_document_extractions.awaiting_review.count %>
   <nav class="mt-4 flex flex-col gap-1">
     <%= nav_link.call(dashboard_path, "Dashboard", current_page?(dashboard_path) || current_page?(root_path), "icons/home.svg") %>
     <%= nav_link.call(transactions_path, "Transactions", current_page?(transactions_path), "icons/list.svg") %>
     <%= nav_link.call(messages_path, "Messages", current_page?(messages_path), "icons/message-circle.svg") %>
+    <%= link_to document_reviews_path, class: "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition #{current_page?(document_reviews_path) ? "bg-(--color-accent) text-neutral-900" : "text-neutral-600 hover:bg-(--color-accent) hover:text-neutral-900"}" do %>
+      <%= inline_svg_tag "icons/check-circle.svg", class: "h-4 w-4 flex-none" %>
+      <span class="flex-1">Review</span>
+      <% if review_count.positive? %>
+        <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1.5 text-xs font-semibold text-white"><%= review_count %></span>
+      <% end %>
+    <% end %>
   </nav>
 
   <div class="mt-5">

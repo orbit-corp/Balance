@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_20_122907) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_144834) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -201,9 +201,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_122907) do
     t.text "description"
     t.integer "kind", null: false
     t.date "occurred_on", null: false
+    t.integer "source", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.bigint "whatsapp_message_id"
     t.bigint "workspace_id", null: false
     t.index ["customer_id"], name: "index_transactions_on_customer_id"
+    t.index ["whatsapp_message_id"], name: "index_transactions_on_whatsapp_message_id"
     t.index ["workspace_id", "kind"], name: "index_transactions_on_workspace_id_and_kind"
     t.index ["workspace_id", "occurred_on"], name: "index_transactions_on_workspace_id_and_occurred_on"
     t.index ["workspace_id"], name: "index_transactions_on_workspace_id"
@@ -217,6 +220,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_122907) do
     t.bigint "workspace_id", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["workspace_id"], name: "index_users_on_workspace_id"
+  end
+
+  create_table "whatsapp_document_extractions", force: :cascade do |t|
+    t.integer "amount_kobo"
+    t.float "confidence"
+    t.datetime "created_at", null: false
+    t.string "currency"
+    t.boolean "currency_supported", default: false, null: false
+    t.integer "direction_guess", default: 0, null: false
+    t.integer "document_type", default: 0, null: false
+    t.text "narration"
+    t.text "raw_text"
+    t.string "recipient_bank"
+    t.string "recipient_name"
+    t.string "reference_number"
+    t.integer "review_status", default: 0, null: false
+    t.string "sender_name"
+    t.date "transaction_date"
+    t.bigint "transaction_id"
+    t.datetime "updated_at", null: false
+    t.bigint "whatsapp_message_id", null: false
+    t.index ["transaction_id"], name: "index_whatsapp_document_extractions_on_transaction_id"
+    t.index ["whatsapp_message_id"], name: "index_whatsapp_document_extractions_on_whatsapp_message_id", unique: true
   end
 
   create_table "whatsapp_links", force: :cascade do |t|
@@ -236,6 +262,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_122907) do
 
   create_table "whatsapp_messages", force: :cascade do |t|
     t.text "body"
+    t.integer "classification_status", default: 0, null: false
     t.datetime "created_at", null: false
     t.integer "direction", default: 0, null: false
     t.string "media_id"
@@ -277,8 +304,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_122907) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "transactions", "customers"
+  add_foreign_key "transactions", "whatsapp_messages"
   add_foreign_key "transactions", "workspaces"
   add_foreign_key "users", "workspaces"
+  add_foreign_key "whatsapp_document_extractions", "transactions"
+  add_foreign_key "whatsapp_document_extractions", "whatsapp_messages"
   add_foreign_key "whatsapp_links", "workspaces"
   add_foreign_key "whatsapp_messages", "whatsapp_links"
   add_foreign_key "whatsapp_messages", "workspaces"

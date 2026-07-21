@@ -22,5 +22,16 @@
       <p class="text-(--color-muted-foreground) italic">[<%= message.message_type %>]</p>
     <% end %>
   </div>
+
+  <% if message.classified? && (extraction = message.document_extraction).present? %>
+    <% if extraction.bank_transfer? && extraction.currency_supported? && extraction.amount_kobo.present? %>
+      <span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+        💰 <%= format_naira(extraction.amount_kobo) %><%= " · #{extraction.transaction_date.strftime("%b %-d")}" if extraction.transaction_date %>
+      </span>
+    <% elsif extraction.bank_transfer? || extraction.needs_review? %>
+      <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Possibly financial — review</span>
+    <% end %>
+  <% end %>
+
   <p class="px-1 text-xs text-(--color-muted-foreground)"><%= message.sent_at&.strftime("%b %-d, %-l:%M %p") %></p>
 </div>

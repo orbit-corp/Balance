@@ -13,4 +13,14 @@ module ApplicationHelper
 
     transaction.customer ? "from #{transaction.customer.name}" : "—"
   end
+
+  # A sensible default description when recording a detected WhatsApp transfer.
+  def review_description(extraction)
+    return extraction.narration if extraction.narration.present?
+
+    parts = []
+    parts << "Transfer to #{extraction.recipient_name}" if extraction.recipient_name.present?
+    parts << "Ref #{extraction.reference_number}" if extraction.reference_number.present?
+    parts.join(" · ").presence
+  end
 end
