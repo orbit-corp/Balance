@@ -2,6 +2,8 @@ class Workspace < ApplicationRecord
   has_many :users, dependent: :destroy
   has_many :transactions, dependent: :destroy
   has_many :customers, dependent: :destroy
+  has_many :campaigns, dependent: :destroy
+  has_many :conversions, dependent: :destroy
   has_many :linking_tokens, dependent: :destroy
   has_many :whatsapp_links, dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy

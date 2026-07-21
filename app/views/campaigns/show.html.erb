@@ -1,0 +1,45 @@
+<% content_for :title, @campaign.name %>
+
+<div class="mx-auto max-w-3xl space-y-4">
+  <div>
+    <p class="text-sm text-(--color-muted-foreground)">
+      <%= link_to "Campaigns", campaigns_path, class: "hover:text-neutral-900" %>
+      <span class="px-1">›</span>
+      <span class="text-neutral-700"><%= @campaign.name %></span>
+    </p>
+    <div class="mt-1 flex items-center gap-2">
+      <h1 class="text-xl font-semibold text-neutral-900"><%= @campaign.name %></h1>
+      <%= campaign_status_badge(@campaign) %>
+    </div>
+    <p class="mt-0.5 text-xs text-(--color-muted-foreground)">
+      <%= pluralize(@campaign.campaign_channels.size, "channel") %> · <%= pluralize(@campaign.shortlinks.size, "link") %> · <%= number_with_delimiter(@campaign.total_clicks) %> clicks
+    </p>
+  </div>
+
+  <div class="flex items-center justify-between border-b border-(--color-border)">
+    <nav class="flex gap-1">
+      <% CampaignsController::TABS.each do |tab| %>
+        <%= link_to tab.capitalize, campaign_path(@campaign, tab: tab),
+              class: "border-b-2 px-3 py-2 text-sm font-medium transition #{@tab == tab ? "border-neutral-900 text-neutral-900" : "border-transparent text-(--color-muted-foreground) hover:text-neutral-900"}" %>
+      <% end %>
+    </nav>
+
+    <div data-controller="menu" class="relative pb-1">
+      <button type="button" data-menu-target="button" data-action="menu#toggle" class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-(--color-muted-foreground) transition hover:bg-(--color-accent) hover:text-neutral-900">
+        More
+        <span class="text-xs">⌄</span>
+      </button>
+
+      <div data-menu-target="menu" class="hidden w-48 rounded-lg border border-(--color-border) bg-white p-1 shadow-md">
+        <%= button_to campaign_path(@campaign), method: :patch, params: { status: @campaign.active? ? "archived" : "active" },
+              class: "w-full rounded-md bg-transparent px-2 py-2 text-left text-sm text-neutral-700 transition hover:bg-(--color-accent)" do %>
+          <%= @campaign.active? ? "Archive campaign" : "Restore campaign" %>
+        <% end %>
+        <span class="block cursor-not-allowed rounded-md px-2 py-2 text-left text-sm text-neutral-400">Export — soon</span>
+        <span class="block cursor-not-allowed rounded-md px-2 py-2 text-left text-sm text-neutral-400">Bulk QR — soon</span>
+      </div>
+    </div>
+  </div>
+
+  <%= render "campaigns/#{@tab}", campaign: @campaign %>
+</div>

@@ -31,6 +31,15 @@ Rails.application.routes.draw do
   resources :document_reviews, only: [ :index ] do
     patch :dismiss, on: :member
   end
+  resources :campaigns, only: %i[index new create show update] do
+    resources :conversions, only: %i[create]
+    resources :campaign_channels, only: %i[create], path: "channels" do
+      resources :shortlinks, only: %i[create]
+    end
+  end
 
   root "dashboards#show"
+
+  # Redirect engine — must stay last so it never shadows a named route above.
+  get "/:slug", to: "redirects#show", constraints: { slug: /[a-z0-9-]+/ }
 end

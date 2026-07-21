@@ -31,6 +31,7 @@
         <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1.5 text-xs font-semibold text-white"><%= review_count %></span>
       <% end %>
     <% end %>
+    <%= nav_link.call(campaigns_path, "Campaigns", current_page?(campaigns_path), "icons/whatsapp.svg") %>
   </nav>
 
   <div class="mt-5">

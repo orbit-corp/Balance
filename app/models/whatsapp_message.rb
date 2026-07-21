@@ -1,6 +1,7 @@
 class WhatsappMessage < ApplicationRecord
   belongs_to :workspace
   belongs_to :whatsapp_link, optional: true
+  belongs_to :matched_shortlink, class_name: "Shortlink", optional: true
   has_one_attached :media
   has_one :document_extraction, class_name: "WhatsappDocumentExtraction", dependent: :destroy
 

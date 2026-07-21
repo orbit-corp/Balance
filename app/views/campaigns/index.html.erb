@@ -1,0 +1,55 @@
+<% content_for :title, "Campaigns" %>
+
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-semibold text-neutral-900">Campaigns</h1>
+      <p class="text-sm text-(--color-muted-foreground)">Track which links bring the sales.</p>
+    </div>
+    <%= link_to "+ New campaign", new_campaign_path, class: "rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+  </div>
+
+  <% if @campaigns.empty? && @archived_campaigns.empty? && params[:q].blank? %>
+    <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-10 text-center">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-(--color-accent)">
+        <%= inline_svg_tag "icons/megaphone.svg", class: "h-5 w-5 text-neutral-500" %>
+      </div>
+      <p class="mt-4 text-sm font-semibold text-neutral-900">No campaigns yet</p>
+      <p class="mx-auto mt-1 max-w-sm text-sm text-(--color-muted-foreground)">
+        Make one short link for each place you share — WhatsApp, IG, status — and see which one brings the sales.
+      </p>
+      <%= link_to new_campaign_path, class: "mt-4 inline-block rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+        + Create your first campaign
+      <% end %>
+    </div>
+  <% else %>
+    <%= form_with url: campaigns_path, method: :get, class: "flex" do %>
+      <input type="text" name="q" value="<%= params[:q] %>" placeholder="Search campaigns"
+             class="w-full max-w-sm rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400">
+    <% end %>
+
+    <% if @campaigns.empty? %>
+      <p class="text-sm text-(--color-muted-foreground)">No active campaigns match "<%= params[:q] %>".</p>
+    <% else %>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <% @campaigns.each do |campaign| %>
+          <%= render "campaign_card", campaign: campaign %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @archived_campaigns.any? %>
+      <details class="group">
+        <summary class="cursor-pointer text-sm font-medium text-(--color-muted-foreground) hover:text-neutral-900">
+          <span class="inline-block transition group-open:rotate-90">›</span>
+          View archived (<%= @archived_campaigns.size %>)
+        </summary>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <% @archived_campaigns.each do |campaign| %>
+            <%= render "campaign_card", campaign: campaign %>
+          <% end %>
+        </div>
+      </details>
+    <% end %>
+  <% end %>
+</div>

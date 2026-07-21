@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "bin/dev",
+      "runtimeArgs": [],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["server"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "css",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["tailwindcss:watch[always]"]
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["solid_queue:start"]
+    }
+  ]
+}

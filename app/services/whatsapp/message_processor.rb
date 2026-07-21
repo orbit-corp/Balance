@@ -19,6 +19,12 @@ module Whatsapp
     private
       attr_reader :payload
 
+      # The ref tag Shortlink#redirect_url inserts into a buyer's WhatsApp
+      # message, e.g. "Hi, I want the serum (ref: OPXNGM3C)". A seller forwards
+      # that message (or a receipt referencing it) to the bot; this is where the
+      # ref comes back into Stubby — never by reading the buyer's chat directly.
+      REF_TAG_PATTERN = /\(ref:\s*([A-Za-z0-9]+)\)/i
+
       def process_value(value)
         phone_number_id = value.dig("metadata", "phone_number_id")
         profile_name = value.dig("contacts", 0, "profile", "name")
@@ -113,7 +119,8 @@ module Whatsapp
           message_type: message_type,
           body: text_body,
           media_id: media_id,
-          sent_at: sent_at
+          sent_at: sent_at,
+          matched_shortlink: find_ref_matched_shortlink(text_body, link.workspace_id)
         )
 
         WhatsappMediaDownloadJob.perform_later(msg.id) if media_id.present?
@@ -126,6 +133,16 @@ module Whatsapp
         )
       rescue ActiveRecord::RecordNotUnique
         nil
+      end
+
+      def find_ref_matched_shortlink(text_body, workspace_id)
+        return nil if text_body.blank?
+
+        ref_code = text_body[REF_TAG_PATTERN, 1]
+        return nil if ref_code.blank?
+
+        Shortlink.joins(campaign_channel: :campaign)
+                 .find_by(ref_code: ref_code.upcase, campaigns: { workspace_id: workspace_id })
       end
   end
 end

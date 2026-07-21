@@ -1,0 +1,123 @@
+<div class="space-y-6">
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-xl border border-(--color-border) bg-white p-4">
+      <p class="text-sm text-(--color-muted-foreground)">Total clicks</p>
+      <div class="mt-1 flex items-end justify-between gap-2">
+        <p class="text-2xl font-semibold tabular-nums text-neutral-900"><%= number_with_delimiter(campaign.total_clicks) %></p>
+        <% if campaign.total_clicks.positive? %>
+          <div class="h-6 w-16" data-controller="chart" data-chart-sparkline-value="true" data-chart-key-value="clicks" data-chart-cumulative-value="false" data-chart-series-value="<%= campaign.click_series.to_json %>">
+            <svg data-chart-target="svg" viewBox="0 0 64 24" class="h-6 w-16" role="img" aria-label="Clicks trend"></svg>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-(--color-border) bg-white p-4">
+      <p class="text-sm text-(--color-muted-foreground)">Links</p>
+      <p class="mt-1 text-2xl font-semibold tabular-nums text-neutral-900"><%= campaign.shortlinks.size %></p>
+      <p class="text-xs text-(--color-muted-foreground)">across <%= pluralize(campaign.campaign_channels.size, "channel") %></p>
+    </div>
+
+    <div class="rounded-xl border border-(--color-border) bg-white p-4">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-(--color-muted-foreground)">Revenue attributed</p>
+        <span class="rounded-full border border-(--color-border) px-2 py-0.5 text-[11px] font-medium text-(--color-muted-foreground)">Soon</span>
+      </div>
+      <p class="mt-1 text-2xl font-semibold tabular-nums text-neutral-300">—</p>
+      <p class="text-xs text-(--color-muted-foreground)">Conversions unlock in a later release</p>
+    </div>
+  </div>
+
+  <div>
+    <div class="flex items-center justify-between">
+      <p class="text-xs font-medium uppercase tracking-wide text-(--color-muted-foreground)">Channels &amp; links</p>
+      <p class="text-xs text-(--color-muted-foreground)">One destination per channel · variants for placements &amp; A/B</p>
+    </div>
+
+    <div class="mt-2 space-y-3">
+      <% campaign.campaign_channels.each do |channel| %>
+        <details open class="rounded-xl border border-(--color-border) bg-white">
+          <summary class="flex cursor-pointer items-center justify-between gap-3 p-4">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 text-sm font-medium text-neutral-900">
+                <%= campaign_channel_dot(channel.platform) %>
+                <%= campaign_channel_label(channel.platform) %>
+              </div>
+              <p class="mt-0.5 truncate text-xs text-(--color-muted-foreground)">
+                Goes to <a href="<%= channel.destination_url %>" class="underline" target="_blank" rel="noopener" onclick="event.stopPropagation()"><%= channel.destination_url %></a>
+              </p>
+            </div>
+            <span class="flex-none text-xs text-(--color-muted-foreground)"><%= number_with_delimiter(channel.total_clicks) %> clicks · <%= pluralize(channel.shortlinks.size, "link") %></span>
+          </summary>
+
+          <div class="space-y-2 border-t border-(--color-border) p-4 pt-3">
+            <% channel.shortlinks.each do |sl| %>
+              <div class="rounded-lg border border-(--color-border) bg-(--color-accent)/40 p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <p class="truncate text-base font-semibold text-neutral-900"><%= sl.short_url %></p>
+                      <span class="rounded-full border px-2 py-0.5 text-[11px] font-medium <%= sl.active? ? "border-green-200 bg-green-50 text-green-700" : "border-amber-200 bg-amber-50 text-amber-700" %>">
+                        <%= sl.status.capitalize %>
+                      </span>
+                    </div>
+                    <p class="text-xs text-(--color-muted-foreground)"><%= sl.label.presence || "main" %></p>
+                  </div>
+                  <button type="button"
+                          data-controller="copy"
+                          data-copy-value-value="<%= "http://#{sl.short_url}" %>"
+                          data-copy-label-value="Copy"
+                          data-action="click->copy#copy"
+                          class="flex-none rounded-md border border-(--color-border) bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 transition hover:bg-(--color-accent)">
+                    Copy
+                  </button>
+                </div>
+                <div class="mt-2 flex items-center justify-between gap-2">
+                  <p class="tabular-nums text-sm text-neutral-900"><strong><%= number_with_delimiter(sl.clicks.count) %></strong> <span class="text-(--color-muted-foreground)"><%= "click".pluralize(sl.clicks.count) %></span></p>
+                  <% if sl.clicks.count.positive? %>
+                    <div class="h-5 w-14" data-controller="chart" data-chart-sparkline-value="true" data-chart-key-value="clicks" data-chart-cumulative-value="false" data-chart-series-value="<%= sl.click_series.to_json %>">
+                      <svg data-chart-target="svg" viewBox="0 0 56 20" class="h-5 w-14" role="img" aria-label="Clicks trend"></svg>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <details class="rounded-lg border border-dashed border-(--color-border)">
+              <summary class="cursor-pointer px-3 py-2 text-sm font-medium text-neutral-900">+ Add link to <%= campaign_channel_label(channel.platform) %></summary>
+              <%= form_with url: campaign_campaign_channel_shortlinks_path(campaign, channel), method: :post, class: "flex gap-2 p-3 pt-0" do %>
+                <input type="text" name="label" placeholder="e.g. story-B, bio, flyer"
+                       class="w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400">
+                <button type="submit" class="flex-none rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800">Add</button>
+              <% end %>
+            </details>
+          </div>
+        </details>
+      <% end %>
+
+      <details class="rounded-xl border border-dashed border-(--color-border) bg-white">
+        <summary class="cursor-pointer p-4 text-sm font-medium text-neutral-900">+ Add channel</summary>
+        <%= form_with url: campaign_campaign_channels_path(campaign), method: :post, class: "space-y-3 border-t border-(--color-border) p-4 pt-3" do %>
+          <div class="grid grid-cols-3 gap-2">
+            <% CampaignChannel.platforms.keys.each do |platform| %>
+              <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-(--color-border) px-2 py-2 text-xs font-medium transition has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
+                <input type="radio" name="platform" value="<%= platform %>" class="sr-only" <%= "checked" if platform == "instagram" %>>
+                <span class="inline-block h-2.5 w-2.5 flex-none rounded-full" style="background:<%= ApplicationHelper::CAMPAIGN_CHANNEL_COLORS.fetch(platform, "#9ca3af") %>"></span>
+                <%= campaign_channel_label(platform) %>
+              </label>
+            <% end %>
+          </div>
+          <input type="text" name="destination_url" required placeholder="https://instagram.com/yourshop"
+                 class="w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400">
+          <button type="submit" class="w-full rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800">
+            Add channel
+          </button>
+        <% end %>
+      </details>
+    </div>
+  </div>
+
+  <p class="text-xs text-(--color-muted-foreground)">
+    Open a link above in a new tab to test its redirect — the click count updates on refresh.
+  </p>
+</div>
