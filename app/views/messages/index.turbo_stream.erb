@@ -1,0 +1,7 @@
+<%= turbo_stream.prepend "messages_list" do %>
+  <%= render "messages/message_batch", messages: @messages %>
+<% end %>
+
+<%= turbo_stream.replace "older_trigger" do %>
+  <%= render "messages/older_trigger", page: @page, has_more: @has_more %>
+<% end %>

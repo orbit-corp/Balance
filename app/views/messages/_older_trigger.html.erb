@@ -1,0 +1,10 @@
+<% if has_more %>
+  <div id="older_trigger" class="py-2 text-center text-xs text-(--color-muted-foreground)">
+    <%= link_to "Loading older messages…", messages_path(page: page + 1),
+          data: { turbo_stream: true, "messages-thread-target": "olderTrigger" } %>
+  </div>
+<% else %>
+  <div id="older_trigger" class="py-2 text-center text-xs text-(--color-muted-foreground)">
+    <% if page > 1 %>Beginning of conversation<% end %>
+  </div>
+<% end %>

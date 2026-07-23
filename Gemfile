@@ -44,6 +44,9 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+# Pagination [https://github.com/ddnexus/pagy]
+gem "pagy"
+
 # Loads environment variables from .env [https://github.com/bkeepers/dotenv]
 gem "dotenv-rails"
 

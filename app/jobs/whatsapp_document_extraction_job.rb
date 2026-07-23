@@ -4,8 +4,7 @@
 #
 # Failures here are almost always non-transient (a bad file, unreadable content), so
 # we retry only a couple of times to absorb a flaky Active Storage blob read, then
-# mark the message classification_failed. No Turbo broadcast — the result appears on
-# the next messages/review page load.
+# mark the message classification_failed.
 class WhatsappDocumentExtractionJob < ApplicationJob
   retry_on StandardError, wait: :polynomially_longer, attempts: 2 do |job, error|
     whatsapp_message_id, = job.arguments
@@ -22,5 +21,13 @@ class WhatsappDocumentExtractionJob < ApplicationJob
     return unless message.media.attached?
 
     Whatsapp::DocumentClassifier.call(message)
+    message.reload
+
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "workspace_#{message.workspace_id}_messages",
+      target: ActionView::RecordIdentifier.dom_id(message),
+      partial: "messages/message",
+      locals: { message: message }
+    )
   end
 end

@@ -2,29 +2,21 @@
 
 <%= turbo_stream_from "workspace_#{current_workspace.id}_messages" %>
 
-<div class="space-y-4">
+<div class="flex h-[calc(100vh-8rem)] flex-col gap-4">
   <div>
     <h1 class="text-xl font-semibold text-neutral-900">Messages</h1>
     <p class="text-sm text-(--color-muted-foreground)">Receipts and messages forwarded over WhatsApp.</p>
   </div>
 
-  <div id="messages_thread" class="flex flex-col gap-3 rounded-lg border border-(--color-border) bg-white p-4">
-    <% if @messages.empty? %>
+  <div id="messages_thread" data-controller="messages-thread"
+       class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto rounded-lg border border-(--color-border) bg-white p-4">
+    <% if @messages.empty? && @page == 1 %>
       <p class="py-8 text-center text-sm text-(--color-muted-foreground)">No messages yet. Forwarded receipts and messages will show up here.</p>
     <% else %>
-      <% last_day = nil %>
-      <% @messages.each do |message| %>
-        <% day = message.sent_at&.to_date %>
-        <% if day != last_day %>
-          <div class="my-2 flex items-center gap-2 text-xs font-medium text-(--color-muted-foreground)">
-            <div class="h-px flex-1 bg-(--color-border)"></div>
-            <span><%= day ? day.strftime("%B %-d, %Y") : "Unknown date" %></span>
-            <div class="h-px flex-1 bg-(--color-border)"></div>
-          </div>
-          <% last_day = day %>
-        <% end %>
-        <%= render partial: "messages/message", locals: { message: message } %>
-      <% end %>
+      <%= render "messages/older_trigger", page: @page, has_more: @has_more %>
+      <div id="messages_list" class="contents">
+        <%= render "messages/message_batch", messages: @messages %>
+      </div>
     <% end %>
   </div>
 </div>

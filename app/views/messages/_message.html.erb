@@ -1,4 +1,6 @@
-<div id="<%= dom_id(message) %>" class="flex flex-col items-start gap-1">
+<div id="<%= dom_id(message) %>" class="flex flex-col items-start gap-1"
+     data-day="<%= message.sent_at&.to_date&.iso8601 %>"
+     data-day-label="<%= message.sent_at ? message.sent_at.to_date.strftime("%B %-d, %Y") : "Unknown date" %>">
   <div class="max-w-[85%] rounded-lg rounded-tl-sm bg-(--color-accent) px-3 py-2 text-sm text-neutral-900 sm:max-w-[60%]">
     <% if message.message_type == "text" %>
       <p class="whitespace-pre-wrap break-words"><%= message.body %></p>

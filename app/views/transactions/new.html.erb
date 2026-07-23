@@ -1,5 +1,5 @@
 <% content_for :title, @transaction.kind == "expense" ? "Add expense" : "Add sale" %>
-<%= turbo_frame_tag "transaction_form" do %>
+<%= turbo_frame_tag "transaction_form", target: (turbo_frame_request? ? nil : "_top") do %>
   <div class="max-w-lg rounded-xl border border-(--color-border) bg-white p-5 shadow-sm">
     <h2 class="mb-4 text-lg font-semibold text-neutral-900">
       <%= @transaction.kind == "expense" ? "Add expense" : "Add sale" %>
