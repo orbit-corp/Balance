@@ -1,12 +1,12 @@
 <% content_for :title, @campaign.name %>
 
-<div class="mx-auto max-w-3xl space-y-4">
+<div class="space-y-4">
   <div>
-    <p class="text-sm text-(--color-muted-foreground)">
+    <div class="flex items-center gap-1.5 text-sm text-(--color-muted-foreground) mb-3">
       <%= link_to "Campaigns", campaigns_path, class: "hover:text-neutral-900" %>
-      <span class="px-1">›</span>
+      <%= inline_svg_tag "icons/chevron-right.svg", class: "size-4" %>
       <span class="text-neutral-700"><%= @campaign.name %></span>
-    </p>
+    </div>
     <div class="mt-1 flex items-center gap-2">
       <h1 class="text-xl font-semibold text-neutral-900"><%= @campaign.name %></h1>
       <%= campaign_status_badge(@campaign) %>
@@ -27,7 +27,7 @@
     <div data-controller="menu" class="relative pb-1">
       <button type="button" data-menu-target="button" data-action="menu#toggle" class="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-(--color-muted-foreground) transition hover:bg-(--color-accent) hover:text-neutral-900">
         More
-        <span class="text-xs">⌄</span>
+        <%= inline_svg_tag "icons/chevron-right.svg", class: "size-3.5 rotate-90" %>
       </button>
 
       <div data-menu-target="menu" class="hidden w-48 rounded-lg border border-(--color-border) bg-white p-1 shadow-md">

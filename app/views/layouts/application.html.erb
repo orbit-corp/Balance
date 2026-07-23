@@ -32,7 +32,7 @@
           <%= render "layouts/sidebar" %>
         </aside>
 
-        <div class="flex min-h-screen flex-1 flex-col">
+        <div class="flex min-h-screen min-w-0 flex-1 flex-col">
           <div class="flex items-center gap-3 border-b border-(--color-border) bg-white px-4 py-3 md:hidden">
             <button type="button" data-action="sidebar#toggle" aria-label="Toggle menu" class="-ml-1 rounded-md p-2 text-neutral-600 hover:bg-(--color-accent)">
               <%= inline_svg_tag "icons/menu.svg", class: "h-5 w-5" %>

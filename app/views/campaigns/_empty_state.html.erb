@@ -1,0 +1,12 @@
+<div class="rounded-xl border border-dashed border-(--color-border) bg-white p-10 text-center">
+  <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-(--color-accent)">
+    <%= inline_svg_tag "icons/megaphone.svg", class: "h-5 w-5 text-neutral-500" %>
+  </div>
+  <p class="mt-4 text-sm font-semibold text-neutral-900">No campaigns yet</p>
+  <p class="mx-auto mt-1 max-w-sm text-sm text-(--color-muted-foreground)">
+    Make one short link for each place you share — WhatsApp, IG, status — and see which one brings the sales.
+  </p>
+  <%= link_to new_campaign_path, class: "mt-4 inline-block rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+    + Create your first campaign
+  <% end %>
+</div>
