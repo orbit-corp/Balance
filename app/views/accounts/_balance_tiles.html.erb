@@ -1,0 +1,17 @@
+<%# What each money account holds, straight off the ledger. Drafts never reach these. %>
+<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+  <% summary.balances.each do |balance| %>
+    <div class="rounded-xl border border-(--color-border) bg-white px-3.5 py-3">
+      <p class="text-xs text-(--color-muted-foreground)"><%= balance.account.name %></p>
+      <p class="mt-0.5 text-lg font-semibold tabular-nums tracking-tight text-neutral-900"><%= format_naira(balance.amount_kobo) %></p>
+    </div>
+  <% end %>
+
+  <% if summary.drafts_count.positive? %>
+    <div class="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-3.5 py-3">
+      <p class="text-xs font-medium text-amber-800">Drafts</p>
+      <p class="mt-0.5 text-lg font-semibold tabular-nums tracking-tight text-amber-900"><%= format_naira(summary.drafts_total_kobo) %></p>
+      <p class="text-xs text-amber-700">Not in the balances</p>
+    </div>
+  <% end %>
+</div>

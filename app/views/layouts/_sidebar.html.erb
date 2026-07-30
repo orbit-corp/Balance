@@ -10,11 +10,11 @@
   </div>
 
   <div class="mt-3 flex items-center gap-2">
-    <%= link_to new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "flex flex-1 items-center justify-center gap-2 rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+    <%= link_to new_transaction_path(kind: "income"), data: { turbo_frame: "modal" }, class: "flex flex-1 items-center justify-center gap-2 rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
       <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
       Quick add
     <% end %>
-    <%= link_to new_transaction_path(kind: "expense"), data: { turbo_frame: "transaction_form" }, "aria-label": "Add expense", title: "Add expense", class: "flex h-9 w-9 flex-none items-center justify-center rounded-md border border-(--color-border) bg-white text-neutral-600 transition hover:bg-(--color-accent) hover:text-neutral-900" do %>
+    <%= link_to new_transaction_path(kind: "expense"), data: { turbo_frame: "modal" }, "aria-label": "Add expense", title: "Add expense", class: "flex h-9 w-9 flex-none items-center justify-center rounded-md border border-(--color-border) bg-white text-neutral-600 transition hover:bg-(--color-accent) hover:text-neutral-900" do %>
       <%= inline_svg_tag "icons/wallet.svg", class: "h-4 w-4" %>
     <% end %>
   </div>
@@ -38,6 +38,7 @@
     <p class="px-3 pb-1 text-xs font-medium text-(--color-muted-foreground)">Records</p>
     <nav class="flex flex-col gap-1">
       <%= nav_link.call(customers_path, "Customers", current_page?(customers_path), "icons/users.svg") %>
+      <%= nav_link.call(accounts_path, "Accounts", current_page?(accounts_path), "icons/wallet.svg") %>
     </nav>
   </div>
 

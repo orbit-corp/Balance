@@ -9,6 +9,9 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <%# Morph on refresh visits so posting an entry keeps scroll position and open state. %>
+    <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
+
     <%= yield :head %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
@@ -71,5 +74,8 @@
 
       <%= yield %>
     <% end %>
+
+    <%# Every dialog in the app renders in here. %>
+    <%= turbo_frame_tag "modal" %>
   </body>
 </html>

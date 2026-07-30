@@ -12,6 +12,11 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    # Creates an entry and puts it in the ledger. Totals and balances read postings,
+    # so a test that wants to see a figure move has to post, not just create.
+    def post_transaction!(workspace, **attributes)
+      Ledger::ChartOfAccounts.seed!(workspace)
+      Ledger::Poster.call(workspace.transactions.create!(status: :draft, **attributes))
+    end
   end
 end

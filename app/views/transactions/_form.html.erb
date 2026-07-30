@@ -46,6 +46,15 @@
           data: { transaction_form_target: "categorySelect" } %>
   </div>
 
+  <div>
+    <%= form.label :account_id, transaction.kind == "expense" ? "Paid from" : "Paid to", class: label_classes %>
+    <%= form.select :account_id,
+          options_from_collection_for_select(Ledger::ChartOfAccounts.money_accounts(current_workspace), :id, :name, transaction.account_id),
+          {},
+          class: field_classes %>
+    <p class="mt-1.5 text-xs text-(--color-muted-foreground)">Where the money sat. <%= link_to "Rename your accounts", accounts_path, class: "underline" %>.</p>
+  </div>
+
   <div data-transaction-form-target="customerField" class="<%= "hidden" if transaction.kind == "expense" %>">
     <%= form.label :customer_id, "Customer (optional)", class: label_classes %>
     <%= form.select :customer_id,
@@ -67,5 +76,9 @@
     <%= form.text_area :description, rows: 2, class: field_classes %>
   </div>
 
-  <%= form.submit transaction.persisted? ? "Save changes" : "Add entry", class: "w-full cursor-pointer rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+  <div class="space-y-2">
+    <%= form.submit transaction.persisted? ? "Save changes" : "Add to my books", class: "w-full cursor-pointer rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+    <%# Keeps the entry out of the ledger until it's finished — it reaches no total. %>
+    <%= form.submit "Save for later", name: "draft", class: "w-full cursor-pointer rounded-md border border-(--color-border) bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-(--color-accent)" %>
+  </div>
 <% end %>

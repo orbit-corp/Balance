@@ -10,8 +10,6 @@
   <div>
     <h2 class="mb-3 text-base font-semibold text-neutral-900">Recent activity</h2>
 
-    <%= turbo_frame_tag "transaction_form", class: "block empty:hidden [&:not(:empty)]:mb-4" %>
-
     <div id="recent_feed">
       <%= render "dashboards/recent_feed", summary: @summary %>
     </div>

@@ -1,20 +1,28 @@
-<div id="<%= dom_id(transaction) %>_mobile" data-datatable-target="row" data-kind="<%= transaction.kind %>" class="space-y-1.5 px-4 py-3">
+<div id="<%= dom_id(transaction) %>_mobile" data-datatable-target="row" data-kind="<%= transaction.kind %>" data-status="<%= transaction.status %>" class="space-y-1.5 px-4 py-3 <%= "bg-amber-50/40" if transaction.draft? %>">
   <div class="flex items-start justify-between gap-3">
     <span class="truncate text-sm font-semibold text-neutral-900"><%= transaction.description.presence || "—" %></span>
-    <span class="shrink-0 text-sm font-semibold tabular-nums <%= transaction.income? ? "text-green-700" : "text-red-600" %>">
+    <span class="shrink-0 text-sm font-semibold tabular-nums <%= transaction.draft? ? "text-neutral-500" : (transaction.income? ? "text-green-700" : "text-red-600") %>">
       <%= transaction.income? ? "+" : "−" %><%= format_naira(transaction.amount_kobo) %>
     </span>
   </div>
 
   <div class="flex items-center justify-between gap-3 text-xs text-(--color-muted-foreground)">
     <span class="inline-flex items-center gap-1.5">
-      <span class="h-[7px] w-[7px] rounded-full <%= transaction.income? ? "bg-green-600" : "bg-red-500" %>" aria-hidden="true"></span>
-      <%= transaction.income? ? "Sale" : "Expense" %> · <%= transaction.category %>
+      <span class="h-[7px] w-[7px] rounded-full <%= transaction.draft? ? "bg-amber-500" : (transaction.income? ? "bg-green-600" : "bg-red-500") %>" aria-hidden="true"></span>
+      <%= transaction.income? ? "Sale" : "Expense" %> · <%= transaction.category.presence || "No category yet" %>
+      <%= " · #{transaction.account.name}" if transaction.account %>
     </span>
     <span class="tabular-nums"><%= transaction.occurred_on.strftime("%b %-d, %Y") %></span>
   </div>
 
   <% if (party = transaction_party_text(transaction)) != "—" %>
     <div class="text-xs text-(--color-muted-foreground)"><%= party %></div>
+  <% end %>
+
+  <% if transaction.draft? %>
+    <div class="flex items-center gap-2 pt-1">
+      <span class="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">Draft</span>
+      <%= button_to "Add to books", post_to_books_transaction_path(transaction), method: :patch, class: "rounded-md bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-neutral-800" %>
+    </div>
   <% end %>
 </div>

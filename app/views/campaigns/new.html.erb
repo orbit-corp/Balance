@@ -1,47 +1,20 @@
 <% content_for :title, "New campaign" %>
 
-<div class="mx-auto max-w-md space-y-4">
-  <div>
-    <%= link_to "← Campaigns", campaigns_path, class: "text-sm text-(--color-muted-foreground) hover:text-neutral-900" %>
-    <h1 class="mt-1 text-xl font-semibold text-neutral-900">New campaign</h1>
-    <p class="text-sm text-(--color-muted-foreground)">Name it, pick where you're sharing it, and a tracked link is generated for you.</p>
+<% if turbo_frame_request? %>
+  <%= turbo_frame_tag "modal" do %>
+    <%= render "campaigns/modal_form", campaign: @campaign %>
+  <% end %>
+<% else %>
+  <%# Direct visit to /campaigns/new — the same form, standalone. %>
+  <div class="mx-auto max-w-md space-y-4">
+    <div>
+      <%= link_to "← Campaigns", campaigns_path, class: "text-sm text-(--color-muted-foreground) hover:text-neutral-900" %>
+      <h1 class="mt-1 text-xl font-semibold text-neutral-900">New campaign</h1>
+      <p class="text-sm text-(--color-muted-foreground)">Name it, pick where you're sharing it, and a tracked link is generated for you.</p>
+    </div>
+
+    <div class="rounded-xl border border-(--color-border) bg-white p-5">
+      <%= render "campaigns/form", campaign: @campaign %>
+    </div>
   </div>
-
-  <% if flash[:alert] %>
-    <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
-  <% end %>
-
-  <%= form_with url: campaigns_path, method: :post, class: "space-y-4 rounded-xl border border-(--color-border) bg-white p-5" do %>
-    <div>
-      <label class="mb-1.5 block text-sm font-medium text-neutral-900" for="name">Campaign name</label>
-      <input type="text" name="name" id="name" required value="<%= @campaign&.name %>"
-             placeholder="e.g. December Sale, Eid Promo"
-             class="w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400">
-    </div>
-
-    <div>
-      <p class="mb-1.5 block text-sm font-medium text-neutral-900">Where are you sharing?</p>
-      <div class="grid grid-cols-3 gap-2">
-        <% CampaignChannel.platforms.keys.each_with_index do |platform, i| %>
-          <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-(--color-border) px-2 py-2 text-xs font-medium transition has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
-            <input type="radio" name="platform" value="<%= platform %>" class="sr-only" <%= "checked" if i.zero? %>>
-            <span class="inline-block h-2.5 w-2.5 flex-none rounded-full" style="background:<%= ApplicationHelper::CAMPAIGN_CHANNEL_COLORS.fetch(platform, "#9ca3af") %>"></span>
-            <%= campaign_channel_label(platform) %>
-          </label>
-        <% end %>
-      </div>
-    </div>
-
-    <div>
-      <label class="mb-1.5 block text-sm font-medium text-neutral-900" for="destination_url">Destination link</label>
-      <input type="text" name="destination_url" id="destination_url" required
-             placeholder="https://wa.me/2348012345678"
-             class="w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400">
-      <p class="mt-1.5 text-xs text-(--color-muted-foreground)">Where the tracked link sends people — your WhatsApp chat link, product page, or bio link.</p>
-    </div>
-
-    <button type="submit" class="w-full rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800">
-      Create campaign &amp; get link
-    </button>
-  <% end %>
-</div>
+<% end %>

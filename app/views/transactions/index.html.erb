@@ -6,14 +6,11 @@
     <p class="text-sm text-(--color-muted-foreground)">Every sale and expense in your books</p>
   </div>
 
-  <%= turbo_frame_tag "transaction_form", class: "block empty:hidden [&:not(:empty)]:mb-2" %>
+  <div id="balance_tiles">
+    <%= render "accounts/balance_tiles", summary: @summary %>
+  </div>
 
-  <% if @transactions.empty? %>
-    <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
-      <p class="text-sm text-(--color-muted-foreground)">No entries yet.</p>
-      <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
-    </div>
-  <% else %>
-    <%= render "transactions/table", transactions: @transactions %>
-  <% end %>
+  <div id="ledger_entries">
+    <%= render "transactions/entries", transactions: @transactions, pagy: @pagy, counts: @counts, filter: @filter %>
+  </div>
 </div>

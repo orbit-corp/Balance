@@ -14,6 +14,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
+  create_table "accounts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "kind", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["workspace_id", "kind", "name"], name: "index_accounts_on_workspace_id_and_kind_and_name", unique: true
+    t.index ["workspace_id", "kind"], name: "index_accounts_on_workspace_id_and_kind"
+    t.index ["workspace_id"], name: "index_accounts_on_workspace_id"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -112,6 +124,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.bigint "workspace_id", null: false
     t.index ["token"], name: "index_linking_tokens_on_token", unique: true
     t.index ["workspace_id"], name: "index_linking_tokens_on_workspace_id"
+  end
+
+  create_table "postings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "amount_kobo", null: false
+    t.datetime "created_at", null: false
+    t.bigint "transaction_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_postings_on_account_id"
+    t.index ["transaction_id"], name: "index_postings_on_transaction_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -259,21 +281,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   end
 
   create_table "transactions", force: :cascade do |t|
+    t.bigint "account_id"
     t.integer "amount_kobo", null: false
-    t.string "category", null: false
+    t.string "category"
     t.datetime "created_at", null: false
     t.bigint "customer_id"
     t.text "description"
     t.integer "kind", null: false
     t.date "occurred_on", null: false
     t.integer "source", default: 0, null: false
+    t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "whatsapp_message_id"
     t.bigint "workspace_id", null: false
+    t.index ["account_id"], name: "index_transactions_on_account_id"
     t.index ["customer_id"], name: "index_transactions_on_customer_id"
     t.index ["whatsapp_message_id"], name: "index_transactions_on_whatsapp_message_id"
     t.index ["workspace_id", "kind"], name: "index_transactions_on_workspace_id_and_kind"
     t.index ["workspace_id", "occurred_on"], name: "index_transactions_on_workspace_id_and_occurred_on"
+    t.index ["workspace_id", "status"], name: "index_transactions_on_workspace_id_and_status"
     t.index ["workspace_id"], name: "index_transactions_on_workspace_id"
   end
 
@@ -359,6 +385,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "accounts", "workspaces"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaign_channels", "campaigns"
@@ -369,6 +396,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   add_foreign_key "conversions", "workspaces"
   add_foreign_key "customers", "workspaces"
   add_foreign_key "linking_tokens", "workspaces"
+  add_foreign_key "postings", "accounts"
+  add_foreign_key "postings", "transactions"
   add_foreign_key "sessions", "users"
   add_foreign_key "shortlinks", "campaign_channels"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
@@ -377,6 +406,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "transactions", "accounts"
   add_foreign_key "transactions", "customers"
   add_foreign_key "transactions", "whatsapp_messages"
   add_foreign_key "transactions", "workspaces"

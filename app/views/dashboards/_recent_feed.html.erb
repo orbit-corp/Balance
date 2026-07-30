@@ -2,7 +2,7 @@
 <% if transactions.empty? %>
   <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
     <p class="text-sm text-(--color-muted-foreground)">No entries yet.</p>
-    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
+    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "modal" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
   </div>
 <% else %>
   <%= render "transactions/table", transactions: transactions %>

@@ -98,6 +98,66 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to document_reviews_path
   end
 
+  test "creating an entry posts it to the ledger with balanced postings" do
+    post transactions_path, params: {
+      transaction: { kind: "income", amount: "150.00", category: "Sales", occurred_on: Date.current }
+    }, as: :turbo_stream
+
+    transaction = @workspace.transactions.last
+    assert_predicate transaction, :posted?
+    assert_equal 2, transaction.postings.count
+    assert_predicate transaction, :postings_balanced?
+    assert_equal 150_00, LedgerSummary.new(@workspace).this_month.income_kobo
+  end
+
+  test "saving for later keeps the entry out of the ledger" do
+    post transactions_path, params: {
+      transaction: { kind: "expense", amount: "900.00", occurred_on: Date.current },
+      draft: "1", return_to: "/transactions"
+    }
+
+    transaction = @workspace.transactions.last
+    assert_predicate transaction, :draft?
+    assert_empty transaction.postings
+    assert_nil transaction.category
+    assert_equal 0, LedgerSummary.new(@workspace).this_month.expense_kobo
+    assert_equal 0, LedgerSummary.new(@workspace).balances.sum(&:amount_kobo)
+  end
+
+  test "adding a draft to the books posts it and fills what is missing" do
+    Ledger::ChartOfAccounts.seed!(@workspace)
+    draft = @workspace.transactions.create!(kind: :expense, amount_kobo: 900_00, occurred_on: Date.current, status: :draft)
+
+    patch post_to_books_transaction_path(draft), headers: { "HTTP_REFERER" => transactions_url }
+
+    assert_redirected_to transactions_url
+    draft.reload
+    assert_predicate draft, :posted?
+    assert_predicate draft, :uncategorised?
+    assert_equal "Cash", draft.account.name
+    assert_equal 900_00, LedgerSummary.new(@workspace).this_month.expense_kobo
+  end
+
+  test "cannot post another workspace's draft to the books" do
+    other_workspace = workspaces(:bola_shop)
+    draft = other_workspace.transactions.create!(kind: :income, amount_kobo: 1000, occurred_on: Date.current, status: :draft)
+
+    patch post_to_books_transaction_path(draft)
+
+    assert_response :not_found
+    assert_predicate draft.reload, :draft?
+  end
+
+  test "an entry with no amount is rejected rather than posted" do
+    assert_no_difference "Transaction.count" do
+      post transactions_path, params: {
+        transaction: { kind: "income", amount: "", category: "Sales", occurred_on: Date.current }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
   private
     def recordable_extraction
       message = @workspace.whatsapp_messages.create!(

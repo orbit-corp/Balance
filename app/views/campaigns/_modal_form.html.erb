@@ -1,0 +1,7 @@
+<%# The modal shell only — the "modal" frame is supplied by new.html.erb, and the
+    create stream replaces this content directly when validation fails. %>
+<%= render "shared/modal",
+           title: "New campaign",
+           subtitle: "Name it, pick where you're sharing it, and a tracked link is generated for you." do %>
+  <%= render "campaigns/form", campaign: campaign %>
+<% end %>

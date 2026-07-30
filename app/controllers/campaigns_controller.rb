@@ -25,7 +25,7 @@ class CampaignsController < ApplicationController
     unless CampaignChannel.platforms.key?(params[:platform])
       @campaign.errors.add(:base, "Pick a platform")
       flash.now[:alert] = "Pick a platform for your first channel."
-      render :new, status: :unprocessable_entity
+      render_campaign_form_error
       return
     end
 
@@ -43,11 +43,11 @@ class CampaignsController < ApplicationController
   rescue ActiveRecord::RecordInvalid => e
     @campaign = current_workspace.campaigns.build(name: params[:name])
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    render :new, status: :unprocessable_entity
+    render_campaign_form_error
   rescue ActiveRecord::RecordNotUnique
     @campaign = current_workspace.campaigns.build(name: params[:name])
     flash.now[:alert] = "That link collided with an existing one — try again."
-    render :new, status: :unprocessable_entity
+    render_campaign_form_error
   end
 
   def show
@@ -67,6 +67,18 @@ class CampaignsController < ApplicationController
   end
 
   private
+    # The form breaks out of the modal so a successful create navigates, which means a
+    # failure has to come back as a stream — an HTML render would replace the page.
+    def render_campaign_form_error
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update("modal", partial: "campaigns/modal_form", locals: { campaign: @campaign }),
+                 status: :unprocessable_entity
+        end
+        format.html { render :new, status: :unprocessable_entity }
+      end
+    end
+
     def set_campaign
       @campaign = current_workspace.campaigns.includes(campaign_channels: { shortlinks: :clicks }).find(params[:id])
     end

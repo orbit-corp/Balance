@@ -36,6 +36,8 @@ class LedgerSummary
     end
   end
 
+  Balance = Struct.new(:account, :amount_kobo, keyword_init: true)
+
   RECENT_LIMIT = 20
 
   def initialize(workspace)
@@ -64,38 +66,85 @@ class LedgerSummary
 
   def daily_series(days: 30)
     start = Date.current - (days - 1)
-    rows = workspace.transactions
-      .where(occurred_on: start..Date.current)
-      .group(:occurred_on, :kind)
+    rows = posted_postings
+      .where(transactions: { occurred_on: start..Date.current })
+      .group("transactions.occurred_on", "accounts.kind")
       .sum(:amount_kobo)
 
     (start..Date.current).map do |date|
-      income = rows[[ date, "income" ]] || 0
-      expense = rows[[ date, "expense" ]] || 0
+      income = -(rows[[ date, income_kind ]] || 0)
+      expense = rows[[ date, expense_kind ]] || 0
       { date: date, income_kobo: income, expense_kobo: expense, net_kobo: income - expense }
     end
   end
 
   def recent_transactions
-    workspace.transactions
-      .includes(:customer)
+    workspace.transactions.posted
+      .includes(:customer, :account)
       .order(occurred_on: :desc, id: :desc)
       .limit(RECENT_LIMIT)
+  end
+
+  # What each money account holds, read straight off the ledger.
+  def balances
+    totals = Posting
+      .joins(:recorded_transaction)
+      .where(transactions: { workspace_id: workspace.id, status: posted_status })
+      .group(:account_id)
+      .sum(:amount_kobo)
+
+    Ledger::ChartOfAccounts.money_accounts(workspace).map do |account|
+      Balance.new(account: account, amount_kobo: totals[account.id] || 0)
+    end
+  end
+
+  def drafts_count
+    workspace.transactions.drafts.count
+  end
+
+  def drafts_total_kobo
+    workspace.transactions.drafts.sum(:amount_kobo)
+  end
+
+  def uncategorised_count
+    workspace.transactions.posted.where(category: Ledger::ChartOfAccounts::UNCATEGORISED).count
   end
 
   private
 
   attr_reader :workspace
 
+  # Grouping on accounts.kind comes back cast through the enum, so the keys are
+  # names ("income"), not the stored integers.
+  def income_kind
+    "income"
+  end
+
+  def expense_kind
+    "expense"
+  end
+
+  def posted_status
+    Transaction.statuses[:posted]
+  end
+
+  # Every money figure comes from postings — a draft has none, so it cannot reach a
+  # total no matter which query asks.
+  def posted_postings
+    Posting
+      .joins(:recorded_transaction, :account)
+      .where(transactions: { workspace_id: workspace.id, status: posted_status })
+  end
+
   def period_for(date_range)
-    totals = workspace.transactions
-      .where(occurred_on: date_range)
-      .group(:kind)
+    totals = posted_postings
+      .where(transactions: { occurred_on: date_range })
+      .group("accounts.kind")
       .sum(:amount_kobo)
 
     Period.new(
-      income_kobo: totals["income"] || 0,
-      expense_kobo: totals["expense"] || 0
+      income_kobo: -(totals[income_kind] || 0),
+      expense_kobo: totals[expense_kind] || 0
     )
   end
 end

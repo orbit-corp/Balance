@@ -25,7 +25,10 @@ Rails.application.routes.draw do
       delete :disconnect
     end
   end
-  resources :transactions
+  resources :transactions do
+    patch :post_to_books, on: :member
+  end
+  resources :accounts, only: %i[index update]
   resources :customers
   resources :messages, only: [ :index ]
   resources :document_reviews, only: [ :index ] do

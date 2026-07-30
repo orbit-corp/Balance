@@ -11,10 +11,11 @@ class LoggingASaleTest < ApplicationSystemTestCase
 
     assert_text "Log your first sale"
 
-    click_on "Add sale", match: :first
+    # The dashboard's affordance is the sidebar's "Quick add", which opens the sale form.
+    click_on "Quick add", match: :first
 
     fill_in "Amount (₦)", with: "2500"
-    click_on "Add entry"
+    click_on "Add to my books"
 
     assert_text "Sales"
     assert_text "₦2,500.00"
@@ -34,7 +35,7 @@ class LoggingASaleTest < ApplicationSystemTestCase
     assert_selector "select#transaction_category option[selected]", text: "Other"
 
     fill_in "Amount (₦)", with: "300"
-    click_on "Add entry"
+    click_on "Add to my books"
 
     assert_text "Expense"
     assert_text "₦300.00"

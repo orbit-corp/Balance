@@ -1,9 +1,0 @@
-<%= turbo_stream.update "transaction_form", "" %>
-
-<%= turbo_stream.update "period_cards" do %>
-  <%= render "dashboards/period_cards", summary: @summary %>
-<% end %>
-
-<%= turbo_stream.update "recent_feed" do %>
-  <%= render "dashboards/recent_feed", summary: @summary %>
-<% end %>

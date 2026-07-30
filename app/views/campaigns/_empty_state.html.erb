@@ -6,7 +6,7 @@
   <p class="mx-auto mt-1 max-w-sm text-sm text-(--color-muted-foreground)">
     Make one short link for each place you share — WhatsApp, IG, status — and see which one brings the sales.
   </p>
-  <%= link_to new_campaign_path, class: "mt-4 inline-block rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+  <%= link_to new_campaign_path, data: { turbo_frame: "modal" }, class: "mt-4 inline-block rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
     + Create your first campaign
   <% end %>
 </div>
