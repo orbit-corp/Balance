@@ -1,27 +1,18 @@
 <% content_for :title, "Accounts" %>
 
 <div class="space-y-4">
-  <div>
-    <h1 class="text-xl font-semibold text-neutral-900">Accounts</h1>
-    <p class="text-sm text-(--color-muted-foreground)">Where your money sits. Every entry in your books moves through one of these.</p>
+  <div class="flex items-start justify-between gap-2">
+    <div>
+      <h1 class="text-xl font-semibold text-neutral-900">Accounts</h1>
+      <p class="text-sm text-(--color-muted-foreground)">Where your money sits. Every entry in your books moves through one of these.</p>
+    </div>
+
+    <%= render "new_account_button" %>
   </div>
 
-  <%= render "accounts/balance_tiles", summary: @summary %>
-
-  <div class="rounded-xl border border-(--color-border) bg-white divide-y divide-(--color-border)">
-    <% @balances.each do |balance| %>
-      <%= form_with model: balance.account, class: "flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-3" do |form| %>
-        <%= form.text_field :name, value: balance.account.name, "aria-label": "Account name", class: "w-full rounded-md border border-(--color-border) bg-white px-3 py-1.5 text-sm shadow-sm transition focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 sm:w-40" %>
-        <div class="flex items-center gap-3 sm:flex-1">
-          <span class="text-sm font-semibold tabular-nums text-neutral-900"><%= format_naira(balance.amount_kobo) %></span>
-          <span class="text-xs text-(--color-muted-foreground)"><%= pluralize(balance.account.transactions.posted.count, "entry") %></span>
-          <%= form.submit "Rename", class: "ml-auto cursor-pointer rounded-md border border-(--color-border) bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-(--color-accent)" %>
-        </div>
-      <% end %>
-    <% end %>
-  </div>
-
-  <p class="text-xs text-(--color-muted-foreground)">
-    A "Bank" account is generic on purpose — rename it to your own bank the first time it matters.
-  </p>
+  <% if @accounts.empty? %>
+    <%= render "empty_state" %>
+  <% else %>
+    <%= render "table", accounts: @accounts %>
+  <% end %>
 </div>

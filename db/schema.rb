@@ -10,19 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "accounts", force: :cascade do |t|
+    t.string "account_subtype", null: false
+    t.string "account_type", null: false
     t.datetime "created_at", null: false
-    t.integer "kind", null: false
+    t.text "description"
     t.string "name", null: false
-    t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "workspace_id", null: false
-    t.index ["workspace_id", "kind", "name"], name: "index_accounts_on_workspace_id_and_kind_and_name", unique: true
-    t.index ["workspace_id", "kind"], name: "index_accounts_on_workspace_id_and_kind"
+    t.index ["workspace_id", "account_type", "account_subtype", "name"], name: "idx_on_workspace_id_account_type_account_subtype_na_048f78df10", unique: true
+    t.index ["workspace_id", "account_type"], name: "index_accounts_on_workspace_id_and_account_type"
     t.index ["workspace_id"], name: "index_accounts_on_workspace_id"
   end
 

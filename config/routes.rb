@@ -28,7 +28,7 @@ Rails.application.routes.draw do
   resources :transactions do
     patch :post_to_books, on: :member
   end
-  resources :accounts, only: %i[index update]
+  resources :accounts, only: %i[index new create update]
   resources :customers
   resources :messages, only: [ :index ]
   resources :document_reviews, only: [ :index ] do

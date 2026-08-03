@@ -68,12 +68,13 @@ class LedgerSummary
     start = Date.current - (days - 1)
     rows = posted_postings
       .where(transactions: { occurred_on: start..Date.current })
-      .group("transactions.occurred_on", "accounts.kind")
+      .group("transactions.occurred_on", "accounts.account_type")
       .sum(:amount_kobo)
 
     (start..Date.current).map do |date|
-      income = -(rows[[ date, income_kind ]] || 0)
-      expense = rows[[ date, expense_kind ]] || 0
+      day_totals = rows.each_with_object({}) { |((d, type), amt), h| h[type] = amt if d == date }
+      income = -income_kobo_from(day_totals)
+      expense = expense_kobo_from(day_totals)
       { date: date, income_kobo: income, expense_kobo: expense, net_kobo: income - expense }
     end
   end
@@ -114,14 +115,14 @@ class LedgerSummary
 
   attr_reader :workspace
 
-  # Grouping on accounts.kind comes back cast through the enum, so the keys are
-  # names ("income"), not the stored integers.
-  def income_kind
-    "income"
+  ACCOUNT_TYPE_BASE = Account::TYPES.each_with_object({}) { |(base, types), h| types.each_key { |type| h[type] = base } }.freeze
+
+  def income_kobo_from(totals_by_account_type)
+    totals_by_account_type.sum { |type, amount| ACCOUNT_TYPE_BASE[type] == "income" ? amount : 0 }
   end
 
-  def expense_kind
-    "expense"
+  def expense_kobo_from(totals_by_account_type)
+    totals_by_account_type.sum { |type, amount| ACCOUNT_TYPE_BASE[type] == "expense" ? amount : 0 }
   end
 
   def posted_status
@@ -139,12 +140,12 @@ class LedgerSummary
   def period_for(date_range)
     totals = posted_postings
       .where(transactions: { occurred_on: date_range })
-      .group("accounts.kind")
+      .group("accounts.account_type")
       .sum(:amount_kobo)
 
     Period.new(
-      income_kobo: -(totals[income_kind] || 0),
-      expense_kobo: totals[expense_kind] || 0
+      income_kobo: -income_kobo_from(totals),
+      expense_kobo: expense_kobo_from(totals)
     )
   end
 end

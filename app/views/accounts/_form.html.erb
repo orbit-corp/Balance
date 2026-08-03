@@ -1,0 +1,40 @@
+<% field_classes = "w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400" %>
+<% label_classes = "mb-1.5 block text-sm font-medium text-neutral-900" %>
+
+<% if flash[:alert] %>
+  <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
+<% end %>
+
+<%= form_with model: account, url: accounts_path, class: "space-y-4", data: { turbo_frame: "_top" } do |form| %>
+  <div>
+    <%= form.label :name, class: label_classes %>
+    <%= form.text_field :name, required: true, placeholder: "e.g. GTBank, Sales", class: field_classes %>
+  </div>
+
+  <div>
+    <%= form.label :account_type, "Type", class: label_classes %>
+    <%= form.select :account_type,
+                     Account::TYPES.keys.map { |type| [ type.humanize, type ] },
+                     { prompt: "Select account type" },
+                     required: true, class: field_classes %>
+  </div>
+
+  <div>
+    <%= form.label :account_subtype, "Subtype", class: label_classes %>
+    <%= form.select :account_subtype,
+                     grouped_options_for_select(
+                       Account::TYPES.map { |type, subtypes|
+                         [ type.humanize, subtypes.values.flatten.map { |subtype| [ subtype.humanize, subtype ] } ]
+                       }
+                     ),
+                     { prompt: "Select account subtype" },
+                     required: true, class: field_classes %>
+  </div>
+
+  <div>
+    <%= form.label :description, class: label_classes %>
+    <%= form.text_area :description, rows: 2, placeholder: "Optional", class: field_classes %>
+  </div>
+
+  <%= form.submit "Create account", class: "w-full rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+<% end %>

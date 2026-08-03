@@ -1,25 +1,20 @@
 module Ledger
-  # Seeds and resolves a workspace's chart of accounts. The income and expense
-  # accounts are the categories the app already shows, so nothing new appears in
-  # front of the seller — only the money accounts are a genuinely new idea.
   class ChartOfAccounts
-    # Distinct from "Other": Other means the seller decided it was other,
-    # Uncategorised means nobody has said yet. Keeping them apart is what lets us
-    # prompt a tidy-up later.
     UNCATEGORISED = "Uncategorised".freeze
 
-    # Deliberately generic and renameable — a seller names their own bank.
     MONEY_ACCOUNTS = [ "Cash", "Bank" ].freeze
 
     class << self
       def seed!(workspace)
-        MONEY_ACCOUNTS.each_with_index do |name, index|
-          find_or_create(workspace, :asset, name, index)
+        MONEY_ACCOUNTS.each do |name|
+          find_or_create(workspace, "asset", "bank", name)
         end
 
         ApplicationHelper::TRANSACTION_CATEGORIES.each do |kind, categories|
-          (categories + [ UNCATEGORISED ]).each_with_index do |name, index|
-            find_or_create(workspace, kind, name, index)
+          account_type, account_subtype = type_for_kind(kind)
+
+          (categories + [ UNCATEGORISED ]).each do |name|
+            find_or_create(workspace, account_type, account_subtype, name)
           end
         end
       end
@@ -29,18 +24,21 @@ module Ledger
       end
 
       def default_money_account(workspace)
-        money_accounts(workspace).first || find_or_create(workspace, :asset, MONEY_ACCOUNTS.first, 0)
+        money_accounts(workspace).first || find_or_create(workspace, "asset", "bank", MONEY_ACCOUNTS.first)
       end
 
-      # The income or expense account a category posts against. Created on demand so
-      # a category added to the app later never leaves a transaction unpostable.
       def category_account(workspace, kind, category)
-        find_or_create(workspace, kind, category.presence || UNCATEGORISED, 99)
+        account_type, account_subtype = type_for_kind(kind)
+        find_or_create(workspace, account_type, account_subtype, category.presence || UNCATEGORISED)
       end
 
       private
-        def find_or_create(workspace, kind, name, position)
-          workspace.accounts.create_with(position: position).find_or_create_by!(kind: kind, name: name)
+        def type_for_kind(kind)
+          kind.to_s == "income" ? [ "income", "sales" ] : [ "expenses", "general" ]
+        end
+
+        def find_or_create(workspace, account_type, account_subtype, name)
+          workspace.accounts.find_or_create_by!(account_type: account_type, account_subtype: account_subtype, name: name)
         end
     end
   end

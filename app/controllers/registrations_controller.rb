@@ -10,7 +10,6 @@ class RegistrationsController < ApplicationController
 
     ActiveRecord::Base.transaction do
       workspace = Workspace.create!(name: params[:business_name])
-      Ledger::ChartOfAccounts.seed!(workspace)
       @user.workspace = workspace
       @user.save!
     end

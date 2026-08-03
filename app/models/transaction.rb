@@ -74,6 +74,6 @@ class Transaction < ApplicationRecord
     def account_holds_money
       return if account.nil?
 
-      errors.add(:account, "must be a money account") unless account.asset?
+      errors.add(:account, "must be a money account") unless account.base_type == "asset"
     end
 end
