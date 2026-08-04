@@ -1,11 +1,6 @@
-# Staging record for the vision layer: holds fields parsed out of a forwarded
-# bank-transfer attachment (PDF or image) before the user confirms them into a
-# real ledger Transaction. Deliberately permissive — no strict validations, since
-# extracted data is often partial. A Transaction is only created via the review flow.
 class WhatsappDocumentExtraction < ApplicationRecord
   belongs_to :whatsapp_message
-  # Named to avoid clashing with ActiveRecord's built-in #transaction; column is transaction_id.
-  belongs_to :recorded_transaction, class_name: "Transaction", foreign_key: :transaction_id, optional: true
+  belongs_to :recorded_journal_entry, class_name: "JournalEntry", foreign_key: :journal_entry_id, optional: true
 
   enum :document_type, { not_financial: 0, needs_review: 1, bank_transfer: 2 }
   enum :review_status, { pending: 0, recorded: 1, dismissed: 2 }, prefix: :review

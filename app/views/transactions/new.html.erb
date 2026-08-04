@@ -1,7 +1,0 @@
-<% content_for :title, @transaction.kind == "expense" ? "Add expense" : "Add sale" %>
-
-<%= turbo_frame_tag "modal" do %>
-  <%= render "shared/modal", title: @transaction.kind == "expense" ? "Add expense" : "Add sale" do %>
-    <%= render "form", transaction: @transaction %>
-  <% end %>
-<% end %>

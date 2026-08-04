@@ -1,7 +1,0 @@
-<% content_for :title, "Edit entry" %>
-
-<%= turbo_frame_tag "modal" do %>
-  <%= render "shared/modal", title: "Edit entry" do %>
-    <%= render "form", transaction: @transaction %>
-  <% end %>
-<% end %>

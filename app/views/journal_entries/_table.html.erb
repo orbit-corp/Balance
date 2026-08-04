@@ -1,0 +1,26 @@
+<div class="overflow-x-auto rounded-xl border border-(--color-border) bg-white">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-(--color-border) text-left text-xs font-medium uppercase text-(--color-muted-foreground)">
+        <th class="px-4 py-3">Date</th>
+        <th class="px-4 py-3">Description</th>
+        <th class="px-4 py-3">Debit</th>
+        <th class="px-4 py-3">Credit</th>
+        <th class="px-4 py-3">Amount</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-(--color-border)">
+      <% journal_entries.each do |entry| %>
+        <% debit_lines = entry.journal_entry_lines.select { |line| line.debit_kobo.positive? } %>
+        <% credit_lines = entry.journal_entry_lines.select { |line| line.credit_kobo.positive? } %>
+        <tr id="<%= dom_id(entry) %>">
+          <td class="px-4 py-3 whitespace-nowrap text-neutral-900"><%= entry.entry_date.strftime("%b %-d, %Y") %></td>
+          <td class="px-4 py-3 text-(--color-muted-foreground)"><%= entry.description.presence || "—" %></td>
+          <td class="px-4 py-3 font-medium text-neutral-900"><%= debit_lines.map { |line| line.account.name }.join(", ") %></td>
+          <td class="px-4 py-3 font-medium text-neutral-900"><%= credit_lines.map { |line| line.account.name }.join(", ") %></td>
+          <td class="px-4 py-3 font-semibold tabular-nums text-neutral-900"><%= format_naira(debit_lines.sum(&:debit_kobo)) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

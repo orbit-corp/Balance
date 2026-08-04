@@ -6,7 +6,7 @@
       <h1 class="text-xl font-semibold text-neutral-900">Customers</h1>
       <p class="text-sm text-(--color-muted-foreground)"><%= pluralize(@customers.size, "customer") %></p>
     </div>
-    <%= link_to "+ New customer", new_customer_path, class: "rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+    <%= link_to "New customer", new_customer_path, class: "rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
   </div>
 
   <% if @customers.empty? %>

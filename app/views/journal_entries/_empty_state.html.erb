@@ -1,0 +1,12 @@
+<div class="rounded-xl border border-dashed border-(--color-border) bg-white p-10 text-center">
+  <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-(--color-accent)">
+    <%= inline_svg_tag "icons/list.svg", class: "h-5 w-5 text-neutral-500" %>
+  </div>
+  <p class="mt-4 text-sm font-semibold text-neutral-900">No journal entries yet</p>
+  <p class="mx-auto mt-1 max-w-sm text-sm text-(--color-muted-foreground)">
+    Record your first entry — add a line for each account affected, with matching debits and credits.
+  </p>
+  <div class="mt-4 flex justify-center">
+    <%= render "new_entry_button" %>
+  </div>
+</div>

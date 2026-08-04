@@ -1,0 +1,13 @@
+<% account_options = grouped_options_for_select(
+     current_workspace.accounts.ordered.group_by(&:account_type).map { |type, accounts|
+       [ type.humanize, accounts.map { |account| [ account.name, account.id ] } ]
+     }
+   ) %>
+
+<div data-journal-entry-lines-target="row" class="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-start border-b border-(--color-border) py-2">
+  <%= form.select :account_id, account_options, { prompt: "Select account" }, class: "w-full rounded-md border border-(--color-input) px-2 py-1.5 text-sm outline-none focus:border-neutral-400" %>
+  <%= form.text_field :debit, value: form.object.debit&.nonzero?, placeholder: "0.00", data: { journal_entry_lines_target: "debit", action: "input->journal-entry-lines#recalculate" }, class: "w-full rounded-md border border-(--color-input) px-2 py-1.5 text-sm outline-none focus:border-neutral-400" %>
+  <%= form.text_field :credit, value: form.object.credit&.nonzero?, placeholder: "0.00", data: { journal_entry_lines_target: "credit", action: "input->journal-entry-lines#recalculate" }, class: "w-full rounded-md border border-(--color-input) px-2 py-1.5 text-sm outline-none focus:border-neutral-400" %>
+  <%= form.hidden_field :_destroy %>
+  <button type="button" data-action="journal-entry-lines#removeLine" class="mt-1.5 text-sm text-(--color-muted-foreground) hover:text-red-600">✕</button>
+</div>

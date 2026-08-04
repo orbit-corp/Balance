@@ -101,36 +101,27 @@ class CreateAccounts < ActiveRecord::Migration[8.1]
     add_index :whatsapp_messages, :wamid, unique: true
     add_index :whatsapp_messages, [ :workspace_id, :sent_at ]
 
-    create_table :transactions do |t|
+    create_table :journal_entries do |t|
       t.references :workspace, null: false, foreign_key: true
-      t.integer :kind, null: false
-      t.integer :amount_kobo, null: false
-      t.string :category
-      t.references :account, foreign_key: true
-      t.integer :status, null: false, default: 0
-      t.references :customer, foreign_key: true
-      t.date :occurred_on, null: false
+      t.date :entry_date, null: false
       t.text :description
-      t.integer :source, null: false, default: 0
-      t.references :whatsapp_message, null: true, foreign_key: true
 
       t.timestamps
     end
-    add_index :transactions, [ :workspace_id, :occurred_on ]
-    add_index :transactions, [ :workspace_id, :kind ]
-    add_index :transactions, [ :workspace_id, :status ]
+    add_index :journal_entries, [ :workspace_id, :entry_date ]
 
-    create_table :postings do |t|
-      t.references :transaction, null: false, foreign_key: true
+    create_table :journal_entry_lines do |t|
+      t.references :journal_entry, null: false, foreign_key: true
       t.references :account, null: false, foreign_key: true
-      t.bigint :amount_kobo, null: false
+      t.bigint :debit_kobo, null: false, default: 0
+      t.bigint :credit_kobo, null: false, default: 0
 
       t.timestamps
     end
 
     create_table :whatsapp_document_extractions do |t|
       t.references :whatsapp_message, null: false, foreign_key: true, index: { unique: true }
-      t.references :transaction, null: true, foreign_key: true
+      t.references :journal_entry, null: true, foreign_key: true
 
       t.integer :document_type, null: false, default: 0
       t.integer :review_status, null: false, default: 0

@@ -1,0 +1,18 @@
+<% content_for :title, "Journal entries" %>
+
+<div class="space-y-4">
+  <div class="flex items-start justify-between gap-2">
+    <div>
+      <h1 class="text-xl font-semibold text-neutral-900">Journal entries</h1>
+      <p class="text-sm text-(--color-muted-foreground)">Every entry balances — total debits equal total credits.</p>
+    </div>
+
+    <%= render "new_entry_button" %>
+  </div>
+
+  <% if @journal_entries.empty? %>
+    <%= render "empty_state" %>
+  <% else %>
+    <%= render "table", journal_entries: @journal_entries %>
+  <% end %>
+</div>
