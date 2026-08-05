@@ -2,15 +2,19 @@ class CreateAccounts < ActiveRecord::Migration[8.1]
   def change
     create_table :accounts do |t|
       t.references :workspace, null: false, foreign_key: true
+      t.string :base_type, null: false
       t.string :account_type, null: false
-      t.string :account_subtype, null: false
+      t.string :detail_type, null: false
       t.string :name, null: false
+      t.string :role
       t.text :description
 
       t.timestamps
     end
+    add_index :accounts, [ :workspace_id, :base_type ]
     add_index :accounts, [ :workspace_id, :account_type ]
-    add_index :accounts, [ :workspace_id, :account_type, :account_subtype, :name ], unique: true
+    add_index :accounts, [ :workspace_id, :name ], unique: true
+    add_index :accounts, [ :workspace_id, :role ], unique: true, where: "role IS NOT NULL"
 
     create_table :customers do |t|
       t.references :workspace, null: false, foreign_key: true
@@ -115,6 +119,7 @@ class CreateAccounts < ActiveRecord::Migration[8.1]
       t.references :account, null: false, foreign_key: true
       t.bigint :debit_kobo, null: false, default: 0
       t.bigint :credit_kobo, null: false, default: 0
+      t.references :counterparty, polymorphic: true, null: true
 
       t.timestamps
     end

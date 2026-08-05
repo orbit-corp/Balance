@@ -1,9 +1,11 @@
 class JournalEntryLine < ApplicationRecord
-  belongs_to :journal_entry
+  belongs_to :journal_entry, inverse_of: :journal_entry_lines
   belongs_to :account
+  belongs_to :counterparty, polymorphic: true, optional: true
 
   validates :debit_kobo, :credit_kobo, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validate :exactly_one_side_is_positive
+  validate :account_belongs_to_same_workspace
 
   def debit
     return nil if debit_kobo.nil?
@@ -32,5 +34,12 @@ class JournalEntryLine < ApplicationRecord
     return if debit_kobo.positive? ^ credit_kobo.positive?
 
     errors.add(:base, "must have either a debit or a credit, not both or neither")
+  end
+
+  def account_belongs_to_same_workspace
+    return if account.blank? || journal_entry.blank? || journal_entry.workspace_id.blank?
+    return if account.workspace_id == journal_entry.workspace_id
+
+    errors.add(:account, "must belong to the same workspace as the entry")
   end
 end

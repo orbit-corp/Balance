@@ -12,11 +12,14 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Creates an entry and puts it in the ledger. Totals and balances read postings,
-    # so a test that wants to see a figure move has to post, not just create.
-    def post_transaction!(workspace, **attributes)
-      Ledger::ChartOfAccounts.seed!(workspace)
-      Ledger::Poster.call(workspace.transactions.create!(status: :draft, **attributes))
+    def post_journal_entry!(workspace, debit_account:, credit_account:, amount_kobo:, entry_date: Date.current)
+      workspace.journal_entries.create!(
+        entry_date: entry_date,
+        journal_entry_lines_attributes: [
+          { account_id: debit_account.id, debit_kobo: amount_kobo },
+          { account_id: credit_account.id, credit_kobo: amount_kobo }
+        ]
+      )
     end
   end
 end

@@ -10,6 +10,7 @@ class RegistrationsController < ApplicationController
 
     ActiveRecord::Base.transaction do
       workspace = Workspace.create!(name: params[:business_name])
+      Account::SEED_ON_CREATE.each { |role| Account.for_role!(workspace, role) }
       @user.workspace = workspace
       @user.save!
     end

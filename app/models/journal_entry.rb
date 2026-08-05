@@ -1,6 +1,6 @@
 class JournalEntry < ApplicationRecord
   belongs_to :workspace
-  has_many :journal_entry_lines, dependent: :destroy
+  has_many :journal_entry_lines, dependent: :destroy, inverse_of: :journal_entry
 
   accepts_nested_attributes_for :journal_entry_lines, allow_destroy: true, reject_if: :all_blank
 
@@ -15,8 +15,9 @@ class JournalEntry < ApplicationRecord
   end
 
   def lines_balance
-    return if journal_entry_lines.sum(&:debit_kobo) == journal_entry_lines.sum(&:credit_kobo)
+    total_debit = journal_entry_lines.sum { |line| line.debit_kobo.to_i }
+    total_credit = journal_entry_lines.sum { |line| line.credit_kobo.to_i }
 
-    errors.add(:base, "debits and credits must balance")
+    errors.add(:base, "debits and credits must balance") unless total_debit == total_credit
   end
 end

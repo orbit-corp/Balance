@@ -59,21 +59,9 @@
           </div>
 
           <div class="mt-3 flex items-center gap-2 border-t border-(--color-border) pt-3">
-            <% if extraction.bank_transfer? && extraction.currency_supported? && extraction.amount_kobo.present? %>
-              <%= link_to "Record entry",
-                    new_transaction_path(
-                      kind: extraction.kind_guess,
-                      amount: extraction.amount&.to_s("F"),
-                      occurred_on: extraction.transaction_date,
-                      description: review_description(extraction),
-                      whatsapp_document_extraction_id: extraction.id
-                    ),
-                    class: "inline-flex items-center rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
-            <% else %>
-              <%= link_to "Add manually",
-                    new_transaction_path(kind: "expense"),
-                    class: "inline-flex items-center rounded-md border border-(--color-border) bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 transition hover:bg-(--color-accent)" %>
-            <% end %>
+            <%= link_to "Record entry",
+                  new_journal_entry_path,
+                  class: "inline-flex items-center rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
 
             <%= button_to "Dismiss", dismiss_document_review_path(extraction), method: :patch,
                   class: "inline-flex items-center rounded-md border border-(--color-border) bg-white px-3 py-1.5 text-sm font-medium text-neutral-600 transition hover:bg-(--color-accent)",

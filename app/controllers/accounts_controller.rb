@@ -34,7 +34,7 @@ class AccountsController < ApplicationController
     end
 
     def account_params
-      params.require(:account).permit(:name, :account_type, :account_subtype, :description)
+      params.require(:account).permit(:name, :base_type, :account_type, :detail_type, :description)
     end
 
     def render_account_form_error

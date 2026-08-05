@@ -5,21 +5,26 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     @workspace = workspaces(:ada_store)
     @user = users(:one)
     sign_in_as(@user)
-    Ledger::ChartOfAccounts.seed!(@workspace)
   end
 
-  test "lists money accounts with their balances" do
-    post_transaction!(@workspace, kind: :income, amount_kobo: 4_000_00, category: "Sales", occurred_on: Date.current)
+  test "lists accounts for the current workspace" do
+    cash = Account.for_role!(@workspace, :cash)
 
     get accounts_path
 
     assert_response :success
-    assert_select "body", /Cash/
-    assert_select "body", /#{Regexp.escape("₦4,000.00")}/
+    assert_select "body", /#{Regexp.escape(cash.name)}/
   end
 
-  test "renames a money account" do
-    cash = @workspace.accounts.asset.find_by!(name: "Bank")
+  test "creates an account" do
+    post accounts_path, params: { account: { name: "GTBank", base_type: "asset", account_type: "bank", detail_type: "checking" } }
+
+    assert_redirected_to accounts_path
+    assert @workspace.accounts.exists?(name: "GTBank")
+  end
+
+  test "renames a core account" do
+    cash = Account.for_role!(@workspace, :cash)
 
     patch account_path(cash), params: { account: { name: "GTBank" } }
 
@@ -27,24 +32,22 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "GTBank", cash.reload.name
   end
 
+  test "cannot change a core account's base type" do
+    cash = Account.for_role!(@workspace, :cash)
+
+    patch account_path(cash), params: { account: { base_type: "liability" } }
+
+    assert_equal "asset", cash.reload.base_type
+  end
+
   test "cannot rename another workspace's account" do
     other_workspace = workspaces(:bola_shop)
-    Ledger::ChartOfAccounts.seed!(other_workspace)
-    foreign = other_workspace.accounts.asset.first
+    foreign = Account.for_role!(other_workspace, :cash)
 
     patch account_path(foreign), params: { account: { name: "Hijacked" } }
 
     assert_response :not_found
     assert_not_equal "Hijacked", foreign.reload.name
-  end
-
-  test "cannot rename a category account through this screen" do
-    sales = @workspace.accounts.income.find_by!(name: "Sales")
-
-    patch account_path(sales), params: { account: { name: "Renamed" } }
-
-    assert_response :not_found
-    assert_equal "Sales", sales.reload.name
   end
 
   test "requires authentication" do

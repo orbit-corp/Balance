@@ -1,7 +1,8 @@
 <% account_options = grouped_options_for_select(
      current_workspace.accounts.ordered.group_by(&:account_type).map { |type, accounts|
        [ type.humanize, accounts.map { |account| [ account.name, account.id ] } ]
-     }
+     },
+     form.object.account_id
    ) %>
 
 <div data-journal-entry-lines-target="row" class="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-start border-b border-(--color-border) py-2">

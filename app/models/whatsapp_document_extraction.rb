@@ -14,11 +14,6 @@ class WhatsappDocumentExtraction < ApplicationRecord
   # "possibly financial" docs the user hasn't actioned yet.
   scope :awaiting_review, -> { review_pending.where(document_type: [ :bank_transfer, :needs_review ]) }
 
-  # Pre-fill guess for the transaction form: outward money = expense, inward = income.
-  def kind_guess
-    direction_inward? ? "income" : "expense"
-  end
-
   def amount
     return nil if amount_kobo.nil?
 

@@ -1,7 +1,7 @@
 # Orchestrates the vision layer for one WhatsApp message: reads the attached file
 # (PDF via pdf-reader, image via OCR), parses it for bank-transfer fields, and stores
 # the result as a WhatsappDocumentExtraction staging record. Nothing here touches the
-# ledger — a Transaction is only created later, from the review queue, on user confirm.
+# ledger — a journal entry is only created later, from the review queue, on user confirm.
 module Whatsapp
   class DocumentClassifier
     def self.call(whatsapp_message)

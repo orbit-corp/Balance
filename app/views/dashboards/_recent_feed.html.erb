@@ -1,9 +1,9 @@
-<% transactions = summary.recent_transactions %>
-<% if transactions.empty? %>
+<% journal_entries = summary.recent_journal_entries %>
+<% if journal_entries.empty? %>
   <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
     <p class="text-sm text-(--color-muted-foreground)">No entries yet.</p>
-    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "modal" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
+    <%= link_to "Record your first entry", new_journal_entry_path, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
   </div>
 <% else %>
-  <%= render "transactions/table", transactions: transactions %>
+  <%= render "journal_entries/table", journal_entries: journal_entries %>
 <% end %>
