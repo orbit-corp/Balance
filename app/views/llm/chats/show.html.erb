@@ -8,7 +8,7 @@
 <div class="flex min-h-0 flex-1 flex-col bg-(--color-sidebar)">
   <div class="flex flex-none items-center justify-between gap-4 border-b border-(--color-border) bg-white px-4 py-3.5 md:px-6">
     <div class="flex items-center gap-2 min-w-0">
-      <h1 class="truncate text-base font-semibold text-neutral-900">Chat #<%= @llm_chat.id %></h1>
+      <h1 class="truncate text-base font-semibold text-neutral-900"><%= @llm_chat.title.presence || "New chat" %></h1>
       <span class="flex-none rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
         <%= @llm_chat.llm_model&.label || default_model_display_name %>
       </span>
@@ -19,7 +19,7 @@
         <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
         <span>All chats</span>
       <% end %>
-      <%= link_to new_chat_path, class: "inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
+      <%= link_to chats_path, class: "inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
         <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
         <span>New chat</span>
       <% end %>
@@ -45,7 +45,7 @@
     </div>
   </div>
 
-  <div class="flex-none border-t border-(--color-border) bg-white px-4 py-4 md:px-6">
+  <div class="flex-none px-4 py-4 md:px-6">
     <div class="mx-auto max-w-3xl">
       <%= render "llm/messages/form", llm_chat: @llm_chat, llm_message: @llm_message %>
 

@@ -4,7 +4,7 @@ Rails.application.routes.draw do
       post :refresh
     end
   end
-  resources :chats, controller: "llm/chats" do
+  resources :chats, controller: "llm/chats", except: [ :new ], constraints: { id: /\d+/ } do
     resources :messages, only: [ :create ], controller: "llm/messages"
     resources :proposals, only: [ :update ], controller: "llm/proposals" do
       member do

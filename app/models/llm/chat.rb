@@ -2,7 +2,7 @@ class Llm::Chat < ApplicationRecord
   belongs_to :workspace
   has_many :proposals, foreign_key: :llm_chat_id, dependent: :destroy
 
-  acts_as_chat messages: :llm_messages, message_class: 'Llm::Message', messages_foreign_key: :llm_chat_id, model: :llm_model, model_class: 'Llm::Model'
+  acts_as_chat messages: :llm_messages, message_class: "Llm::Message", messages_foreign_key: :llm_chat_id, model: :llm_model, model_class: "Llm::Model"
 
   def timeline
     items = []
@@ -19,5 +19,10 @@ class Llm::Chat < ApplicationRecord
     scope = proposals.proposed
     scope = scope.by_type(type) if type
     scope.order(version: :desc).first
+  end
+
+  def derive_title_from(prompt)
+    truncated = prompt.to_s.squish.delete_suffix(".").truncate(60, separator: " ", omission: "…")
+    self.title = truncated.present? ? truncated[0].upcase + truncated[1..] : "New chat"
   end
 end

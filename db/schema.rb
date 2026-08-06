@@ -158,6 +158,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
   create_table "llm_chats", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "llm_model_id"
+    t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "workspace_id", null: false
     t.index ["llm_model_id"], name: "index_llm_chats_on_llm_model_id"
