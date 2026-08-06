@@ -67,78 +67,73 @@ So there is no `family_support` detail type. There is an account *named* "Family
 Do not add Nigerian or personal-finance detail types. If a real account has nowhere to sit, use the generic
 `other_*` detail type for that account type — those exist precisely as the escape hatch.
 
+### Scope — personal accounts only
+
+This is the **personal** account type and nothing else. The taxonomy below carries only the account types and detail
+types a personal ledger needs. Business types (inventory, COGS, sales tax, fixed assets, payroll, FX) are deliberately
+absent.
+
+Onboarding will later ask what kind of account the user is creating, and the other branches get added then. Do not
+pre-add them now.
+
 ```ruby
 TAXONOMY = {
   "asset" => {
-    "bank"                    => %w[checking savings cash_on_hand money_market],
+    "bank"                    => %w[checking savings cash_on_hand],
     "accounts_receivable"     => %w[accounts_receivable],
-    "other_current_asset"     => %w[inventory prepaid_expense undeposited_funds
-                                    employee_cash_advances loans_to_others other_current_asset],
-    "fixed_asset"             => %w[machinery_equipment vehicles furniture_fixtures buildings land
-                                    leasehold_improvements accumulated_depreciation],
-    "other_asset"             => %w[security_deposits goodwill licenses other_asset],
+    "other_current_asset"     => %w[prepaid_expense loans_to_others other_current_asset],
   },
   "liability" => {
-    "credit_card"             => %w[credit_card],
     "accounts_payable"        => %w[accounts_payable],
-    "other_current_liability" => %w[sales_tax_payable payroll_liabilities income_tax_payable
-                                    deferred_revenue loan_payable line_of_credit
-                                    other_current_liability],
-    "long_term_liability"     => %w[notes_payable shareholder_notes_payable other_long_term_liability],
+    "other_current_liability" => %w[loan_payable other_current_liability],
   },
   "equity" => {
-    "equity"                  => %w[owner_capital owner_draw opening_balance],
+    "equity"                  => %w[opening_balance],
   },
   "income" => {
-    "income"                  => %w[sales_of_product_income service_fee_income
-                                    discounts_refunds_given other_primary_income],
-    "other_income"            => %w[interest_earned exchange_gain gain_on_disposal other_income],
+    "income"                  => %w[other_primary_income],
+    "other_income"            => %w[interest_earned other_income],
   },
   "expense" => {
-    "cost_of_goods_sold"      => %w[supplies_materials_cogs cost_of_labour_cogs
-                                    shipping_freight_cogs other_costs_of_sales],
-    "expense"                 => %w[advertising_promotional auto bad_debts bank_charges
-                                    charitable_contributions dues_subscriptions insurance
-                                    legal_professional_fees office_general_administrative
-                                    payroll_expenses rent_or_lease_of_buildings repair_maintenance
-                                    shipping_delivery supplies taxes_paid travel utilities
-                                    depreciation other_miscellaneous_expense uncategorised_expense],
-    "other_expense"           => %w[exchange_gain_or_loss amortization interest_paid
-                                    penalties_settlements loss_on_disposal other_expense],
+    "expense"                 => %w[auto bank_charges charitable_contributions insurance
+                                    rent_or_lease_of_buildings supplies utilities
+                                    other_miscellaneous_expense],
   },
 }.freeze
 ```
 
-Worked mappings for the accounts in `journal_entry_examples.md`, so the intent is unambiguous:
+All five base types stay — they are the accounting identity and none can be dropped. What shrinks is the account types
+and detail types beneath them: 9 account types and 20 detail types, down from 15 and 75.
+
+Worked mappings for the categorisation accounts a personal user would create:
 
 | Account name | base_type | account_type | detail_type |
 |---|---|---|---|
-| Family Support, Personal Upkeep, Gifts | expense | `expense` | `other_miscellaneous_expense` |
-| Generator Fuel, Transport | expense | `expense` | `auto` |
-| Rent Expense | expense | `expense` | `rent_or_lease_of_buildings` |
+| Bank Account (GTBank, Opay) | asset | `bank` | `checking` / `cash_on_hand` |
+| Savings | asset | `bank` | `savings` |
 | Ajo Contributions | asset | `other_current_asset` | `loans_to_others` |
+| Rent Paid in Advance | asset | `other_current_asset` | `prepaid_expense` |
 | Ajo Contributions Payable | liability | `other_current_liability` | `other_current_liability` |
-| Opay Wallet, Agent Float | asset | `bank` | `cash_on_hand` |
-| WHT Receivable, VAT Input Recoverable | asset | `other_current_asset` | `prepaid_expense` |
-| Staff Advance | asset | `other_current_asset` | `employee_cash_advances` |
-| Landlord Deposit | asset | `other_asset` | `security_deposits` |
-| Loan from Owner | liability | `long_term_liability` | `shareholder_notes_payable` |
-| VAT Payable | liability | `other_current_liability` | `sales_tax_payable` |
-| PAYE / Pension Payable | liability | `other_current_liability` | `payroll_liabilities` |
-| Customer Deposits | liability | `other_current_liability` | `deferred_revenue` |
-| Phone (Asset) | asset | `fixed_asset` | `machinery_equipment` |
-| Salary Income | income | `income` | `other_primary_income` |
-| FX Loss | expense | `other_expense` | `exchange_gain_or_loss` |
+| Loan from Family | liability | `other_current_liability` | `loan_payable` |
+| Salary | income | `income` | `other_primary_income` |
+| Interest Earned | income | `other_income` | `interest_earned` |
+| Rent | expense | `expense` | `rent_or_lease_of_buildings` |
+| Transport, Generator Fuel | expense | `expense` | `auto` |
+| Food & Groceries | expense | `expense` | `supplies` |
+| Data & Airtime, Electricity | expense | `expense` | `utilities` |
+| Gifts & Donations | expense | `expense` | `charitable_contributions` |
+| Health | expense | `expense` | `insurance` |
+| Family Support, Personal Upkeep | expense | `expense` | `other_miscellaneous_expense` |
 
 Validations: `base_type` in `TAXONOMY.keys`; `account_type` in `TAXONOMY[base_type].keys`;
 `detail_type` in `TAXONOMY[base_type][account_type]`.
 
-### Contra accounts
+### Signed balances
 
-`accumulated_depreciation` sits under `fixed_asset` and `discounts_refunds_given` under `income` — both carry a balance
-contrary to their base type's normal side. This is QuickBooks' own answer, and adopting it means **signed balances are
-allowed**. Every balance, report and health check must tolerate an account running contrary to `normal_balance`. Do not
-add a contra flag.
+No contra account exists in the personal taxonomy — `accumulated_depreciation` and `discounts_refunds_given` came out
+with the business branches. The principle still holds and reports must be written for it now, because those accounts
+return with the business type: **an account may carry a balance contrary to its base type's normal side, and every
+balance, report and health check must tolerate it.** Do not add a contra flag.
 
 ## 4. Core accounts
 
@@ -146,21 +141,39 @@ A code registry owns the list; DB rows are materialized from it. Resolution is b
 
 ```ruby
 CORE = {
-  cash:              { name: "Cash",                   base: "asset",     type: "bank",                    detail: "cash_on_hand" },
-  receivable:        { name: "Accounts Receivable",    base: "asset",     type: "accounts_receivable",     detail: "accounts_receivable" },
-  payable:           { name: "Accounts Payable",       base: "liability", type: "accounts_payable",        detail: "accounts_payable" },
-  suspense:          { name: "Suspense",               base: "liability", type: "other_current_liability", detail: "other_current_liability" },
-  owner_capital:     { name: "Owner's Equity",         base: "equity",    type: "equity",                  detail: "owner_capital" },
-  owner_draw:        { name: "Owner's Drawings",       base: "equity",    type: "equity",                  detail: "owner_draw" },
-  opening_balance:   { name: "Opening Balance Equity", base: "equity",    type: "equity",                  detail: "opening_balance" },
-  sales:             { name: "Sales",                  base: "income",    type: "income",                  detail: "sales_of_product_income" },
-  cogs:              { name: "Cost of Goods Sold",     base: "expense",   type: "cost_of_goods_sold",      detail: "other_costs_of_sales" },
-  bank_charges:      { name: "Bank Charges",           base: "expense",   type: "expense",                 detail: "bank_charges" },
-  uncategorised_exp: { name: "Uncategorised Expense",  base: "expense",   type: "expense",                 detail: "uncategorised_expense" },
+  cash:            { name: "Cash",                   base: "asset",     type: "bank",                    detail: "cash_on_hand" },
+  receivable:      { name: "Accounts Receivable",    base: "asset",     type: "accounts_receivable",     detail: "accounts_receivable" },
+  payable:         { name: "Accounts Payable",       base: "liability", type: "accounts_payable",        detail: "accounts_payable" },
+  suspense:        { name: "Suspense",               base: "liability", type: "other_current_liability", detail: "other_current_liability" },
+  opening_balance: { name: "Opening Balance Equity", base: "equity",    type: "equity",                  detail: "opening_balance" },
+  other_income:    { name: "Other Income",           base: "income",    type: "other_income",            detail: "other_income" },
+  other_expense:   { name: "Other Expense",          base: "expense",   type: "expense",                 detail: "other_miscellaneous_expense" },
+  bank_charges:    { name: "Bank Charges",           base: "expense",   type: "expense",                 detail: "bank_charges" },
 }.freeze
 
-SEED_ON_CREATE = %i[cash sales uncategorised_exp owner_capital].freeze
+# All eight are structural, so all eight are seeded. Nothing is lazily materialized.
+SEED_ON_CREATE = CORE.keys.freeze
 ```
+
+Names are the canonical accounting terms. Friendlier wording ("your debts", "what you're owed") is a **display
+concern** — do not rename accounts to achieve it.
+
+Why each one is required:
+
+| Account | Unrecordable without it |
+|---|---|
+| Cash | the default money account the engine resolves `:money` to |
+| Accounts Receivable | lending money out, ajo contributions, anyone owing the user |
+| Accounts Payable | buying on installment, informal borrowing |
+| Opening Balance Equity | onboarding — there is no other credit side for a starting balance |
+| Suspense | money arrived and the source is genuinely unknown; Cash must still be right |
+| Other Income | fallback so an unclassifiable receipt never blocks a post |
+| Other Expense | fallback so an unclassifiable payment never blocks a post |
+| Bank Charges | the fee leg of every transfer and withdrawal template |
+
+**Not in personal, on purpose:** `owner_capital`, `owner_draw`, `sales`, `cogs`. A person does not inject capital into
+their own life — money in is income, not capital — so Opening Balance Equity plus retained income minus expense makes
+the balance sheet balance without a capital account. Those four are what the business type adds back.
 
 ```ruby
 def self.for_role!(workspace, role)
@@ -222,14 +235,22 @@ makes `GET /` raise.
 Account numbers/codes, `parent_id` sub-account trees, multi-currency revaluation, inventory cost layers (FIFO/average),
 depreciation schedules, the posting-template engine, bank reconciliation, items/products.
 
-## 9. One open decision
+## 9. Consequences of the personal-only scope
 
-`owner_draw` (equity) and `personal_upkeep`/`family_support`/`gifts` (expense) both exist in the taxonomy above, and
-they model the same money leaving for personal use at two different base types. Example 7 in
-`journal_entry_examples.md` books owner money *in* as equity; Example 16 books it *out* as expense.
+Cutting the taxonomy resolves the previously open drawings question: `owner_draw` no longer exists, so personal money
+going out is always an expense. That is the right answer for a personal ledger, and the P&L reads as "what came in
+minus everything that went out." The question returns with the business type, not before.
 
-Recommendation: keep both. A genuine capital withdrawal uses `owner_draw`; day-to-day personal consumption uses the
-expense accounts, which keeps the P&L answering "did I make money after everything." The capture UI asks which — the
-same disambiguation the gift-vs-loan case needs (Examples 8 and 9).
+Four of the seventeen worked examples become unrecordable until the business type lands, all because they need
+account types this taxonomy no longer carries:
 
-Nothing in this document depends on resolving it; the engine does.
+| Example | Needs | Removed branch |
+|---|---|---|
+| 4. Purchase on credit | Inventory | `other_current_asset` → `inventory` |
+| 11. Salary with pension | Pension (RSA) | payroll detail types |
+| 15. Phone on installment | Phone as an asset | `fixed_asset` |
+| 17. Import with FX | Inventory, FX Loss | `other_expense` → `exchange_gain_or_loss` |
+
+Examples 15 and 11 are genuinely personal transactions, so they are the ones to watch. A personal user buying a phone
+records it as an expense rather than an asset, which most personal-finance tools do anyway — but it is a real
+limitation rather than an oversight, and worth confirming before the taxonomy is treated as settled.
