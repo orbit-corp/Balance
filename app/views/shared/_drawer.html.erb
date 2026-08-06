@@ -1,0 +1,29 @@
+<%# A slide-over panel anchored to the right, for browsing lists without leaving the
+    current page. Rendered into the layout's "modal" frame, same as shared/_modal. %>
+<div data-controller="drawer"
+     data-action="keydown->drawer#keydown click->drawer#clickOutside"
+     class="fixed inset-0 z-50 flex justify-end"
+     role="dialog"
+     aria-modal="true"
+     aria-label="<%= title %>"
+     tabindex="-1">
+  <div data-drawer-target="backdrop"
+       class="fixed inset-0 bg-neutral-950/40 opacity-0 transition-opacity duration-200 ease-out motion-reduce:transition-none"></div>
+
+  <div data-drawer-target="panel"
+       class="relative z-10 flex h-full w-full max-w-sm translate-x-full flex-col border-l border-(--color-border) bg-white shadow-xl transition duration-200 ease-out motion-reduce:transition-none">
+    <div class="flex items-center justify-between gap-3 border-b border-(--color-border) px-5 py-4">
+      <h2 class="text-base font-semibold text-neutral-900"><%= title %></h2>
+      <button type="button"
+              data-action="drawer#close"
+              aria-label="Close"
+              class="-mr-1.5 flex-none rounded-md p-1.5 text-neutral-500 transition hover:bg-(--color-accent) hover:text-neutral-900">
+        <%= inline_svg_tag "icons/x.svg", class: "h-4 w-4" %>
+      </button>
+    </div>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+      <%= yield %>
+    </div>
+  </div>
+</div>

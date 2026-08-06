@@ -1,14 +1,7 @@
 <% user ||= local_assigns[:message] %>
-<div id="llm_message_<%= user.id %>" class="w-full sm:w-auto my-5 space-y-3 rounded-md px-3 py-2 bg-blue-50">
-  <div>
-    <span class="inline-block rounded px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">
-      User
-    </span>
-  </div>
-
-  <div id="llm_message_<%= user.id %>_content" class="whitespace-pre-wrap"><%= user.content %></div>
-
-  <div>
-    <span class="text-sm text-gray-600"><%= user.created_at&.strftime("%I:%M %p") %></span>
+<div class="flex justify-end">
+  <div id="llm_message_<%= user.id %>" class="max-w-[75%] space-y-1 rounded-3xl bg-neutral-100 px-4 py-2.5">
+    <div id="llm_message_<%= user.id %>_content" class="whitespace-pre-wrap leading-relaxed text-neutral-900"><%= user.content %></div>
+    <div class="text-right text-[11px] text-neutral-400"><%= user.created_at&.strftime("%I:%M %p") %></div>
   </div>
 </div>

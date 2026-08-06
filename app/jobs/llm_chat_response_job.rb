@@ -18,5 +18,7 @@ class LlmChatResponseJob < ApplicationJob
           llm_message.broadcast_append_chunk(chunk.content)
         end
       end
+  ensure
+    llm_chat&.broadcast_remove_to "llm_chat_#{llm_chat_id}", target: "llm_chat_#{llm_chat_id}_pending"
   end
 end
