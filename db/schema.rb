@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_130626) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -155,6 +155,72 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
     t.index ["workspace_id"], name: "index_linking_tokens_on_workspace_id"
   end
 
+  create_table "llm_chats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "llm_model_id"
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["llm_model_id"], name: "index_llm_chats_on_llm_model_id"
+    t.index ["workspace_id"], name: "index_llm_chats_on_workspace_id"
+  end
+
+  create_table "llm_messages", force: :cascade do |t|
+    t.integer "cache_creation_tokens"
+    t.integer "cached_tokens"
+    t.text "content"
+    t.json "content_raw"
+    t.datetime "created_at", null: false
+    t.integer "input_tokens"
+    t.bigint "llm_chat_id", null: false
+    t.bigint "llm_model_id"
+    t.bigint "llm_tool_call_id"
+    t.integer "output_tokens"
+    t.string "role", null: false
+    t.text "thinking_signature"
+    t.text "thinking_text"
+    t.integer "thinking_tokens"
+    t.datetime "updated_at", null: false
+    t.index ["llm_chat_id"], name: "index_llm_messages_on_llm_chat_id"
+    t.index ["llm_model_id"], name: "index_llm_messages_on_llm_model_id"
+    t.index ["llm_tool_call_id"], name: "index_llm_messages_on_llm_tool_call_id"
+    t.index ["role"], name: "index_llm_messages_on_role"
+  end
+
+  create_table "llm_models", force: :cascade do |t|
+    t.jsonb "capabilities", default: []
+    t.integer "context_window"
+    t.datetime "created_at", null: false
+    t.string "family"
+    t.date "knowledge_cutoff"
+    t.integer "max_output_tokens"
+    t.jsonb "metadata", default: {}
+    t.jsonb "modalities", default: {}
+    t.datetime "model_created_at"
+    t.string "model_id", null: false
+    t.string "name", null: false
+    t.jsonb "pricing", default: {}
+    t.string "provider", null: false
+    t.datetime "updated_at", null: false
+    t.index ["capabilities"], name: "index_llm_models_on_capabilities", using: :gin
+    t.index ["family"], name: "index_llm_models_on_family"
+    t.index ["modalities"], name: "index_llm_models_on_modalities", using: :gin
+    t.index ["provider", "model_id"], name: "index_llm_models_on_provider_and_model_id", unique: true
+    t.index ["provider"], name: "index_llm_models_on_provider"
+  end
+
+  create_table "llm_tool_calls", force: :cascade do |t|
+    t.jsonb "arguments", default: {}
+    t.datetime "created_at", null: false
+    t.bigint "llm_message_id", null: false
+    t.string "name", null: false
+    t.text "thought_signature"
+    t.string "tool_call_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["llm_message_id"], name: "index_llm_tool_calls_on_llm_message_id"
+    t.index ["name"], name: "index_llm_tool_calls_on_name"
+    t.index ["tool_call_id"], name: "index_llm_tool_calls_on_tool_call_id", unique: true
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -176,6 +242,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
     t.index ["campaign_channel_id"], name: "index_shortlinks_on_campaign_channel_id"
     t.index ["host", "slug"], name: "index_shortlinks_on_host_and_slug", unique: true
     t.index ["ref_code"], name: "index_shortlinks_on_ref_code", unique: true
+  end
+
+  create_table "solid_cable_messages", force: :cascade do |t|
+    t.binary "channel", null: false
+    t.bigint "channel_hash", null: false
+    t.datetime "created_at", null: false
+    t.binary "payload", null: false
+    t.index ["channel"], name: "index_solid_cable_messages_on_channel"
+    t.index ["channel_hash"], name: "index_solid_cable_messages_on_channel_hash"
+    t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -395,6 +471,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
   add_foreign_key "journal_entry_lines", "accounts"
   add_foreign_key "journal_entry_lines", "journal_entries"
   add_foreign_key "linking_tokens", "workspaces"
+  add_foreign_key "llm_chats", "llm_models"
+  add_foreign_key "llm_chats", "workspaces"
+  add_foreign_key "llm_messages", "llm_chats"
+  add_foreign_key "llm_messages", "llm_models"
+  add_foreign_key "llm_messages", "llm_tool_calls"
+  add_foreign_key "llm_tool_calls", "llm_messages"
   add_foreign_key "sessions", "users"
   add_foreign_key "shortlinks", "campaign_channels"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

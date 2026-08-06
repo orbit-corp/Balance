@@ -1,0 +1,7 @@
+<% if defined?(@llm_chat) && @llm_chat.present? %>
+  <%= turbo_stream.replace "new_llm_message" do %>
+    <%= render "llm/messages/form",
+      llm_chat: @llm_chat,
+      llm_message: @llm_chat.llm_messages.build %>
+  <% end %>
+<% end %>

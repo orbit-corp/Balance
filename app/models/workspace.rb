@@ -9,6 +9,7 @@ class Workspace < ApplicationRecord
   has_many :whatsapp_links, dependent: :destroy
   has_many :whatsapp_messages, dependent: :destroy
   has_many :whatsapp_document_extractions, through: :whatsapp_messages, source: :document_extraction
+  has_many :llm_chats, class_name: "Llm::Chat", dependent: :destroy
 
   validates :name, presence: true
 
