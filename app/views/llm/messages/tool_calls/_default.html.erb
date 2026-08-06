@@ -1,9 +1,0 @@
-<div class="flex justify-start">
-  <div id="llm_message_<%= tool_calls.id %>" class="max-w-[75%] space-y-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-    <span class="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-neutral-200 text-neutral-600">Tool Call</span>
-
-    <pre class="whitespace-pre-wrap text-neutral-700 text-sm overflow-x-auto"><%= tool_call.name %>(<%= tool_call.arguments.map { |k, v| "#{k}: #{v.inspect}" }.join(", ") %>)</pre>
-
-    <div class="text-[11px] text-neutral-400"><%= tool_calls.created_at&.strftime("%I:%M %p") %></div>
-  </div>
-</div>

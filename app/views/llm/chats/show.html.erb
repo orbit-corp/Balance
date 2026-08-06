@@ -3,7 +3,7 @@
 
 <%= turbo_stream_from "llm_chat_#{@llm_chat.id}" %>
 
-<% llm_messages = @llm_chat.llm_messages.where.not(id: nil) %>
+<% timeline = @llm_chat.timeline %>
 
 <div class="flex min-h-0 flex-1 flex-col bg-(--color-sidebar)">
   <div class="flex flex-none items-center justify-between gap-4 border-b border-(--color-border) bg-white px-4 py-3.5 md:px-6">
@@ -31,16 +31,16 @@
   <% end %>
 
   <div class="min-h-0 flex-1 overflow-y-auto" data-controller="messages-thread">
-    <% if llm_messages.none? %>
-      <div class="flex h-full flex-col items-center justify-center gap-2 text-center text-neutral-400">
+    <% if timeline.none? %>
+      <div id="llm_chat_<%= @llm_chat.id %>_empty" class="flex h-full flex-col items-center justify-center gap-2 text-center text-neutral-400">
         <%= inline_svg_tag "icons/message-circle.svg", class: "h-6 w-6" %>
         <p class="text-sm">Send a message to start this chat.</p>
       </div>
     <% end %>
 
     <div id="llm_messages" class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 md:px-6">
-      <% llm_messages.each do |llm_message| %>
-        <%= render llm_message %>
+      <% timeline.each do |item| %>
+        <%= render_timeline_item(item) %>
       <% end %>
     </div>
   </div>

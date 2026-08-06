@@ -6,6 +6,12 @@ Rails.application.routes.draw do
   end
   resources :chats, controller: "llm/chats" do
     resources :messages, only: [ :create ], controller: "llm/messages"
+    resources :proposals, only: [ :update ], controller: "llm/proposals" do
+      member do
+        patch :confirm
+        patch :dismiss
+      end
+    end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

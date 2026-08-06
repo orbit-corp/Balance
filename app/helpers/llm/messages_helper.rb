@@ -1,25 +1,37 @@
 module Llm::MessagesHelper
+  PROPOSAL_PARTIALS = {
+    "journal_entry" => "llm/messages/proposals/journal_entry"
+  }.freeze
+
+  TOOL_LABELS = {
+    running: {
+      "list_accounts" => "Checking your accounts…",
+      "propose_entry" => "Working out the entry…"
+    },
+    completed: {
+      "list_accounts" => "Checked your accounts",
+      "propose_entry" => "Worked out the entry"
+    }
+  }.freeze
+
   def default_model_display_name
     "Default: #{RubyLLM.models.find(RubyLLM.config.default_model).label}"
   end
 
-  def tool_result_partial(message)
-    name = message.respond_to?(:parent_tool_call) ? message.parent_tool_call&.name.to_s : ""
-    partial_for(prefix: "llm/messages/tool_results", name: name)
-  end
+  def tool_running_label(tool_name) = TOOL_LABELS[:running][tool_name] || tool_name.to_s.humanize
+  def tool_completed_label(tool_name) = TOOL_LABELS[:completed][tool_name] || tool_name.to_s.humanize
 
-  def tool_call_partial(tool_call)
-    partial_for(prefix: "llm/messages/tool_calls", name: tool_call.name.to_s)
-  end
-
-  private
-
-  def partial_for(prefix:, name:)
-    normalized = name.to_s.underscore.tr("-", "_")
-    if normalized.present? && lookup_context.exists?(normalized, [ prefix ], true)
-      "#{prefix}/#{normalized}"
-    else
-      "#{prefix}/default"
+  def render_timeline_item(item)
+    case item[:type]
+    when :message
+      render item[:record]
+    when :proposal
+      render_proposal(item[:record])
     end
+  end
+
+  def render_proposal(proposal)
+    partial = PROPOSAL_PARTIALS[proposal.proposal_type] || "llm/messages/proposals/#{proposal.proposal_type}"
+    render partial, proposal: proposal
   end
 end

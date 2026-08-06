@@ -1,7 +1,0 @@
-<% system ||= local_assigns[:message] %>
-<div class="flex justify-start">
-  <div id="llm_message_<%= system.id %>" class="max-w-[75%] space-y-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-    <span class="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-neutral-200 text-neutral-600">System</span>
-    <div class="whitespace-pre-wrap text-sm text-neutral-500"><%= system.content %></div>
-  </div>
-</div>

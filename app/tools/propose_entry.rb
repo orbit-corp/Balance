@@ -1,87 +1,105 @@
 class ProposeEntry < RubyLLM::Tool
+  # Each shape fully determines both accounts by role — resolved via Account.for_role!,
+  # never by name or a hardcoded id. A shape with a counterparty_slot may leave that
+  # side's account blank (an undecided slot, not an error) when the model can't tell
+  # which account applies; undecided_note is the canned sentence shown for that case —
+  # written here, never freeform prose from the model.
+  SHAPES = {
+    "money_spent" => { debit: :other_expense, credit: :cash },
+    "money_received" => { debit: :cash, credit: :other_income },
+    "lent_out" => {
+      debit: :receivable, credit: :cash, counterparty_slot: :debit,
+      undecided_note: "I couldn't tell whether this was a gift or a loan, so pick the account."
+    },
+    "loan_repaid_to_user" => {
+      debit: :cash, credit: :receivable, counterparty_slot: :credit,
+      undecided_note: "I couldn't tell which receivable this repayment closes out, so pick the account."
+    },
+    "borrowed_cash" => {
+      debit: :cash, credit: :payable, counterparty_slot: :credit,
+      undecided_note: "I don't have who this was borrowed from, so pick the account."
+    },
+    "bought_on_credit" => {
+      debit: :other_expense, credit: :payable, counterparty_slot: :credit,
+      undecided_note: "I don't have who this is owed to, so pick the account."
+    },
+    "debt_paid_off" => {
+      debit: :payable, credit: :cash, counterparty_slot: :debit,
+      undecided_note: "I couldn't tell which payable this closes out, so pick the account."
+    },
+    "bank_fee" => { debit: :bank_charges, credit: :cash },
+    "opening_balance" => { debit: :cash, credit: :opening_balance },
+    "money_in_unknown_source" => { debit: :cash, credit: :suspense },
+    "money_out_unknown_reason" => { debit: :suspense, credit: :cash }
+  }.freeze
+
   description "Propose how a transaction should be recorded as a balanced double-entry journal entry. " \
-              "This does not record anything — it only returns a preview. Amounts are in naira, not kobo. " \
-              "Only use account ids returned by list_accounts; never invent one."
+              "This does not record anything — the user must confirm the proposal before it is ever posted. " \
+              "Pick the one shape that best matches the transaction; every shape fully determines both accounts. " \
+              "Amounts are in naira, not kobo."
 
   params(
     type: "object",
     properties: {
       description: { type: "string", description: "short description of the transaction" },
-      lines: {
-        type: "array",
-        description: "at least two lines; total debits must equal total credits",
-        items: {
-          type: "object",
-          properties: {
-            account_id: { type: "integer", description: "an id returned by list_accounts" },
-            side: { type: "string", enum: %w[debit credit] },
-            amount_naira: { type: "number", description: "amount in naira, e.g. 5000 for ₦5,000" }
-          },
-          required: %w[account_id side amount_naira]
-        }
+      shape: { type: "string", enum: SHAPES.keys, description: "the one shape that best matches this transaction" },
+      amount_naira: { type: "number", description: "amount in naira, e.g. 5000 for ₦5,000" },
+      entry_date: { type: "string", description: "ISO date (YYYY-MM-DD) the transaction happened; defaults to today" },
+      counterparty_name: { type: "string", description: "who the money is owed to/by, for shapes that involve a counterparty" },
+      undecided: {
+        type: "boolean",
+        description: "set true when you genuinely cannot tell which account this shape's counterparty-driven " \
+                     "side belongs to (e.g. gift vs. loan) — leaves that account blank for the user to pick"
       }
     },
-    required: %w[description lines]
+    required: %w[description shape amount_naira]
   )
 
   def initialize(workspace)
     @workspace = workspace
   end
 
-  def execute(description:, lines:)
-    error = validation_error(lines)
-    return halt("Can't record this: #{error}") if error
+  def execute(description:, shape:, amount_naira:, entry_date: nil, counterparty_name: nil, undecided: false)
+    spec = SHAPES[shape]
+    return { error: "\"#{shape}\" is not a shape I know. Must be one of: #{SHAPES.keys.join(', ')}" } unless spec
+    return { error: "description is required" } if description.blank?
+    return { error: "amount_naira must be greater than zero" } unless amount_naira.to_f.positive?
 
-    halt(format_proposal(description, lines))
+    date = parse_date(entry_date)
+    return { error: "entry_date must be a valid ISO date (YYYY-MM-DD)" } if entry_date && date.nil?
+
+    amount_kobo = (amount_naira.to_f * 100).round
+    blank_slot = spec[:counterparty_slot] if undecided || (spec[:counterparty_slot] && counterparty_name.blank?)
+
+    debit_account = blank_slot == :debit ? nil : Account.for_role!(@workspace, spec[:debit])
+    credit_account = blank_slot == :credit ? nil : Account.for_role!(@workspace, spec[:credit])
+
+    lines = [
+      { "account_id" => debit_account&.id, "side" => "debit", "amount_kobo" => amount_kobo,
+        "counterparty_name" => counterparty_name },
+      { "account_id" => credit_account&.id, "side" => "credit", "amount_kobo" => amount_kobo,
+        "counterparty_name" => counterparty_name }
+    ]
+
+    {
+      proposal: true,
+      proposed_action: "journal_entry",
+      entry_data: {
+        "description" => description,
+        "entry_date" => date.to_s,
+        "shape" => shape,
+        "needs_attention" => blank_slot ? spec[:undecided_note] : nil,
+        "lines" => lines
+      },
+      message: "Proposal created and shown to the user for confirmation."
+    }
   end
 
   private
 
-  def validation_error(lines)
-    return "an entry needs at least two lines" if lines.size < 2
-
-    accounts = @workspace.accounts.where(id: lines.map { |l| l["account_id"] || l[:account_id] }).index_by(&:id)
-
-    lines.each do |line|
-      account_id = line["account_id"] || line[:account_id]
-      side = line["side"] || line[:side]
-
-      return "account #{account_id} does not exist in this workspace" unless accounts.key?(account_id)
-      return "\"#{side}\" is not a valid side, must be debit or credit" unless %w[debit credit].include?(side)
-    end
-
-    debit_kobo = kobo_total(lines, "debit")
-    credit_kobo = kobo_total(lines, "credit")
-    return "debits (₦#{format_naira(debit_kobo)}) do not equal credits (₦#{format_naira(credit_kobo)})" if debit_kobo != credit_kobo
-
+  def parse_date(entry_date)
+    entry_date ? Date.iso8601(entry_date) : Date.current
+  rescue ArgumentError
     nil
-  end
-
-  def kobo_total(lines, side)
-    lines.select { |l| (l["side"] || l[:side]) == side }
-         .sum { |l| to_kobo(l["amount_naira"] || l[:amount_naira]) }
-  end
-
-  def to_kobo(amount_naira)
-    (amount_naira.to_f * 100).round
-  end
-
-  def format_naira(kobo)
-    format("%.2f", kobo / 100.0)
-  end
-
-  def format_proposal(description, lines)
-    account_names = @workspace.accounts.where(id: lines.map { |l| l["account_id"] || l[:account_id] }).index_by(&:id)
-
-    formatted_lines = lines.map do |line|
-      account_id = line["account_id"] || line[:account_id]
-      side = line["side"] || line[:side]
-      amount_naira = line["amount_naira"] || line[:amount_naira]
-      name = account_names[account_id].name
-
-      "  #{side.capitalize.ljust(6)} #{name.ljust(24)} ₦#{format("%.2f", amount_naira.to_f)}"
-    end
-
-    "Proposed entry — #{description}\n#{formatted_lines.join("\n")}"
   end
 end

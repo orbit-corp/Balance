@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_130626) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -219,6 +219,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_130626) do
     t.index ["llm_message_id"], name: "index_llm_tool_calls_on_llm_message_id"
     t.index ["name"], name: "index_llm_tool_calls_on_name"
     t.index ["tool_call_id"], name: "index_llm_tool_calls_on_tool_call_id", unique: true
+  end
+
+  create_table "proposals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.bigint "journal_entry_id"
+    t.bigint "llm_chat_id", null: false
+    t.bigint "llm_message_id"
+    t.string "proposal_type", null: false
+    t.string "status", default: "proposed", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.bigint "workspace_id", null: false
+    t.index ["journal_entry_id"], name: "index_proposals_on_journal_entry_id"
+    t.index ["llm_chat_id", "proposal_type", "version"], name: "index_proposals_on_llm_chat_id_and_proposal_type_and_version"
+    t.index ["llm_chat_id"], name: "index_proposals_on_llm_chat_id"
+    t.index ["llm_message_id"], name: "index_proposals_on_llm_message_id"
+    t.index ["workspace_id", "status"], name: "index_proposals_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_proposals_on_workspace_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -477,6 +496,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_130626) do
   add_foreign_key "llm_messages", "llm_models"
   add_foreign_key "llm_messages", "llm_tool_calls"
   add_foreign_key "llm_tool_calls", "llm_messages"
+  add_foreign_key "proposals", "journal_entries"
+  add_foreign_key "proposals", "llm_chats"
+  add_foreign_key "proposals", "llm_messages"
+  add_foreign_key "proposals", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "shortlinks", "campaign_channels"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
