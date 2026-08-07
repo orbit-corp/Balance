@@ -3,13 +3,13 @@ class Llm::MessagesController < ApplicationController
 
   def create
     content = params.dig(:llm_message, :content)
-    if content.present?
-      LlmChatResponseJob.perform_later(@llm_chat.id, content)
+    return head :no_content if content.blank?
 
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to chat_path(@llm_chat) }
-      end
+    @llm_message = @llm_chat.start_turn(content)
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to chat_path(@llm_chat) }
     end
   end
 

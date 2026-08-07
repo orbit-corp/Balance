@@ -21,6 +21,12 @@ class Llm::Chat < ApplicationRecord
     scope.order(version: :desc).first
   end
 
+  def start_turn(content)
+    llm_messages.create!(role: "user", content: content).tap do
+      LlmChatResponseJob.perform_later(id)
+    end
+  end
+
   def derive_title_from(prompt)
     truncated = prompt.to_s.squish.delete_suffix(".").truncate(60, separator: " ", omission: "…")
     self.title = truncated.present? ? truncated[0].upcase + truncated[1..] : "New chat"

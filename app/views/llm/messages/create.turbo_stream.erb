@@ -1,10 +1,14 @@
-<% if defined?(@llm_chat) && @llm_chat.present? %>
-  <%= turbo_stream.append "llm_messages" do %>
-    <%= render "llm/messages/pending", llm_chat: @llm_chat %>
-  <% end %>
-  <%= turbo_stream.replace "new_llm_message" do %>
-    <%= render "llm/messages/form",
-      llm_chat: @llm_chat,
-      llm_message: @llm_chat.llm_messages.build %>
-  <% end %>
+<%= turbo_stream.remove "llm_chat_#{@llm_chat.id}_empty" %>
+<%= turbo_stream.remove "llm_chat_#{@llm_chat.id}_pending" %>
+
+<%= turbo_stream.append "llm_messages" do %>
+  <%= render @llm_message %>
+<% end %>
+
+<%= turbo_stream.append "llm_messages" do %>
+  <%= render "llm/messages/pending", llm_chat: @llm_chat %>
+<% end %>
+
+<%= turbo_stream.replace "new_llm_message" do %>
+  <%= render "llm/messages/form", llm_chat: @llm_chat, llm_message: @llm_chat.llm_messages.build %>
 <% end %>

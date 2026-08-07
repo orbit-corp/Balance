@@ -1,7 +1,7 @@
 class Llm::ProposalPublisher
-  def initialize(chat)
+  def initialize(chat:, broadcaster: Llm::ChatBroadcaster.new(chat))
     @chat = chat
-    @broadcaster = Llm::ChatBroadcaster.new(chat)
+    @broadcaster = broadcaster
   end
 
   def publish(tool_call:, result:)
@@ -15,19 +15,26 @@ class Llm::ProposalPublisher
   def create_proposal!(tool_call:, result:)
     @chat.with_lock do
       proposal_type = result.fetch(:proposed_action)
-      proposed = @chat.proposals.proposed.by_type(proposal_type).to_a
+      superseded = @chat.proposals.proposed.by_type(proposal_type).to_a
       version = (@chat.proposals.by_type(proposal_type).maximum(:version) || 0) + 1
-      proposed.each(&:supersede!)
+      superseded.each(&:supersede!)
 
       proposal = @chat.proposals.create!(
         workspace: @chat.workspace,
-        llm_message_id: tool_call.llm_message_id,
+        llm_message_id: message_id_for(tool_call),
         proposal_type: proposal_type,
         version: version,
         data: result.fetch(:entry_data)
       )
 
-      [ proposal, proposed ]
+      [ proposal, superseded ]
     end
+  end
+
+  def message_id_for(tool_call)
+    @chat.llm_messages
+      .joins(:llm_tool_calls)
+      .where(llm_tool_calls: { tool_call_id: tool_call.id })
+      .pick(:id)
   end
 end

@@ -22,7 +22,7 @@ class Llm::ChatsController < ApplicationController
     @llm_chat = current_workspace.llm_chats.new(model: params.dig(:llm_chat, :model).presence)
     @llm_chat.derive_title_from(prompt)
     @llm_chat.save!
-    LlmChatResponseJob.perform_later(@llm_chat.id, prompt)
+    @llm_chat.start_turn(prompt)
 
     redirect_to chat_path(@llm_chat)
   end
