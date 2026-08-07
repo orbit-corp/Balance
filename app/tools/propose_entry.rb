@@ -1,9 +1,4 @@
 class ProposeEntry < RubyLLM::Tool
-  # Each shape fully determines both accounts by role — resolved via Account.for_role!,
-  # never by name or a hardcoded id. A shape with a counterparty_slot may leave that
-  # side's account blank (an undecided slot, not an error) when the model can't tell
-  # which account applies; undecided_note is the canned sentence shown for that case —
-  # written here, never freeform prose from the model.
   SHAPES = {
     "money_spent" => { debit: :other_expense, credit: :cash },
     "money_received" => { debit: :cash, credit: :other_income },
