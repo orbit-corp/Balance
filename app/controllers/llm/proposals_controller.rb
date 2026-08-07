@@ -5,20 +5,19 @@ class Llm::ProposalsController < ApplicationController
   def update
     return respond_with_card unless @proposal.pending?
 
-    @proposal.update!(data: @proposal.data.merge(edited_data))
+    return respond_with_card(draft.errors) if draft.invalid?
+
+    @proposal.update!(data: draft.data)
     respond_with_card
   end
 
   def confirm
     return respond_with_card unless @proposal.pending?
 
-    errors = confirmation_errors
-    if errors.any?
-      return respond_with_card(errors)
-    end
+    return respond_with_card(draft.errors) if draft.invalid?
 
     ActiveRecord::Base.transaction do
-      journal_entry = build_journal_entry!
+      journal_entry = draft.build_journal_entry!
       @proposal.confirm!(journal_entry: journal_entry)
     end
 
@@ -46,66 +45,8 @@ class Llm::ProposalsController < ApplicationController
     params.require(:proposal).permit(:description, :entry_date, lines: [ :account_id, :side, :amount_naira, :counterparty_name ])
   end
 
-  def edited_data
-    lines = (proposal_params[:lines] || {}).values.map do |line|
-      {
-        "account_id" => line[:account_id].presence&.to_i,
-        "side" => line[:side],
-        "amount_kobo" => (line[:amount_naira].presence.to_f * 100).round,
-        "counterparty_name" => line[:counterparty_name].presence
-      }
-    end
-
-    {
-      "description" => proposal_params[:description],
-      "entry_date" => proposal_params[:entry_date],
-      "lines" => lines,
-      "needs_attention" => lines.any? { |line| line["account_id"].blank? } ? @proposal.needs_attention : nil
-    }
-  end
-
-  # data is JSONB and unvalidated at the database level — this is the one place that
-  # re-checks everything from scratch before a JournalEntry is ever built.
-  def confirmation_errors
-    errors = []
-    errors << "date is required" if @proposal.entry_date.blank? || !valid_date?(@proposal.entry_date)
-    errors << "an entry needs at least two lines" if @proposal.lines.size < 2
-
-    @proposal.lines.each do |line|
-      if line["account_id"].blank?
-        errors << "every line needs an account"
-      elsif !current_workspace.accounts.exists?(id: line["account_id"])
-        errors << "an account on this entry does not belong to this workspace"
-      end
-    end
-
-    errors << "debits and credits must balance" if errors.empty? && @proposal.total_debit_kobo != @proposal.total_credit_kobo
-
-    errors
-  end
-
-  def valid_date?(value)
-    Date.parse(value.to_s)
-    true
-  rescue ArgumentError, TypeError
-    false
-  end
-
-  def build_journal_entry!
-    entry = current_workspace.journal_entries.build(
-      description: @proposal.description,
-      entry_date: Date.parse(@proposal.entry_date)
-    )
-
-    @proposal.lines.each do |line|
-      account = current_workspace.accounts.find(line["account_id"])
-      journal_entry_line = entry.journal_entry_lines.build(account: account)
-      naira = line["amount_kobo"].to_i / 100.0
-      line["side"] == "debit" ? (journal_entry_line.debit = naira) : (journal_entry_line.credit = naira)
-    end
-
-    entry.save!
-    entry
+  def draft
+    @draft ||= Llm::JournalEntryProposal.from_form(workspace: current_workspace, params: proposal_params)
   end
 
   def respond_with_card(errors = nil)
