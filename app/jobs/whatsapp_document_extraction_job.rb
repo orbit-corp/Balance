@@ -1,10 +1,3 @@
-# Runs the vision layer over a downloaded WhatsApp attachment: extracts text and
-# parses bank-transfer fields into a WhatsappDocumentExtraction staging record.
-# Enqueued by WhatsappMediaDownloadJob once media is attached.
-#
-# Failures here are almost always non-transient (a bad file, unreadable content), so
-# we retry only a couple of times to absorb a flaky Active Storage blob read, then
-# mark the message classification_failed.
 class WhatsappDocumentExtractionJob < ApplicationJob
   retry_on StandardError, wait: :polynomially_longer, attempts: 2 do |job, error|
     whatsapp_message_id, = job.arguments

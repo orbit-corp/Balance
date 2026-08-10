@@ -12,6 +12,14 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    def post_journal_entry!(workspace, debit_account:, credit_account:, amount_kobo:, entry_date: Date.current)
+      workspace.journal_entries.create!(
+        entry_date: entry_date,
+        journal_entry_lines_attributes: [
+          { account_id: debit_account.id, debit_kobo: amount_kobo },
+          { account_id: credit_account.id, credit_kobo: amount_kobo }
+        ]
+      )
+    end
   end
 end

@@ -1,0 +1,37 @@
+<%= form_with url: campaigns_path, method: :post, data: { turbo_frame: "_top" } do %>
+  <%= render "shared/modal/header", title: "New campaign", subtitle: "Name it, pick where you're sharing it, and a tracked link is generated for you." %>
+
+  <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+    <%= render "shared/form_errors", record: Array(flash[:alert]) %>
+
+    <div>
+      <%= label_tag :name, "Campaign name", class: field_label_class %>
+      <%= text_field_tag :name, campaign&.name, required: true, autofocus: true, placeholder: "e.g. December Sale, Eid Promo", class: field_class %>
+    </div>
+
+    <div>
+      <p class="<%= field_label_class %>">Where are you sharing?</p>
+
+      <div class="grid grid-cols-3 gap-2">
+        <% CampaignChannel.platforms.keys.each_with_index do |platform, index| %>
+          <label class="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-neutral-200 px-2 py-2 text-xs font-medium transition-colors has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
+            <%= radio_button_tag :platform, platform, index.zero?, class: "sr-only" %>
+            <%= campaign_channel_dot platform, size: "h-2.5 w-2.5" %>
+            <%= campaign_channel_label platform %>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div>
+      <%= label_tag :destination_url, "Destination link", class: field_label_class %>
+      <%= text_field_tag :destination_url, nil, required: true, placeholder: "https://wa.me/2348012345678", class: field_class %>
+      <p class="mt-1.5 text-xs text-neutral-500">Where the tracked link sends people — your WhatsApp chat link, product page, or bio link.</p>
+    </div>
+  </div>
+
+  <div class="flex shrink-0 justify-end gap-3 border-t border-neutral-200 px-5 py-3">
+    <button type="button" data-action="modal#close" class="<%= secondary_button_class %>">Cancel</button>
+    <%= submit_tag "Create campaign", class: primary_button_class %>
+  </div>
+<% end %>

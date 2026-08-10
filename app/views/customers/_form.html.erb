@@ -1,26 +1,19 @@
-<% field_classes = "w-full rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm shadow-sm transition focus:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900/10" %>
-<% label_classes = "mb-1.5 block text-sm font-medium text-neutral-700" %>
+<%= form_with model: customer, url: url do |form| %>
+  <%= render "shared/modal/header", title: customer.persisted? ? "Edit customer" : "New customer" %>
 
-<%= form_with model: customer, class: "space-y-4" do |form| %>
-  <% if customer.errors.any? %>
-    <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-      <ul class="list-disc pl-4">
-        <% customer.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
+  <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+    <%= render "shared/form_errors", record: customer %>
+
+    <div>
+      <%= form.label :name, class: field_label_class %>
+      <%= form.text_field :name, required: true, autofocus: true, class: field_class %>
     </div>
-  <% end %>
 
-  <div>
-    <%= form.label :name, "Name", class: label_classes %>
-    <%= form.text_field :name, required: true, autofocus: true, class: field_classes %>
+    <div>
+      <%= form.label :phone, "Phone (optional)", class: field_label_class %>
+      <%= form.telephone_field :phone, class: field_class %>
+    </div>
   </div>
 
-  <div>
-    <%= form.label :phone, "Phone (optional)", class: label_classes %>
-    <%= form.telephone_field :phone, class: field_classes %>
-  </div>
-
-  <%= form.submit customer.persisted? ? "Save changes" : "Add customer", class: "w-full cursor-pointer rounded-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+  <%= render "shared/modal/footer", form: form, submit_label: customer.persisted? ? "Save changes" : "Add customer" %>
 <% end %>

@@ -1,6 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Copies data-copy-value to the clipboard and flashes the trigger's label.
 export default class extends Controller {
   static values = { value: String, label: String, doneLabel: { type: String, default: "Copied" } }
 

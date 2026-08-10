@@ -1,0 +1,34 @@
+<% content_for :title, "Accounts" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Accounts" } ] %>
+<% end %>
+
+<% new_account = link_to(new_account_path, class: primary_button_class, data: { turbo_frame: "modal" }) do %>
+  <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>New account
+<% end %>
+
+<%= render "shared/page_header",
+    title: "Accounts",
+    description: "Where your money sits. Every entry in your books moves through one of these.",
+    action: new_account %>
+
+<% if @accounts.empty? %>
+  <%= render "shared/empty_state",
+      icon: "icons/wallet.svg",
+      title: "No accounts yet",
+      description: "Create an account for every place money sits or moves through — a bank, cash on hand, or a category for sales.",
+      action: new_account %>
+<% else %>
+  <%= render layout: "shared/table", locals: { columns: [ { label: "Name" }, { label: "Base type" }, { label: "Type" }, { label: "Detail type" }, { label: "Description" } ] } do %>
+    <% @accounts.each do |account| %>
+      <tr id="<%= dom_id(account) %>" class="transition-colors hover:bg-neutral-50">
+        <td class="px-4 py-3 text-sm font-medium whitespace-nowrap text-neutral-900"><%= account.name %></td>
+        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.base_type.humanize %></td>
+        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.account_type.humanize %></td>
+        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.detail_type.humanize %></td>
+        <td class="<%= table_cell_class %> max-w-xs truncate"><%= account.description.presence || blank_cell %></td>
+      </tr>
+    <% end %>
+  <% end %>
+<% end %>

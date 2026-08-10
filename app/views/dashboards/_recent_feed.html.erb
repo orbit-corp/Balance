@@ -1,9 +1,11 @@
-<% transactions = summary.recent_transactions %>
-<% if transactions.empty? %>
-  <div class="rounded-xl border border-dashed border-(--color-border) bg-white p-8 text-center">
-    <p class="text-sm text-(--color-muted-foreground)">No entries yet.</p>
-    <%= link_to "Log your first sale", new_transaction_path(kind: "income"), data: { turbo_frame: "transaction_form" }, class: "mt-2 inline-block text-sm font-medium text-neutral-900 underline" %>
-  </div>
+<% journal_entries = summary.recent_journal_entries %>
+
+<% if journal_entries.empty? %>
+  <%= render "shared/empty_state",
+      icon: "icons/list.svg",
+      title: "Nothing recorded yet",
+      description: "Once you record an entry it shows up here, newest first.",
+      action: link_to("Record your first entry", new_journal_entry_path, class: primary_button_class) %>
 <% else %>
-  <%= render "transactions/table", transactions: transactions %>
+  <%= render "journal_entries/table", journal_entries: journal_entries %>
 <% end %>

@@ -1,0 +1,7 @@
+<div class="relative inline-flex items-center">
+  <%= form.select :model,
+        options_for_select(chat_models.map { |model| [ model.label, model.id ] }.unshift([ default_model_display_name, nil ]), selected_model),
+        {},
+        class: "max-w-[15rem] cursor-pointer appearance-none truncate rounded-md bg-transparent py-1.5 pr-6 pl-2 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none" %>
+  <%= inline_svg_tag "icons/chevron-right.svg", class: "pointer-events-none absolute right-1.5 h-3 w-3 rotate-90 text-neutral-400" %>
+</div>

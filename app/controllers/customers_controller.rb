@@ -13,9 +13,9 @@ class CustomersController < ApplicationController
     @customer = current_workspace.customers.build(customer_params)
 
     if @customer.save
-      redirect_to customers_path
+      redirect_out_of_frame customers_path, notice: "Customer added."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -24,15 +24,15 @@ class CustomersController < ApplicationController
 
   def update
     if @customer.update(customer_params)
-      redirect_to customers_path
+      redirect_out_of_frame customers_path, notice: "Customer updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
   def destroy
     @customer.destroy
-    redirect_to customers_path
+    redirect_to customers_path, notice: "Customer deleted."
   end
 
   private
@@ -41,6 +41,6 @@ class CustomersController < ApplicationController
     end
 
     def customer_params
-      params.require(:customer).permit(:name, :phone)
+      params.expect(customer: [ :name, :phone ])
     end
 end

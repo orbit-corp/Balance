@@ -1,6 +1,3 @@
-# Downloads media referenced by an inbound WhatsApp message from Meta's Graph API.
-# Two-step: resolve the short-lived download URL from the media id, then fetch the
-# binary (following redirects to the fbsbx.com CDN). Required ENV: WHATSAPP_ACCESS_TOKEN.
 require "net/http"
 require "uri"
 require "json"
@@ -110,8 +107,6 @@ module Whatsapp
         end
       end
 
-      # Only attach the bearer token when talking to Meta-owned hosts, so a
-      # redirect to a third-party CDN can't capture the access token.
       def meta_host?(host)
         host = host.to_s
         %w[facebook.com fbsbx.com].any? { |domain| host == domain || host.end_with?(".#{domain}") }
@@ -121,8 +116,6 @@ module Whatsapp
         "#{media_id}.#{EXTENSIONS[mime_type.to_s] || "bin"}"
       end
 
-      # DownloadError is already descriptive; wrap anything else (network, JSON
-      # parse) as a DownloadError so callers only rescue one type.
       def with_download_errors
         yield
       rescue DownloadError

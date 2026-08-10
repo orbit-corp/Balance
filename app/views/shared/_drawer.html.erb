@@ -1,0 +1,28 @@
+<%= turbo_frame_tag "modal" do %>
+  <div data-controller="drawer"
+       data-action="keydown->drawer#keydown click->drawer#clickOutside"
+       class="fixed inset-0 z-50 flex justify-end"
+       role="dialog"
+       aria-modal="true"
+       aria-label="<%= title %>"
+       tabindex="-1">
+    <div data-drawer-target="backdrop"
+         class="fixed inset-0 bg-neutral-950/40 opacity-0 transition-opacity duration-200 ease-out motion-reduce:transition-none"></div>
+
+    <div data-drawer-target="panel"
+         class="relative z-10 flex h-full w-full max-w-sm translate-x-full flex-col border-l border-neutral-200 bg-white shadow-xl transition duration-200 ease-out motion-reduce:transition-none">
+      <div class="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+        <h2 class="text-base font-medium text-neutral-900"><%= title %></h2>
+
+        <button type="button" data-action="drawer#close" class="-mr-1.5 <%= icon_button_class %>">
+          <span class="sr-only">Close</span>
+          <%= inline_svg_tag "icons/x.svg", class: "h-4 w-4" %>
+        </button>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-2">
+        <%= yield %>
+      </div>
+    </div>
+  </div>
+<% end %>

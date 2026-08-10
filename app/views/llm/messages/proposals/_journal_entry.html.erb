@@ -1,0 +1,104 @@
+<% errors ||= local_assigns[:errors] %>
+<% accounts = proposal.workspace.accounts.ordered %>
+<% balanced = proposal.total_debit_kobo == proposal.total_credit_kobo %>
+<% editable = proposal.status == "proposed" %>
+<% row = "flex items-center gap-3 px-4 py-2" %>
+<% label = "w-20 flex-none text-xs font-medium text-neutral-500" %>
+<% input = "min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-neutral-900 transition-colors hover:border-neutral-200 focus:border-neutral-400 focus:outline-none" %>
+<% figure = "w-24 flex-none rounded-md border border-transparent bg-transparent px-2 py-1.5 text-right text-sm tabular-nums text-neutral-900 transition-colors hover:border-neutral-200 focus:border-neutral-400 focus:outline-none" %>
+
+<div id="proposal_<%= proposal.id %>" class="w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-white">
+  <div class="px-4 pt-4 pb-3">
+    <div class="flex items-center justify-between gap-3">
+      <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Draft entry</p>
+      <span class="flex-none rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-500">v<%= proposal.version %></span>
+    </div>
+
+    <div class="mt-1 flex flex-wrap items-baseline gap-x-2">
+      <p class="text-2xl font-semibold tracking-tight tabular-nums text-neutral-900"><%= naira(proposal.total_debit_kobo) %></p>
+      <p class="text-sm text-neutral-400"><%= proposal.entry_date.to_date.strftime("%b %-d, %Y") %></p>
+    </div>
+  </div>
+
+  <% unless editable %>
+    <div class="border-t border-neutral-200 px-4 py-3">
+      <% if proposal.confirmed? %>
+        <div class="flex items-center gap-2 text-sm font-medium text-green-700">
+          <%= inline_svg_tag "icons/check.svg", class: "h-4 w-4 flex-none" %>
+          <span>Recorded in the ledger</span>
+        </div>
+
+        <%= link_to "View journal entries", journal_entries_path, class: "mt-1.5 inline-block text-sm font-medium text-neutral-900 hover:underline" %>
+      <% else %>
+        <p class="text-sm text-neutral-400">
+          <%= proposal.status == "dismissed" ? "Dismissed — nothing was recorded." : "Replaced by a newer version." %>
+        </p>
+      <% end %>
+    </div>
+  <% else %>
+    <%= form_with url: chat_proposal_path(proposal.llm_chat, proposal), method: :patch, class: "contents" do |form| %>
+      <% if errors.present? || proposal.needs_attention.present? %>
+        <div class="border-t border-neutral-200 px-4 py-3">
+          <%= render "shared/form_errors", record: Array(errors) %>
+
+          <% if proposal.needs_attention.present? %>
+            <p class="rounded-md bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700"><%= proposal.needs_attention %></p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="divide-y divide-neutral-100 border-t border-neutral-200">
+        <% proposal.lines.each_with_index do |line, index| %>
+          <% missing_account = line["account_id"].blank? %>
+
+          <div class="<%= row %>">
+            <span class="<%= label %>"><%= line["side"].capitalize %></span>
+
+            <select name="proposal[lines][<%= index %>][account_id]" <%= "required" if missing_account %>
+                    class="<%= input %> cursor-pointer <%= "border-amber-300 text-amber-700" if missing_account %>">
+              <option value="" disabled <%= "selected" if missing_account %>><%= "Choose an account" if missing_account %></option>
+              <% accounts.each do |account| %>
+                <option value="<%= account.id %>" <%= "selected" if account.id.to_s == line["account_id"].to_s %>><%= account.name %></option>
+              <% end %>
+            </select>
+
+            <input type="hidden" name="proposal[lines][<%= index %>][side]" value="<%= line["side"] %>">
+
+            <input type="number" step="0.01" min="0" name="proposal[lines][<%= index %>][amount_naira]"
+                   value="<%= "%.2f" % (line["amount_kobo"].to_i / 100.0) %>" aria-label="<%= line["side"] %> amount"
+                   class="<%= figure %>">
+          </div>
+        <% end %>
+
+        <div class="<%= row %>">
+          <span class="<%= label %>">Description</span>
+          <%= text_field_tag "proposal[description]", proposal.description, placeholder: "What was this for?", aria: { label: "Description" }, class: input %>
+        </div>
+      </div>
+
+      <%= hidden_field_tag "proposal[entry_date]", proposal.entry_date, id: nil %>
+
+      <div class="flex items-center justify-between gap-3 border-t border-neutral-200 bg-neutral-50 px-4 py-3">
+        <p class="flex min-w-0 items-center gap-1.5 text-xs font-medium <%= balanced ? "text-neutral-500" : "text-red-600" %>">
+          <% if balanced %>
+            <%= inline_svg_tag "icons/check.svg", class: "h-3.5 w-3.5 flex-none" %>
+            <span class="truncate">Balanced</span>
+          <% else %>
+            <%= inline_svg_tag "icons/minus-circle.svg", class: "h-3.5 w-3.5 flex-none" %>
+            <span class="truncate">Off by <%= naira((proposal.total_debit_kobo - proposal.total_credit_kobo).abs) %></span>
+          <% end %>
+        </p>
+
+        <div class="flex flex-none items-center gap-1">
+          <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Dismiss</button>
+          <%= form.submit "Save edits", class: ghost_button_class(size: :sm) %>
+
+          <button type="submit" formaction="<%= confirm_chat_proposal_path(proposal.llm_chat, proposal) %>" <%= "disabled" unless proposal.complete? %>
+                  class="ml-1 <%= primary_button_class(size: :sm) %> disabled:cursor-not-allowed disabled:opacity-40">
+            Confirm
+          </button>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

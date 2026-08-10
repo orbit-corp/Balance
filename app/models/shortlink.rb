@@ -1,21 +1,17 @@
 class Shortlink < ApplicationRecord
-  # Kept distinct from WhatsappLink (the WA account connection) — this is the
-  # user-facing "variant" link that redirects to a campaign channel's destination.
   belongs_to :campaign_channel
   has_many :clicks, dependent: :destroy
   has_many :conversions, dependent: :nullify
 
   enum :status, { active: 0, paused: 1 }
 
-  # Small spike-scope reserved list: existing top-level route segments plus a
-  # handful of obvious words. The full reserved-word policy is still to settle.
   RESERVED_SLUGS = %w[
     up session registration passwords dashboard integrations transactions
     customers messages document_reviews campaigns webhooks admin api login
     signup app about
   ].freeze
 
-  SLUG_ALPHABET = ("a".."z").to_a + ("2".."9").to_a - %w[l o] # drop ambiguous chars
+  SLUG_ALPHABET = ("a".."z").to_a + ("2".."9").to_a - %w[l o]
 
   before_validation :assign_host, on: :create
   before_validation :generate_slug, on: :create
@@ -28,8 +24,6 @@ class Shortlink < ApplicationRecord
                     exclusion: { in: RESERVED_SLUGS, message: "is reserved — try another" }
   validates :ref_code, presence: true, uniqueness: true
 
-  # Below this, a sparkline is mostly noise — the design shows "too few to
-  # chart" instead of a near-empty line.
   MIN_CLICKS_TO_CHART = 5
 
   def short_url
@@ -53,9 +47,6 @@ class Shortlink < ApplicationRecord
   end
 
   private
-    # WhatsApp ignores unknown query params, so a plain ?ref= never survives the
-    # jump. The seller's own wa.me link (with whatever text= they already set) is
-    # never regenerated — we only insert the ref tag into its existing message.
     def whatsapp_redirect_url
       uri = URI.parse(destination_url)
       params = uri.query.present? ? URI.decode_www_form(uri.query) : []
@@ -85,10 +76,6 @@ class Shortlink < ApplicationRecord
       self.host ||= ENV.fetch("SHORTLINK_HOST", "stby.co")
     end
 
-    # Check-then-insert, same pattern as Dub's getRandomKey: generate a random
-    # candidate, look it up, regenerate on a hit. The unique index on
-    # (host, slug) is the actual correctness guarantee under a race — this
-    # loop is just what keeps that race vanishingly unlikely to ever fire.
     def generate_slug
       return if slug.present?
 

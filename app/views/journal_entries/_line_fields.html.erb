@@ -1,0 +1,18 @@
+<% account_options = grouped_options_for_select(
+     current_workspace.accounts.ordered.group_by(&:account_type).map { |type, accounts|
+       [ type.humanize, accounts.map { |account| [ account.name, account.id ] } ]
+     },
+     form.object.account_id
+   ) %>
+
+<div data-journal-entry-lines-target="row" class="grid grid-cols-[2fr_1fr_1fr_auto] items-center gap-2 border-b border-neutral-200 py-2">
+  <%= form.select :account_id, account_options, { prompt: "Select account" }, class: field_class %>
+  <%= form.text_field :debit, value: form.object.debit&.nonzero?, placeholder: "0.00", class: "#{field_class} text-right tabular-nums", data: { journal_entry_lines_target: "debit", action: "input->journal-entry-lines#recalculate" } %>
+  <%= form.text_field :credit, value: form.object.credit&.nonzero?, placeholder: "0.00", class: "#{field_class} text-right tabular-nums", data: { journal_entry_lines_target: "credit", action: "input->journal-entry-lines#recalculate" } %>
+  <%= form.hidden_field :_destroy %>
+
+  <button type="button" data-action="journal-entry-lines#removeLine" class="<%= icon_button_class %> hover:text-red-600">
+    <span class="sr-only">Remove line</span>
+    <%= inline_svg_tag "icons/x.svg", class: "h-4 w-4" %>
+  </button>
+</div>

@@ -6,6 +6,15 @@ export default class extends Controller {
   static targets = ["panel", "backdrop"]
 
   connect() {
+    this.applyCollapsed()
+    document.addEventListener("turbo:morph", this.applyCollapsed)
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:morph", this.applyCollapsed)
+  }
+
+  applyCollapsed = () => {
     if (localStorage.getItem(COLLAPSED_KEY) === "true") {
       this.panelTarget.classList.add("md:hidden")
     }

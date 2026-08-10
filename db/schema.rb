@@ -10,9 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "accounts", force: :cascade do |t|
+    t.string "account_type", null: false
+    t.string "base_type", null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "detail_type", null: false
+    t.string "name", null: false
+    t.string "role"
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["workspace_id", "account_type"], name: "index_accounts_on_workspace_id_and_account_type"
+    t.index ["workspace_id", "base_type"], name: "index_accounts_on_workspace_id_and_base_type"
+    t.index ["workspace_id", "name"], name: "index_accounts_on_workspace_id_and_name", unique: true
+    t.index ["workspace_id", "role"], name: "index_accounts_on_workspace_id_and_role", unique: true, where: "(role IS NOT NULL)"
+    t.index ["workspace_id"], name: "index_accounts_on_workspace_id"
+  end
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -103,6 +120,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.index ["workspace_id"], name: "index_customers_on_workspace_id"
   end
 
+  create_table "journal_entries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.date "entry_date", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["workspace_id", "entry_date"], name: "index_journal_entries_on_workspace_id_and_entry_date"
+    t.index ["workspace_id"], name: "index_journal_entries_on_workspace_id"
+  end
+
+  create_table "journal_entry_lines", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "counterparty_id"
+    t.string "counterparty_type"
+    t.datetime "created_at", null: false
+    t.bigint "credit_kobo", default: 0, null: false
+    t.bigint "debit_kobo", default: 0, null: false
+    t.bigint "journal_entry_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_journal_entry_lines_on_account_id"
+    t.index ["counterparty_type", "counterparty_id"], name: "index_journal_entry_lines_on_counterparty"
+    t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
+  end
+
   create_table "linking_tokens", force: :cascade do |t|
     t.datetime "consumed_at"
     t.datetime "created_at", null: false
@@ -112,6 +153,92 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.bigint "workspace_id", null: false
     t.index ["token"], name: "index_linking_tokens_on_token", unique: true
     t.index ["workspace_id"], name: "index_linking_tokens_on_workspace_id"
+  end
+
+  create_table "llm_chats", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "llm_model_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["llm_model_id"], name: "index_llm_chats_on_llm_model_id"
+    t.index ["workspace_id"], name: "index_llm_chats_on_workspace_id"
+  end
+
+  create_table "llm_messages", force: :cascade do |t|
+    t.integer "cache_creation_tokens"
+    t.integer "cached_tokens"
+    t.text "content"
+    t.json "content_raw"
+    t.datetime "created_at", null: false
+    t.integer "input_tokens"
+    t.bigint "llm_chat_id", null: false
+    t.bigint "llm_model_id"
+    t.bigint "llm_tool_call_id"
+    t.integer "output_tokens"
+    t.string "role", null: false
+    t.text "thinking_signature"
+    t.text "thinking_text"
+    t.integer "thinking_tokens"
+    t.datetime "updated_at", null: false
+    t.index ["llm_chat_id"], name: "index_llm_messages_on_llm_chat_id"
+    t.index ["llm_model_id"], name: "index_llm_messages_on_llm_model_id"
+    t.index ["llm_tool_call_id"], name: "index_llm_messages_on_llm_tool_call_id"
+    t.index ["role"], name: "index_llm_messages_on_role"
+  end
+
+  create_table "llm_models", force: :cascade do |t|
+    t.jsonb "capabilities", default: []
+    t.integer "context_window"
+    t.datetime "created_at", null: false
+    t.string "family"
+    t.date "knowledge_cutoff"
+    t.integer "max_output_tokens"
+    t.jsonb "metadata", default: {}
+    t.jsonb "modalities", default: {}
+    t.datetime "model_created_at"
+    t.string "model_id", null: false
+    t.string "name", null: false
+    t.jsonb "pricing", default: {}
+    t.string "provider", null: false
+    t.datetime "updated_at", null: false
+    t.index ["capabilities"], name: "index_llm_models_on_capabilities", using: :gin
+    t.index ["family"], name: "index_llm_models_on_family"
+    t.index ["modalities"], name: "index_llm_models_on_modalities", using: :gin
+    t.index ["provider", "model_id"], name: "index_llm_models_on_provider_and_model_id", unique: true
+    t.index ["provider"], name: "index_llm_models_on_provider"
+  end
+
+  create_table "llm_tool_calls", force: :cascade do |t|
+    t.jsonb "arguments", default: {}
+    t.datetime "created_at", null: false
+    t.bigint "llm_message_id", null: false
+    t.string "name", null: false
+    t.text "thought_signature"
+    t.string "tool_call_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["llm_message_id"], name: "index_llm_tool_calls_on_llm_message_id"
+    t.index ["name"], name: "index_llm_tool_calls_on_name"
+    t.index ["tool_call_id"], name: "index_llm_tool_calls_on_tool_call_id", unique: true
+  end
+
+  create_table "proposals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.bigint "journal_entry_id"
+    t.bigint "llm_chat_id", null: false
+    t.bigint "llm_message_id"
+    t.string "proposal_type", null: false
+    t.string "status", default: "proposed", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.bigint "workspace_id", null: false
+    t.index ["journal_entry_id"], name: "index_proposals_on_journal_entry_id"
+    t.index ["llm_chat_id", "proposal_type", "version"], name: "index_proposals_on_llm_chat_id_and_proposal_type_and_version"
+    t.index ["llm_chat_id"], name: "index_proposals_on_llm_chat_id"
+    t.index ["llm_message_id"], name: "index_proposals_on_llm_message_id"
+    t.index ["workspace_id", "status"], name: "index_proposals_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_proposals_on_workspace_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -135,6 +262,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.index ["campaign_channel_id"], name: "index_shortlinks_on_campaign_channel_id"
     t.index ["host", "slug"], name: "index_shortlinks_on_host_and_slug", unique: true
     t.index ["ref_code"], name: "index_shortlinks_on_ref_code", unique: true
+  end
+
+  create_table "solid_cable_messages", force: :cascade do |t|
+    t.binary "channel", null: false
+    t.bigint "channel_hash", null: false
+    t.datetime "created_at", null: false
+    t.binary "payload", null: false
+    t.index ["channel"], name: "index_solid_cable_messages_on_channel"
+    t.index ["channel_hash"], name: "index_solid_cable_messages_on_channel_hash"
+    t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -258,25 +395,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
-  create_table "transactions", force: :cascade do |t|
-    t.integer "amount_kobo", null: false
-    t.string "category", null: false
-    t.datetime "created_at", null: false
-    t.bigint "customer_id"
-    t.text "description"
-    t.integer "kind", null: false
-    t.date "occurred_on", null: false
-    t.integer "source", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "whatsapp_message_id"
-    t.bigint "workspace_id", null: false
-    t.index ["customer_id"], name: "index_transactions_on_customer_id"
-    t.index ["whatsapp_message_id"], name: "index_transactions_on_whatsapp_message_id"
-    t.index ["workspace_id", "kind"], name: "index_transactions_on_workspace_id_and_kind"
-    t.index ["workspace_id", "occurred_on"], name: "index_transactions_on_workspace_id_and_occurred_on"
-    t.index ["workspace_id"], name: "index_transactions_on_workspace_id"
-  end
-
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email_address", null: false
@@ -295,6 +413,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.boolean "currency_supported", default: false, null: false
     t.integer "direction_guess", default: 0, null: false
     t.integer "document_type", default: 0, null: false
+    t.bigint "journal_entry_id"
     t.text "narration"
     t.text "raw_text"
     t.string "recipient_bank"
@@ -303,10 +422,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.integer "review_status", default: 0, null: false
     t.string "sender_name"
     t.date "transaction_date"
-    t.bigint "transaction_id"
     t.datetime "updated_at", null: false
     t.bigint "whatsapp_message_id", null: false
-    t.index ["transaction_id"], name: "index_whatsapp_document_extractions_on_transaction_id"
+    t.index ["journal_entry_id"], name: "index_whatsapp_document_extractions_on_journal_entry_id"
     t.index ["whatsapp_message_id"], name: "index_whatsapp_document_extractions_on_whatsapp_message_id", unique: true
   end
 
@@ -359,6 +477,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "accounts", "workspaces"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaign_channels", "campaigns"
@@ -368,7 +487,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   add_foreign_key "conversions", "shortlinks"
   add_foreign_key "conversions", "workspaces"
   add_foreign_key "customers", "workspaces"
+  add_foreign_key "journal_entries", "workspaces"
+  add_foreign_key "journal_entry_lines", "accounts"
+  add_foreign_key "journal_entry_lines", "journal_entries"
   add_foreign_key "linking_tokens", "workspaces"
+  add_foreign_key "llm_chats", "llm_models"
+  add_foreign_key "llm_chats", "workspaces"
+  add_foreign_key "llm_messages", "llm_chats"
+  add_foreign_key "llm_messages", "llm_models"
+  add_foreign_key "llm_messages", "llm_tool_calls"
+  add_foreign_key "llm_tool_calls", "llm_messages"
+  add_foreign_key "proposals", "journal_entries"
+  add_foreign_key "proposals", "llm_chats"
+  add_foreign_key "proposals", "llm_messages"
+  add_foreign_key "proposals", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "shortlinks", "campaign_channels"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
@@ -377,11 +509,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000007) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
-  add_foreign_key "transactions", "customers"
-  add_foreign_key "transactions", "whatsapp_messages"
-  add_foreign_key "transactions", "workspaces"
   add_foreign_key "users", "workspaces"
-  add_foreign_key "whatsapp_document_extractions", "transactions"
+  add_foreign_key "whatsapp_document_extractions", "journal_entries"
   add_foreign_key "whatsapp_document_extractions", "whatsapp_messages"
   add_foreign_key "whatsapp_links", "workspaces"
   add_foreign_key "whatsapp_messages", "shortlinks", column: "matched_shortlink_id"

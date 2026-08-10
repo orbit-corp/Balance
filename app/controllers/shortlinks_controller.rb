@@ -1,6 +1,3 @@
-# "+ Add link to <channel>" — an extra variant on an existing channel, for
-# placements/A-B (same destination, different ref_code). Never takes a
-# destination_url; variants share their channel's destination by design.
 class ShortlinksController < ApplicationController
   def create
     campaign = current_workspace.campaigns.find(params[:campaign_id])

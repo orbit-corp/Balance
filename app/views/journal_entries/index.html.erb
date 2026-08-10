@@ -1,0 +1,24 @@
+<% content_for :title, "Journal entries" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Journal entries" } ] %>
+<% end %>
+
+<% new_entry = link_to(new_journal_entry_path, class: primary_button_class) do %>
+  <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>New entry
+<% end %>
+
+<%= render "shared/page_header",
+    title: "Journal entries",
+    description: "Every entry balances — total debits equal total credits.",
+    action: new_entry %>
+
+<% if @journal_entries.empty? %>
+  <%= render "shared/empty_state",
+      icon: "icons/list.svg",
+      title: "No journal entries yet",
+      description: "Record your first entry — add a line for each account affected, with matching debits and credits.",
+      action: new_entry %>
+<% else %>
+  <%= render "journal_entries/table", journal_entries: @journal_entries %>
+<% end %>

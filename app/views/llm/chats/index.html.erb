@@ -1,0 +1,41 @@
+<% content_for :title, "Chat" %>
+<% content_for :full_bleed, "true" %>
+
+<% if turbo_frame_request? %>
+  <%= render "shared/drawer", title: "All chats" do %>
+    <%= render "llm/chats/chat_list", llm_chats: @llm_chats, current_chat_id: params[:current].to_i %>
+  <% end %>
+<% else %>
+  <%= content_for(:breadcrumb) do %>
+    <%= render "shared/breadcrumb", data: [ { label: "Chat" } ] %>
+  <% end %>
+
+  <%= content_for(:topbar_actions) do %>
+    <%= link_to chats_path, title: "All chats", data: { turbo_frame: "modal" }, class: icon_button_class do %>
+      <span class="sr-only">All chats</span>
+      <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
+    <% end %>
+  <% end %>
+
+  <div class="flex min-h-0 flex-1 flex-col items-center justify-center bg-neutral-50 px-4">
+    <div class="w-full max-w-3xl">
+      <div class="mb-5 flex flex-col gap-y-1 text-center">
+        <h1 class="text-xl font-semibold tracking-tight text-neutral-900">What did you spend on?</h1>
+        <p class="text-sm text-neutral-500">Describe a transaction in plain words and Stubby drafts the entry for you to approve.</p>
+      </div>
+
+      <%= form_with url: chats_path, method: :post, scope: :llm_chat, data: { controller: "chat-message-form" }, class: "contents" do |form| %>
+        <%= render "llm/composer",
+              form: form,
+              field: :prompt,
+              submit_label: "Start chat",
+              value: @prompt,
+              leading: render("llm/chats/model_select", form: form, chat_models: @chat_models, selected_model: @selected_model) %>
+      <% end %>
+
+      <p class="mt-2.5 text-center text-xs text-neutral-400">
+        Stubby may get transactions wrong — review any proposed entry before recording it.
+      </p>
+    </div>
+  </div>
+<% end %>

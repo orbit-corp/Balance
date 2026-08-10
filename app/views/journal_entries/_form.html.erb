@@ -1,0 +1,48 @@
+<%= form_with model: journal_entry, url: journal_entries_path, class: "space-y-5", data: { controller: "journal-entry-lines" } do |form| %>
+  <%= render "shared/form_errors", record: journal_entry %>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :entry_date, "Date", class: field_label_class %>
+      <%= form.date_field :entry_date, value: journal_entry.entry_date || Date.current, required: true, class: field_class %>
+    </div>
+
+    <div>
+      <%= form.label :description, class: field_label_class %>
+      <%= form.text_field :description, placeholder: "Optional", class: field_class %>
+    </div>
+  </div>
+
+  <div>
+    <div class="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 pb-1">
+      <span class="text-sm font-medium text-neutral-900">Account</span>
+      <span class="text-sm font-medium text-neutral-900">Debit</span>
+      <span class="text-sm font-medium text-neutral-900">Credit</span>
+      <span class="w-7"></span>
+    </div>
+
+    <div data-journal-entry-lines-target="lines">
+      <%= form.fields_for :journal_entry_lines do |line_form| %>
+        <%= render "journal_entries/line_fields", form: line_form %>
+      <% end %>
+    </div>
+
+    <template data-journal-entry-lines-target="template">
+      <%= form.fields_for :journal_entry_lines, JournalEntryLine.new, child_index: "__INDEX__" do |line_form| %>
+        <%= render "journal_entries/line_fields", form: line_form %>
+      <% end %>
+    </template>
+
+    <button type="button" data-action="journal-entry-lines#addLine" class="mt-3 <%= secondary_button_class %>">
+      <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>Add line
+    </button>
+
+    <div class="mt-4 flex flex-wrap justify-end gap-x-6 gap-y-1 border-t border-neutral-200 pt-3 text-sm text-neutral-500">
+      <span>Debits <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="debitTotal">0.00</span></span>
+      <span>Credits <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="creditTotal">0.00</span></span>
+      <span>Difference <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="difference">0.00</span></span>
+    </div>
+  </div>
+
+  <%= form.submit "Record entry", class: primary_button_class %>
+<% end %>

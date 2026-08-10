@@ -1,0 +1,50 @@
+<div class="mt-4 overflow-x-auto rounded-md border border-neutral-200">
+  <table class="min-w-full">
+    <thead class="bg-neutral-50">
+      <tr>
+        <% [ "Date", "Description", "Debit", "Credit", "Amount" ].each do |label| %>
+          <th scope="col" class="px-4 py-2.5 text-left text-sm font-normal whitespace-nowrap text-neutral-500"><%= label %></th>
+        <% end %>
+      </tr>
+    </thead>
+
+    <% journal_entries.each do |entry| %>
+      <% debit_lines = entry.journal_entry_lines.select { |line| line.debit_kobo.positive? } %>
+      <% credit_lines = entry.journal_entry_lines.select { |line| line.credit_kobo.positive? } %>
+      <% split = entry.journal_entry_lines.size > 2 %>
+
+      <tbody class="border-t border-neutral-200 bg-white" data-controller="<%= "row-expand" if split %>">
+        <tr id="<%= dom_id(entry) %>"
+            class="transition-colors <%= "cursor-pointer hover:bg-neutral-50" if split %>"
+            data-action="<%= "click->row-expand#toggle" if split %>">
+          <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-900">
+            <% if split %>
+              <%= inline_svg_tag "icons/chevron-right.svg", class: "mr-1.5 inline-block h-3.5 w-3.5 text-neutral-400 transition-transform", data: { row_expand_target: "icon" } %>
+            <% end %>
+            <%= entry.entry_date.strftime("%b %-d, %Y") %>
+          </td>
+          <td class="<%= table_cell_class %> max-w-xs truncate"><%= entry.description.presence || blank_cell %></td>
+          <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= debit_lines.map { |line| line.account.name }.to_sentence %></td>
+          <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= credit_lines.map { |line| line.account.name }.to_sentence %></td>
+          <td class="px-4 py-3 text-sm font-semibold tabular-nums whitespace-nowrap text-neutral-900"><%= naira(debit_lines.sum(&:debit_kobo)) %></td>
+        </tr>
+
+        <% if split %>
+          <tr data-row-expand-target="detail" hidden>
+            <td colspan="5" class="bg-neutral-50 px-4 py-3">
+              <table class="w-full">
+                <% entry.journal_entry_lines.each do |line| %>
+                  <tr>
+                    <td class="w-1/2 py-1 text-sm text-neutral-700"><%= line.account.name %></td>
+                    <td class="w-1/4 py-1 text-right text-sm tabular-nums text-neutral-900"><%= naira(line.debit_kobo) if line.debit_kobo.positive? %></td>
+                    <td class="w-1/4 py-1 text-right text-sm tabular-nums text-neutral-900"><%= naira(line.credit_kobo) if line.credit_kobo.positive? %></td>
+                  </tr>
+                <% end %>
+              </table>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    <% end %>
+  </table>
+</div>

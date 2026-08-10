@@ -1,0 +1,15 @@
+<% messages = case record
+              when ActiveModel::Errors then record.full_messages
+              when Array then record
+              else record.errors.full_messages
+              end %>
+
+<% if messages.any? %>
+  <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+    <ul class="flex flex-col gap-1">
+      <% messages.each do |message| %>
+        <li class="text-sm font-medium text-red-700"><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

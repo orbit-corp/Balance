@@ -1,0 +1,16 @@
+<%= turbo_frame_tag "modal" do %>
+  <div data-controller="modal"
+       data-action="keydown->modal#keydown click->modal#clickOutside"
+       class="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto sm:items-center sm:p-4"
+       role="dialog"
+       aria-modal="true"
+       tabindex="-1">
+    <div data-modal-target="backdrop"
+         class="fixed inset-0 bg-neutral-950/40 opacity-0 transition-opacity duration-200 ease-out motion-reduce:transition-none"></div>
+
+    <div data-modal-target="panel"
+         class="relative z-10 flex max-h-[92vh] w-full <%= local_assigns.fetch(:width_class, "max-w-md") %> translate-y-4 scale-[0.98] flex-col overflow-hidden rounded-t-xl border border-neutral-200 bg-white opacity-0 shadow-xl transition duration-200 ease-out sm:translate-y-2 sm:rounded-md motion-reduce:transition-none">
+      <%= yield %>
+    </div>
+  </div>
+<% end %>

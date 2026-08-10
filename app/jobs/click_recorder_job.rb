@@ -1,6 +1,3 @@
-# Writes the Click row off the redirect hot path (agreed: async over inline —
-# see campaign-shortener-data-model memory). The redirect already 302'd by the
-# time this runs, so a slow or failed write here never affects the visitor.
 class ClickRecorderJob < ApplicationJob
   BOT_PATTERN = /bot|crawl|spider|facebookexternalhit|WhatsApp/i
 

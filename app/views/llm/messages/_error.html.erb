@@ -1,0 +1,9 @@
+<div class="flex justify-start">
+  <div id="llm_message_<%= message.id %>" class="max-w-[75%] rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3">
+    <span class="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"><%= title.presence || "Error" %></span>
+
+    <pre class="mt-2 overflow-x-auto text-sm whitespace-pre-wrap text-red-900"><%= error_message %></pre>
+
+    <div class="mt-1 text-xs text-red-500"><%= message.created_at&.strftime("%-l:%M %p") %></div>
+  </div>
+</div>

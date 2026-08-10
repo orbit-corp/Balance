@@ -7,7 +7,6 @@ class WhatsappMessage < ApplicationRecord
 
   enum :direction, { inbound: 0, outbound: 1 }
   enum :media_status, { pending: 0, downloaded: 1, failed: 2 }
-  # Names kept distinct from media_status so the generated predicates don't collide.
   enum :classification_status, { unclassified: 0, classified: 1, classification_failed: 2 }
 
   validates :wamid, presence: true
@@ -19,8 +18,6 @@ class WhatsappMessage < ApplicationRecord
     message_type == "image"
   end
 
-  # Attachments the vision layer knows how to read: image screenshots and documents
-  # (the classifier inspects the downloaded content type to pick PDF vs image).
   def classifiable_media?
     media_image? || message_type == "document"
   end

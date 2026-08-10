@@ -1,4 +1,18 @@
 Rails.application.routes.draw do
+  resources :models, only: [ :index, :show ], controller: "llm/models" do
+    collection do
+      post :refresh
+    end
+  end
+  resources :chats, controller: "llm/chats", except: [ :new ], constraints: { id: /\d+/ } do
+    resources :messages, only: [ :create ], controller: "llm/messages"
+    resources :proposals, only: [ :update ], controller: "llm/proposals" do
+      member do
+        patch :confirm
+        patch :dismiss
+      end
+    end
+  end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
@@ -25,7 +39,8 @@ Rails.application.routes.draw do
       delete :disconnect
     end
   end
-  resources :transactions
+  resources :journal_entries, only: %i[index new create]
+  resources :accounts, only: %i[index new create update]
   resources :customers
   resources :messages, only: [ :index ]
   resources :document_reviews, only: [ :index ] do

@@ -1,0 +1,13 @@
+<nav class="flex min-w-0 items-center gap-1.5 text-sm" aria-label="Breadcrumb">
+  <% Array(data).each_with_index do |crumb, index| %>
+    <% if index.positive? %>
+      <%= inline_svg_tag "icons/chevron-right.svg", class: "h-3.5 w-3.5 flex-none text-neutral-400" %>
+    <% end %>
+
+    <% if crumb[:path].present? && index < data.size - 1 %>
+      <%= link_to crumb[:label], crumb[:path], class: "flex-none font-medium text-neutral-500 transition-colors hover:text-neutral-900" %>
+    <% else %>
+      <%= tag.span crumb[:label], id: crumb[:id], title: crumb[:label], class: "min-w-0 truncate whitespace-nowrap font-medium text-neutral-900" %>
+    <% end %>
+  <% end %>
+</nav>

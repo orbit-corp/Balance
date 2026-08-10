@@ -1,5 +1,3 @@
-<% content_for :title, "Edit customer" %>
-
-<div class="max-w-lg rounded-xl border border-(--color-border) bg-white p-6 shadow-sm">
-  <%= render "form", customer: @customer %>
-</div>
+<%= render "shared/modal" do %>
+  <%= render "form", customer: @customer, url: customer_path(@customer) %>
+<% end %>

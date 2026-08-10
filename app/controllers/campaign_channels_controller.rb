@@ -1,6 +1,3 @@
-# "+ Add channel" on the campaign page — a campaign can carry several
-# channels (WhatsApp, Instagram, ...), each with its own destination and a
-# default shortlink, matching the Campaigns design mockup.
 class CampaignChannelsController < ApplicationController
   def create
     campaign = current_workspace.campaigns.find(params[:campaign_id])
