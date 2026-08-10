@@ -40,8 +40,6 @@ class Proposal < ApplicationRecord
     lines.sum { |line| line["side"] == "credit" ? line["amount_kobo"].to_i : 0 }
   end
 
-  # Slot presence is mechanical and checkable; which shape applies is the model's
-  # judgment and is exactly what the user is confirming, so it is never checked here.
   def complete?
     return false if entry_date.blank?
     return false if lines.size < 2

@@ -19,10 +19,6 @@ module Whatsapp
     private
       attr_reader :payload
 
-      # The ref tag Shortlink#redirect_url inserts into a buyer's WhatsApp
-      # message, e.g. "Hi, I want the serum (ref: OPXNGM3C)". A seller forwards
-      # that message (or a receipt referencing it) to the bot; this is where the
-      # ref comes back into Stubby — never by reading the buyer's chat directly.
       REF_TAG_PATTERN = /\(ref:\s*([A-Za-z0-9]+)\)/i
 
       def process_value(value)

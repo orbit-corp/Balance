@@ -16,7 +16,7 @@ class Llm::ChatsController < ApplicationController
       @selected_model = params.dig(:llm_chat, :model)
       @prompt = prompt
       flash.now[:alert] = "Type a message to start a chat."
-      return render :index, status: :unprocessable_entity
+      return render :index, status: :unprocessable_content
     end
 
     @llm_chat = current_workspace.llm_chats.new(model: params.dig(:llm_chat, :model).presence)

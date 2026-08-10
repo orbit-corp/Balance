@@ -21,7 +21,6 @@ class WhatsappMediaDownloadJob < ApplicationJob
     message.media.attach(io: data[:io], filename: data[:filename], content_type: data[:content_type])
     message.update!(media_status: :downloaded)
 
-    # Kick off the vision layer for attachments we can read (image screenshots / PDFs).
     WhatsappDocumentExtractionJob.perform_later(message.id) if message.classifiable_media?
 
     broadcast_message(message)

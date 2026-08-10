@@ -17,14 +17,11 @@ export default class extends Controller {
 
   setRange(event) {
     this.days = parseInt(event.currentTarget.dataset.days, 10)
-    for (const btn of this.rangeTargets) {
-      const active = parseInt(btn.dataset.days, 10) === this.days
-      btn.classList.toggle("bg-gradient-to-b", active)
-      btn.classList.toggle("from-white", active)
-      btn.classList.toggle("to-neutral-50", active)
-      btn.classList.toggle("shadow-sm", active)
-      btn.classList.toggle("text-neutral-900", active)
-      btn.classList.toggle("text-neutral-500", !active)
+    for (const button of this.rangeTargets) {
+      const active = parseInt(button.dataset.days, 10) === this.days
+      button.classList.toggle("bg-neutral-100", active)
+      button.classList.toggle("text-neutral-900", active)
+      button.classList.toggle("text-neutral-500", !active)
     }
     this.render()
   }

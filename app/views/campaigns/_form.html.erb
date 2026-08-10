@@ -1,41 +1,37 @@
-<% field_classes = "w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400" %>
-<% label_classes = "mb-1.5 block text-sm font-medium text-neutral-900" %>
+<%= form_with url: campaigns_path, method: :post, data: { turbo_frame: "_top" } do %>
+  <%= render "shared/modal/header", title: "New campaign", subtitle: "Name it, pick where you're sharing it, and a tracked link is generated for you." %>
 
-<% if flash[:alert] %>
-  <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
-<% end %>
+  <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+    <%= render "shared/form_errors", record: Array(flash[:alert]) %>
 
-<%# Breaks out of the modal on success so the new campaign opens as a full page. %>
-<%= form_with url: campaigns_path, method: :post, class: "space-y-4", data: { turbo_frame: "_top" } do %>
-  <div>
-    <label class="<%= label_classes %>" for="name">Campaign name</label>
-    <input type="text" name="name" id="name" required value="<%= campaign&.name %>"
-           placeholder="e.g. December Sale, Eid Promo"
-           class="<%= field_classes %>">
-  </div>
+    <div>
+      <%= label_tag :name, "Campaign name", class: field_label_class %>
+      <%= text_field_tag :name, campaign&.name, required: true, autofocus: true, placeholder: "e.g. December Sale, Eid Promo", class: field_class %>
+    </div>
 
-  <div>
-    <p class="<%= label_classes %>">Where are you sharing?</p>
-    <div class="grid grid-cols-3 gap-2">
-      <% CampaignChannel.platforms.keys.each_with_index do |platform, i| %>
-        <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-(--color-border) px-2 py-2 text-xs font-medium transition has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
-          <input type="radio" name="platform" value="<%= platform %>" class="sr-only" <%= "checked" if i.zero? %>>
-          <span class="inline-block h-2.5 w-2.5 flex-none rounded-full" style="background:<%= ApplicationHelper::CAMPAIGN_CHANNEL_COLORS.fetch(platform, "#9ca3af") %>"></span>
-          <%= campaign_channel_label(platform) %>
-        </label>
-      <% end %>
+    <div>
+      <p class="<%= field_label_class %>">Where are you sharing?</p>
+
+      <div class="grid grid-cols-3 gap-2">
+        <% CampaignChannel.platforms.keys.each_with_index do |platform, index| %>
+          <label class="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-neutral-200 px-2 py-2 text-xs font-medium transition-colors has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white">
+            <%= radio_button_tag :platform, platform, index.zero?, class: "sr-only" %>
+            <%= campaign_channel_dot platform, size: "h-2.5 w-2.5" %>
+            <%= campaign_channel_label platform %>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div>
+      <%= label_tag :destination_url, "Destination link", class: field_label_class %>
+      <%= text_field_tag :destination_url, nil, required: true, placeholder: "https://wa.me/2348012345678", class: field_class %>
+      <p class="mt-1.5 text-xs text-neutral-500">Where the tracked link sends people — your WhatsApp chat link, product page, or bio link.</p>
     </div>
   </div>
 
-  <div>
-    <label class="<%= label_classes %>" for="destination_url">Destination link</label>
-    <input type="text" name="destination_url" id="destination_url" required
-           placeholder="https://wa.me/2348012345678"
-           class="<%= field_classes %>">
-    <p class="mt-1.5 text-xs text-(--color-muted-foreground)">Where the tracked link sends people — your WhatsApp chat link, product page, or bio link.</p>
+  <div class="flex shrink-0 justify-end gap-3 border-t border-neutral-200 px-5 py-3">
+    <button type="button" data-action="modal#close" class="<%= secondary_button_class %>">Cancel</button>
+    <%= submit_tag "Create campaign", class: primary_button_class %>
   </div>
-
-  <button type="submit" class="w-full rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800">
-    Create campaign &amp; get link
-  </button>
 <% end %>

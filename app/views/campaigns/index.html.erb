@@ -1,47 +1,51 @@
 <% content_for :title, "Campaigns" %>
 
-<div class="space-y-4">
-  <div>
-      <h1 class="text-xl font-semibold text-neutral-900">Campaigns</h1>
-      <p class="text-sm text-(--color-muted-foreground)">Track which links bring the sales.</p>
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Campaigns" } ] %>
+<% end %>
+
+<% new_campaign = link_to(new_campaign_path, class: primary_button_class, data: { turbo_frame: "modal" }) do %>
+  <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>New campaign
+<% end %>
+
+<%= render "shared/page_header",
+    title: "Campaigns",
+    description: "Track which links bring the sales.",
+    action: new_campaign %>
+
+<% if @campaigns.empty? && @archived_campaigns.empty? && params[:q].blank? %>
+  <%= render "shared/empty_state",
+      icon: "icons/megaphone.svg",
+      title: "No campaigns yet",
+      description: "Make one short link for each place you share — WhatsApp, IG, status — and see which one brings the sales.",
+      action: new_campaign %>
+<% else %>
+  <div class="mt-4">
+    <%= form_with url: campaigns_path, method: :get do |form| %>
+      <%= form.text_field :q, value: params[:q], placeholder: "Search campaigns", class: "#{field_class} max-w-sm" %>
+    <% end %>
   </div>
 
-  <% if @campaigns.empty? && @archived_campaigns.empty? && params[:q].blank? %>
-    <%= render "empty_state" %>
+  <% if @campaigns.empty? %>
+    <%= render "shared/empty_state",
+        icon: "icons/megaphone.svg",
+        title: "No matching campaigns",
+        description: "No active campaign matches that search." %>
   <% else %>
-  <div class="flex items-center justify-between gap-2">
-    <%= form_with url: campaigns_path, method: :get, class: "flex-1" do |form| %>
-      <%= form.text_field :q, value: params[:q], placeholder: "Search campaigns", class: "w-full rounded-md border border-(--color-input) px-2 py-1.5 text-sm outline-none focus:border-neutral-400" %>
-    <% end %>
-
-     <%= link_to new_campaign_path, data: { turbo_frame: "modal" }, class: "rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 inline-flex items-center gap-1.5" do %>
-      <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
-      New campaign
-    <% end %>
-  </div>
-
-    <% if @campaigns.empty? %>
-      <p class="text-sm text-(--color-muted-foreground)">No active campaigns match "<%= params[:q] %>".</p>
-    <% else %>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <% @campaigns.each do |campaign| %>
-          <%= render "campaign_card", campaign: campaign %>
-        <% end %>
-      </div>
-    <% end %>
-
-    <% if @archived_campaigns.any? %>
-      <details class="group">
-        <summary class="cursor-pointer text-sm font-medium text-(--color-muted-foreground) hover:text-neutral-900">
-          <span class="inline-block transition group-open:rotate-90">›</span>
-          View archived (<%= @archived_campaigns.size %>)
-        </summary>
-        <div class="mt-3 grid gap-3 sm:grid-cols-2">
-          <% @archived_campaigns.each do |campaign| %>
-            <%= render "campaign_card", campaign: campaign %>
-          <% end %>
-        </div>
-      </details>
-    <% end %>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <%= render partial: "campaign_card", collection: @campaigns, as: :campaign %>
+    </div>
   <% end %>
-</div>
+
+  <% if @archived_campaigns.any? %>
+    <details class="group mt-4">
+      <summary class="cursor-pointer text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-900">
+        View archived (<%= @archived_campaigns.size %>)
+      </summary>
+
+      <div class="mt-3 grid gap-4 sm:grid-cols-2">
+        <%= render partial: "campaign_card", collection: @archived_campaigns, as: :campaign %>
+      </div>
+    </details>
+  <% end %>
+<% end %>

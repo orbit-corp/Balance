@@ -1,20 +1,5 @@
 <% content_for :title, "New campaign" %>
 
-<% if turbo_frame_request? %>
-  <%= turbo_frame_tag "modal" do %>
-    <%= render "campaigns/modal_form", campaign: @campaign %>
-  <% end %>
-<% else %>
-  <%# Direct visit to /campaigns/new — the same form, standalone. %>
-  <div class="mx-auto max-w-md space-y-4">
-    <div>
-      <%= link_to "← Campaigns", campaigns_path, class: "text-sm text-(--color-muted-foreground) hover:text-neutral-900" %>
-      <h1 class="mt-1 text-xl font-semibold text-neutral-900">New campaign</h1>
-      <p class="text-sm text-(--color-muted-foreground)">Name it, pick where you're sharing it, and a tracked link is generated for you.</p>
-    </div>
-
-    <div class="rounded-xl border border-(--color-border) bg-white p-5">
-      <%= render "campaigns/form", campaign: @campaign %>
-    </div>
-  </div>
+<%= render "shared/modal" do %>
+  <%= render "campaigns/form", campaign: @campaign %>
 <% end %>

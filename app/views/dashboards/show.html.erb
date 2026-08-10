@@ -1,17 +1,25 @@
 <% content_for :title, "Dashboard" %>
 
-<div class="space-y-6">
-  <div id="period_cards">
-    <%= render "dashboards/period_cards", summary: @summary %>
-  </div>
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Dashboard" } ] %>
+<% end %>
 
+<%= render "shared/page_header",
+    title: "Overview",
+    description: "Money in, money out, and what it left behind." %>
+
+<div id="period_cards" class="mt-4">
+  <%= render "dashboards/period_cards", summary: @summary %>
+</div>
+
+<div class="mt-4">
   <%= render "dashboards/cashflow_chart", summary: @summary %>
+</div>
 
-  <div>
-    <h2 class="mb-3 text-base font-semibold text-neutral-900">Recent activity</h2>
+<div class="mt-6">
+  <h2 class="text-base font-medium text-neutral-900">Recent activity</h2>
 
-    <div id="recent_feed">
-      <%= render "dashboards/recent_feed", summary: @summary %>
-    </div>
+  <div id="recent_feed">
+    <%= render "dashboards/recent_feed", summary: @summary %>
   </div>
 </div>

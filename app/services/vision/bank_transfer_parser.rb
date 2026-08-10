@@ -1,21 +1,7 @@
-# Parses raw text (from a PDF or OCR) extracted from a forwarded bank-transfer
-# document and pulls out the fields we need to draft a ledger transaction.
-#
-# It is deliberately bank-agnostic: Nigerian bank/fintech receipts use the same
-# handful of *concepts* under different *labels* (recipient = "Beneficiary" on Kuda,
-# "Receiver" on GTBank), so we anchor on synonym sets rather than per-bank templates.
-#
-# Layout note: text extractors (pdf-reader, Tesseract) usually put a label on one
-# line and its value on the next, but sometimes inline. The label matcher handles
-# both. Amounts can arrive with stray whitespace inside them (e.g. "₦   10,000   .00"),
-# so amount scanning collapses whitespace first.
-#
-# Returns a Hash keyed to WhatsappDocumentExtraction columns. Never raises on bad input.
 module Vision
   class BankTransferParser
     NAIRA = /₦|\bNGN\b|\bnaira\b/i
 
-    # Anchored, case-insensitive label patterns (matched at the start of a line).
     AMOUNT_LABELS    = /\A(?:transaction\s+amount|amount(?:\s+paid|\s+sent)?)\b/i
     FEE_LABELS       = /\A(?:transfer\s+fee|fee|vat|charge|charges|stamp|duty|commission)\b/i
     SENDER_LABELS    = /\A(?:sender|payer|from)(?:\s+details)?\b/i
@@ -25,8 +11,6 @@ module Vision
     NARRATION_LABELS = /\A(?:remark|remarks|description|narration|note)\b/i
     DATE_LABELS      = /\A(?:paid\s+on|date\s*&\s*time|transaction\s+date|date)\b/i
 
-    # Generic section headers that are never a field value (guards against OCR
-    # interleaving handing us a header where a name should be).
     HEADER_NOISE     = /\A(?:transaction\s+details|payment\s+type)\b/i
 
     ALL_LABELS = [
@@ -34,17 +18,11 @@ module Vision
       REFERENCE_LABELS, BANK_LABELS, NARRATION_LABELS, DATE_LABELS, HEADER_NOISE
     ].freeze
 
-    # A money amount: requires the 2-decimal ".dd" so account/reference numbers
-    # (long digit runs, no decimals) are never mistaken for the amount.
     AMOUNT_PATTERN = /(\d[\d,]*\.\d{2})/
-    # The Naira sign and its common Tesseract misreads (#, ¥, N/W before digits).
     NAIRA_GLYPHS = /[₦#¥]|(?<![A-Za-z])[NW](?=\s*\d)/
-    # Foreign currency signs — their presence rules out Naira.
     FOREIGN_CURRENCY = { "$" => "USD", "€" => "EUR", "£" => "GBP" }.freeze
-    # Unmistakably-Nigerian context, used to infer NGN when the ₦ glyph OCR'd badly.
     NIGERIAN_CONTEXT = /nigeria|\bNDIC\b|microfinance\s+bank|central\s+bank\s+of\s+nigeria/i
 
-    # Words that suggest the document is a money transfer at all.
     TRANSFER_KEYWORDS = /transfer|transaction|beneficiary|\bsender\b|\breceiver\b|nibss|payment|receipt|successful|debited|credited/i
 
     OUTWARD_KEYWORDS = /outward|debited|money\s+sent|you\s+sent|transfer\s+to/i
@@ -62,7 +40,6 @@ module Vision
     def call
       currency, currency_supported = detect_currency
 
-      # amount_kobo is always Naira kobo, so only extract it for supported (NGN) docs.
       amount_kobo, amount_primary = currency_supported ? extract_amount : [ nil, false ]
       sender_name = value_for(SENDER_LABELS)
       recipient_name = value_for(RECIPIENT_LABELS)
@@ -94,8 +71,6 @@ module Vision
     private
       attr_reader :text, :lines
 
-      # Returns the value for the first line whose start matches `label_regex`.
-      # Uses the inline remainder if present, otherwise the next non-label line.
       def value_for(label_regex)
         lines.each_with_index do |line, i|
           match = line.match(label_regex)
@@ -114,10 +89,6 @@ module Vision
         ALL_LABELS.any? { |re| str.match?(re) }
       end
 
-      # Finds the main transfer amount in kobo. Only called for NGN docs, so the
-      # amount is symbol-independent (the ₦ glyph OCRs unreliably as #/¥/N): we match
-      # 2-decimal money figures, drop fee/VAT lines, then prefer the one under an
-      # "Amount" label, else one carrying a currency glyph, else the largest.
       def extract_amount
         candidates = []
         lines.each_with_index do |line, i|
@@ -125,7 +96,6 @@ module Vision
           fee = FEE_LABELS.match?(line) || (prev && FEE_LABELS.match?(prev))
           primary = AMOUNT_LABELS.match?(line) || (prev && AMOUNT_LABELS.match?(prev))
 
-          # Collapse whitespace so "₦   10,000   .00" becomes "₦10,000.00".
           compact = line.gsub(/\s+/, "")
           has_symbol = compact.match?(NAIRA_GLYPHS)
           compact.scan(AMOUNT_PATTERN) do |(raw)|
@@ -156,15 +126,14 @@ module Vision
 
         Date.parse(candidate)
       rescue Date::Error
-        # Retry with just the date-looking portion of a labeled value like "Jul 04, 2026 5:33 PM".
         snippet = scan_for_date(candidate)
         snippet ? (Date.parse(snippet) rescue nil) : nil
       end
 
       def scan_for_date(source = text)
-        source[/\b\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}\b/] ||        # 13 Jul 2026
-          source[/\b[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}\b/] ||    # Jul 04, 2026
-          source[/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\b/]           # 04/07/2026
+        source[/\b\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}\b/] ||
+          source[/\b[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}\b/] ||
+          source[/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\b/]
       end
 
       def extract_direction
@@ -174,11 +143,6 @@ module Vision
         "unknown"
       end
 
-      # Determines currency and whether we can record it. Returns [currency, supported].
-      # A foreign sign ($/€/£) rules out Naira. Otherwise we treat it as NGN when the
-      # explicit ₦/NGN/"naira" appears, when a ₦-glyph OCR misread sits before a number,
-      # or in unmistakably-Nigerian context (the glyph often OCRs badly, but "NDIC" /
-      # "Bank of Nigeria" don't). Anything else is unknown/unsupported.
       def detect_currency
         FOREIGN_CURRENCY.each { |sign, code| return [ code, false ] if text.include?(sign) }
 
@@ -188,8 +152,6 @@ module Vision
         [ nil, false ]
       end
 
-      # Cross-checks the amount-in-words ("Ten Thousand Naira ...") against the numeric
-      # amount. A match is a strong signal the amount was read correctly.
       def amount_words_match?(amount_kobo)
         return false if amount_kobo.nil?
 

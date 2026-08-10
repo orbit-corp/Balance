@@ -22,7 +22,10 @@ class Llm::Chat < ApplicationRecord
   end
 
   def start_turn(content)
+    first_turn = llm_messages.where(role: "user").none?
+
     llm_messages.create!(role: "user", content: content).tap do
+      LlmChatTitleJob.perform_later(id) if first_turn
       LlmChatResponseJob.perform_later(id)
     end
   end

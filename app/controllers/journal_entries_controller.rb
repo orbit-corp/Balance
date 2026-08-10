@@ -16,16 +16,15 @@ class JournalEntriesController < ApplicationController
     if @journal_entry.save
       redirect_to journal_entries_path, notice: "Journal entry recorded."
     else
-      flash.now[:alert] = @journal_entry.errors.full_messages.to_sentence
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
   private
     def journal_entry_params
-      params.require(:journal_entry).permit(
+      params.expect(journal_entry: [
         :entry_date, :description,
-        journal_entry_lines_attributes: [ :id, :account_id, :debit, :credit, :_destroy ]
-      )
+        journal_entry_lines_attributes: [ [ :id, :account_id, :debit, :credit, :_destroy ] ]
+      ])
     end
 end

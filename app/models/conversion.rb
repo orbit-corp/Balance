@@ -1,14 +1,6 @@
-# The two honesty axes from the conversion-attribution design, kept orthogonal:
-# attribution (do we know which link?) is DERIVED from shortlink_id presence —
-# never a separate column, so it can't drift from the data. confirmation (was
-# the amount verified against real money, or just told to us?) is a real column
-# because it's independent and set by a mechanism that doesn't exist yet
-# (bank-feed matching, Phase 3) — everything today is self_reported.
 class Conversion < ApplicationRecord
   belongs_to :workspace
   belongs_to :shortlink, optional: true
-  # The campaign a sale was recorded against — set even when unattributed, so
-  # "I don't know which link" still shows up on the campaign that produced it.
   belongs_to :campaign, optional: true
 
   enum :kind, { lead: 0, sale: 1 }

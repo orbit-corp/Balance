@@ -1,7 +1,3 @@
-# Minimal spike scope: create one campaign with one channel (any platform) and
-# an auto-generated shortlink in a single submit, so the create -> redirect ->
-# click round trip can be tested end to end. More channels can be added from
-# the campaign page afterwards (CampaignChannelsController).
 class CampaignsController < ApplicationController
   before_action :set_campaign, only: %i[show update]
 
@@ -54,8 +50,6 @@ class CampaignsController < ApplicationController
     @tab = TABS.include?(params[:tab]) ? params[:tab] : "overview"
   end
 
-  # Header "More" menu: archive/restore only for now — everything else in
-  # that menu (export, bulk QR) is a slice-2+ reserved container, not wired.
   def update
     unless Campaign.statuses.key?(params[:status])
       redirect_to campaign_path(@campaign), alert: "Unrecognized status."
@@ -67,16 +61,8 @@ class CampaignsController < ApplicationController
   end
 
   private
-    # The form breaks out of the modal so a successful create navigates, which means a
-    # failure has to come back as a stream — an HTML render would replace the page.
     def render_campaign_form_error
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.update("modal", partial: "campaigns/modal_form", locals: { campaign: @campaign }),
-                 status: :unprocessable_entity
-        end
-        format.html { render :new, status: :unprocessable_entity }
-      end
+      render :new, status: :unprocessable_content
     end
 
     def set_campaign

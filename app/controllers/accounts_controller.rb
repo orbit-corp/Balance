@@ -13,10 +13,9 @@ class AccountsController < ApplicationController
     @account = current_workspace.accounts.build(account_params)
 
     if @account.save
-      redirect_to accounts_path, notice: "Account created."
+      redirect_out_of_frame accounts_path, notice: "Account created."
     else
-      flash.now[:alert] = @account.errors.full_messages.to_sentence
-      render_account_form_error
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -34,16 +33,6 @@ class AccountsController < ApplicationController
     end
 
     def account_params
-      params.require(:account).permit(:name, :base_type, :account_type, :detail_type, :description)
-    end
-
-    def render_account_form_error
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.update("modal", partial: "accounts/modal_form", locals: { account: @account }),
-                 status: :unprocessable_entity
-        end
-        format.html { render :new, status: :unprocessable_entity }
-      end
+      params.expect(account: [ :name, :base_type, :account_type, :detail_type, :description ])
     end
 end

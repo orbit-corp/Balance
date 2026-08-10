@@ -6,76 +6,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Stubby">
     <meta name="mobile-web-app-capable" content="yes">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
 
-    <%# Morph on refresh visits so posting an entry keeps scroll position and open state. %>
     <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
 
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
     <%= yield :head %>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body class="bg-white text-neutral-900">
-    <% if authenticated? %>
-      <div class="md:flex" data-controller="sidebar">
-        <div data-sidebar-target="backdrop" data-action="click->sidebar#toggle" class="fixed inset-0 z-10 hidden bg-black/30 md:hidden"></div>
+    <div id="flash_messages"><%= render "shared/flash" %></div>
 
-        <aside data-sidebar-target="panel" class="fixed inset-y-0 left-0 z-20 flex w-64 -translate-x-full flex-col border-r border-(--color-border) bg-(--color-sidebar) transition-transform md:sticky md:top-0 md:h-screen md:w-64 md:translate-x-0">
-          <%= render "layouts/sidebar" %>
-        </aside>
-
-        <div class="flex min-w-0 flex-1 flex-col <%= content_for?(:full_bleed) ? "h-screen overflow-hidden" : "min-h-screen" %>">
-          <div class="flex items-center gap-3 border-b border-(--color-border) bg-white px-4 py-3 md:hidden">
-            <button type="button" data-action="sidebar#toggle" aria-label="Toggle menu" class="-ml-1 rounded-md p-2 text-neutral-600 hover:bg-(--color-accent)">
-              <%= inline_svg_tag "icons/menu.svg", class: "h-5 w-5" %>
-            </button>
-            <span class="text-base font-semibold"><%= content_for(:title) || "Stubby" %></span>
-          </div>
-
-          <header class="sticky top-0 z-10 hidden h-14 items-center gap-2 border-b border-(--color-border) bg-white/80 px-4 backdrop-blur md:flex">
-            <button type="button" data-action="sidebar#collapse" aria-label="Toggle sidebar" class="-ml-1 rounded-md p-1.5 text-neutral-600 transition hover:bg-(--color-accent) hover:text-neutral-900">
-              <%= inline_svg_tag "icons/panel-left.svg", class: "h-4 w-4" %>
-            </button>
-            <div class="h-4 w-px bg-(--color-border)"></div>
-            <span class="text-sm font-medium text-neutral-900"><%= content_for(:title) || "Stubby" %></span>
-            <span class="ml-auto text-sm text-(--color-muted-foreground) tabular-nums"><%= Date.current.strftime("%A, %b %-d") %></span>
-          </header>
-
-          <main class="<%= content_for?(:full_bleed) ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "flex-1 p-4 md:p-6" %>">
-            <% if notice %>
-              <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"><%= notice %></div>
-            <% end %>
-            <% if alert %>
-              <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= alert %></div>
-            <% end %>
-
-            <%= yield %>
-          </main>
-        </div>
-      </div>
-    <% else %>
-      <% if notice %>
-        <div class="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700"><%= notice %></div>
-      <% end %>
-      <% if alert %>
-        <div class="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700"><%= alert %></div>
-      <% end %>
-
-      <%= yield %>
-    <% end %>
-
-    <%# Every dialog in the app renders in here. %>
     <%= turbo_frame_tag "modal" %>
+
+    <div class="md:flex" data-controller="sidebar">
+      <div data-sidebar-target="backdrop" data-action="click->sidebar#toggle" class="fixed inset-0 z-20 hidden bg-neutral-950/40 md:hidden"></div>
+
+      <aside data-sidebar-target="panel" class="fixed inset-y-0 left-0 z-30 w-64 -translate-x-full border-r border-neutral-200 bg-neutral-50 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0">
+        <%= render "shared/sidebar/sidenav" %>
+      </aside>
+
+      <div class="flex min-w-0 flex-1 flex-col <%= content_for?(:full_bleed) ? "h-screen overflow-hidden" : "min-h-screen" %>">
+        <%= render "shared/topbar" %>
+
+        <main class="<%= content_for?(:full_bleed) ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "mx-auto w-full max-w-7xl flex-1 px-4 pt-6 pb-6 md:px-6" %>">
+          <%= yield %>
+        </main>
+      </div>
+    </div>
   </body>
 </html>

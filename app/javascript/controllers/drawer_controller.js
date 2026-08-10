@@ -1,7 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Same open/close lifecycle as modal_controller, but slides in from the right
-// instead of fading/scaling in place.
 export default class extends Controller {
   static targets = ["backdrop", "panel"]
   static values = { duration: { type: Number, default: 200 } }

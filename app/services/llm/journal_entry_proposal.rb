@@ -9,7 +9,7 @@ class Llm::JournalEntryProposal
         "entry_date" => entry_date || Date.current.to_s,
         "lines" => lines.map do |line|
           {
-            "account_id" => line[:account_id] || line["account_id"],
+            "account_id" => (line[:account_id] || line["account_id"]).presence&.to_i,
             "side" => line[:side] || line["side"],
             "amount_kobo" => ((line[:amount_naira] || line["amount_naira"]).to_d * 100).round,
             "counterparty_name" => line[:counterparty_name] || line["counterparty_name"]
@@ -27,7 +27,7 @@ class Llm::JournalEntryProposal
         "entry_date" => params[:entry_date],
         "lines" => (params[:lines] || {}).values.map do |line|
           {
-            "account_id" => line[:account_id].presence,
+            "account_id" => line[:account_id].presence&.to_i,
             "side" => line[:side],
             "amount_kobo" => (line[:amount_naira].presence.to_d * 100).round,
             "counterparty_name" => line[:counterparty_name].presence

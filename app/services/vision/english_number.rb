@@ -1,6 +1,3 @@
-# Converts an English number phrase ("Ten Thousand", "Two Hundred And Fifty") to an
-# integer. Used to cross-check a receipt's amount-in-words against its numeric amount.
-# Returns nil when the phrase contains no recognisable number words.
 module Vision
   class EnglishNumber
     UNITS = {
@@ -41,7 +38,7 @@ module Vision
         elsif token == "and"
           next
         elsif seen
-          break # a non-number word after digits ends the number
+          break
         end
       end
 

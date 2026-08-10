@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Fixed-positioned dropdown so it is never clipped by table overflow containers.
+const MARGIN = 8
+
 export default class extends Controller {
   static targets = ["button", "menu"]
 
@@ -20,17 +21,10 @@ export default class extends Controller {
     menu.style.visibility = "hidden"
     menu.classList.remove("hidden")
 
-    const mw = menu.offsetWidth
-    const mh = menu.offsetHeight
+    menu.style.top = `${rect.bottom + 4}px`
+    menu.style.left = `${rect.right - menu.offsetWidth}px`
+    this.nudgeIntoView()
 
-    let top = rect.bottom + 4
-    if (top + mh > window.innerHeight - 8) top = Math.max(8, rect.top - mh - 4)
-
-    let left = rect.right - mw
-    left = Math.max(8, Math.min(left, window.innerWidth - mw - 8))
-
-    menu.style.top = `${top}px`
-    menu.style.left = `${left}px`
     menu.style.visibility = ""
 
     this.outsideHandler = (event) => {
@@ -40,6 +34,22 @@ export default class extends Controller {
     document.addEventListener("click", this.outsideHandler)
     window.addEventListener("scroll", this.dismissHandler, true)
     window.addEventListener("resize", this.dismissHandler)
+  }
+
+  nudgeIntoView() {
+    const menu = this.menuTarget
+    const box = menu.getBoundingClientRect()
+
+    const overflowRight = box.right - (window.innerWidth - MARGIN)
+    const overflowLeft = MARGIN - box.left
+    const shiftX = overflowRight > 0 ? -overflowRight : Math.max(0, overflowLeft)
+    if (shiftX) menu.style.left = `${parseFloat(menu.style.left) + shiftX}px`
+
+    const overflowBottom = box.bottom - (window.innerHeight - MARGIN)
+    if (overflowBottom > 0) {
+      const flipped = parseFloat(menu.style.top) - box.height - this.buttonTarget.getBoundingClientRect().height - 8
+      menu.style.top = `${Math.max(MARGIN, flipped)}px`
+    }
   }
 
   close() {

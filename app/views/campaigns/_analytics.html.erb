@@ -7,32 +7,32 @@
 
 <div class="space-y-6">
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-    <div class="rounded-xl border border-(--color-border) bg-white p-4">
-      <p class="text-sm text-(--color-muted-foreground)">Total clicks</p>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-sm text-neutral-500">Total clicks</p>
       <p class="mt-1 text-2xl font-semibold tabular-nums text-neutral-900"><%= number_with_delimiter(campaign.total_clicks) %></p>
-      <p class="text-xs text-(--color-muted-foreground)">last 30 days</p>
+      <p class="text-xs text-neutral-500">last 30 days</p>
     </div>
 
-    <div class="rounded-xl border border-(--color-border) bg-white p-4">
-      <p class="text-sm text-(--color-muted-foreground)">Human clicks</p>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-sm text-neutral-500">Human clicks</p>
       <p class="mt-1 text-2xl font-semibold tabular-nums text-neutral-900"><%= number_with_delimiter(human_clicks) %></p>
-      <p class="text-xs text-(--color-muted-foreground)"><%= pluralize(bot_clicks, "bot") %> filtered</p>
+      <p class="text-xs text-neutral-500"><%= pluralize(bot_clicks, "bot") %> filtered</p>
     </div>
 
-    <div class="rounded-xl border border-(--color-border) bg-white p-4">
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
       <div class="flex items-center justify-between">
-        <p class="text-sm text-(--color-muted-foreground)">Revenue</p>
-        <span class="rounded-full border border-(--color-border) px-2 py-0.5 text-[11px] font-medium text-(--color-muted-foreground)">Soon</span>
+        <p class="text-sm text-neutral-500">Revenue</p>
+        <span class="rounded-full border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-500">Soon</span>
       </div>
       <p class="mt-1 text-2xl font-semibold tabular-nums text-neutral-300">—</p>
-      <p class="text-xs text-(--color-muted-foreground)">see Conversions tab</p>
+      <p class="text-xs text-neutral-500">see Conversions tab</p>
     </div>
   </div>
 
-  <div class="rounded-xl border border-(--color-border) bg-white p-4" data-controller="chart" data-chart-key-value="clicks" data-chart-cumulative-value="true" data-chart-series-value="<%= campaign.click_series(days: 90).to_json %>">
+  <div class="rounded-xl border border-neutral-200 bg-white p-4" data-controller="chart" data-chart-key-value="clicks" data-chart-cumulative-value="true" data-chart-series-value="<%= campaign.click_series(days: 90).to_json %>">
     <div class="flex items-center justify-between">
       <p class="text-sm font-semibold text-neutral-900">Clicks over time</p>
-      <div class="inline-flex rounded-lg border border-(--color-border) bg-(--color-accent) p-0.5 text-xs font-medium">
+      <div class="inline-flex rounded-lg border border-neutral-200 bg-neutral-100 p-0.5 text-xs font-medium">
         <button type="button" data-chart-target="range" data-days="7" data-action="chart#setRange" class="rounded-md px-3 py-1.5 text-neutral-500 transition">7d</button>
         <button type="button" data-chart-target="range" data-days="30" data-action="chart#setRange" class="rounded-md bg-gradient-to-b from-white to-neutral-50 px-3 py-1.5 text-neutral-900 shadow-sm transition">30d</button>
         <button type="button" data-chart-target="range" data-days="90" data-action="chart#setRange" class="rounded-md px-3 py-1.5 text-neutral-500 transition">90d</button>
@@ -43,9 +43,9 @@
     </div>
   </div>
 
-  <div class="rounded-xl border border-(--color-border) bg-white p-4">
+  <div class="rounded-xl border border-neutral-200 bg-white p-4">
     <p class="text-sm font-semibold text-neutral-900">Channel comparison</p>
-    <p class="text-xs text-(--color-muted-foreground)">Declared channel — the platform you chose</p>
+    <p class="text-xs text-neutral-500">Declared channel — the platform you chose</p>
 
     <div class="mt-3 space-y-2">
       <% channel_counts.sort_by { |c| -c[:count] }.each do |entry| %>
@@ -55,30 +55,30 @@
             <%= campaign_channel_dot(entry[:channel].platform, size: "h-2 w-2") %>
             <%= campaign_channel_label(entry[:channel].platform) %>
           </span>
-          <div class="h-2 flex-1 overflow-hidden rounded-full bg-(--color-accent)">
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
             <div class="h-full rounded-full bg-neutral-900" style="width: <%= pct %>%"></div>
           </div>
           <span class="w-12 flex-none text-right tabular-nums text-neutral-900"><%= number_with_delimiter(entry[:count]) %></span>
-          <span class="w-10 flex-none text-right tabular-nums text-(--color-muted-foreground)"><%= pct %>%</span>
+          <span class="w-10 flex-none text-right tabular-nums text-neutral-500"><%= pct %>%</span>
         </div>
       <% end %>
     </div>
 
-    <div class="mt-4 flex items-start gap-2 rounded-lg border border-(--color-border) bg-(--color-accent)/40 p-2.5 text-xs text-(--color-muted-foreground)">
+    <div class="mt-4 flex items-start gap-2 rounded-lg border border-neutral-200 bg-neutral-100/40 p-2.5 text-xs text-neutral-500">
       Clicks from WhatsApp and SMS don't report where they came from — we count them under the channel you chose, never guessed.
     </div>
 
     <details class="mt-3">
-      <summary class="cursor-pointer text-xs font-medium text-(--color-muted-foreground) hover:text-neutral-900">Detected breakdown (from referrer)</summary>
+      <summary class="cursor-pointer text-xs font-medium text-neutral-500 hover:text-neutral-900">Detected breakdown (from referrer)</summary>
       <div class="mt-2 space-y-1.5">
         <% if detected.empty? %>
-          <p class="text-xs text-(--color-muted-foreground)">No referrer data yet.</p>
+          <p class="text-xs text-neutral-500">No referrer data yet.</p>
         <% else %>
           <% detected.sort_by { |_, count| -count }.each do |label, count| %>
             <% pct = total_detected.positive? ? (count * 100.0 / total_detected).round : 0 %>
             <div class="flex items-center justify-between text-xs">
               <span class="text-neutral-700"><%= label %></span>
-              <span class="tabular-nums text-(--color-muted-foreground)"><%= number_with_delimiter(count) %> · <%= pct %>%</span>
+              <span class="tabular-nums text-neutral-500"><%= number_with_delimiter(count) %> · <%= pct %>%</span>
             </div>
           <% end %>
         <% end %>
@@ -86,15 +86,15 @@
     </details>
   </div>
 
-  <div class="rounded-xl border border-(--color-border) bg-white">
+  <div class="rounded-xl border border-neutral-200 bg-white">
     <div class="flex items-center justify-between p-4 pb-0">
       <p class="text-sm font-semibold text-neutral-900">Links</p>
-      <p class="text-xs text-(--color-muted-foreground)">All variants across channels</p>
+      <p class="text-xs text-neutral-500">All variants across channels</p>
     </div>
     <div class="overflow-x-auto">
       <table class="mt-3 w-full text-sm">
         <thead>
-          <tr class="border-b border-(--color-border) text-left text-xs text-(--color-muted-foreground)">
+          <tr class="border-b border-neutral-200 text-left text-xs text-neutral-500">
             <th class="px-4 py-2 font-medium">Link</th>
             <th class="px-4 py-2 font-medium">Channel</th>
             <th class="px-4 py-2 font-medium text-right">Clicks</th>
@@ -105,7 +105,7 @@
         <tbody>
           <% campaign.campaign_channels.each do |channel| %>
             <% channel.shortlinks.each do |sl| %>
-              <tr class="border-b border-(--color-border) last:border-0">
+              <tr class="border-b border-neutral-200 last:border-0">
                 <td class="px-4 py-2.5 font-medium text-neutral-900"><%= sl.short_url %></td>
                 <td class="px-4 py-2.5">
                   <span class="inline-flex items-center gap-1.5 text-neutral-700">
@@ -116,14 +116,14 @@
                 <td class="px-4 py-2.5 text-right tabular-nums text-neutral-900"><%= number_with_delimiter(sl.clicks.count) %></td>
                 <td class="px-4 py-2.5">
                   <% if sl.too_few_to_chart? %>
-                    <span class="text-xs text-(--color-muted-foreground)">too few to chart</span>
+                    <span class="text-xs text-neutral-500">too few to chart</span>
                   <% else %>
                     <div class="h-5 w-14" data-controller="chart" data-chart-sparkline-value="true" data-chart-key-value="clicks" data-chart-cumulative-value="false" data-chart-series-value="<%= sl.click_series.to_json %>">
                       <svg data-chart-target="svg" viewBox="0 0 56 20" class="h-5 w-14" role="img" aria-label="Clicks trend"></svg>
                     </div>
                   <% end %>
                 </td>
-                <td class="px-4 py-2.5 text-right text-xs text-(--color-muted-foreground)">— soon</td>
+                <td class="px-4 py-2.5 text-right text-xs text-neutral-500">— soon</td>
               </tr>
             <% end %>
           <% end %>

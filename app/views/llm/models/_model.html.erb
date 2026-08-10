@@ -1,17 +1,27 @@
 <% model_id = model.respond_to?(:model_id) ? model.model_id : model.id %>
-<% row_id = [model.provider, model_id].join("_").parameterize(separator: "_") %>
-<tr id="model_<%= row_id %>">
-  <td class="px-3 py-2 text-sm text-gray-700"><%= model.provider_class&.name || model.provider %></td>
-  <td class="px-3 py-2 text-sm text-gray-900"><%= model.respond_to?(:display_name) ? model.display_name : model.name %></td>
-  <td class="px-3 py-2 text-sm text-gray-700"><%= number_with_delimiter(model.context_window) if model.context_window %></td>
-  <td class="px-3 py-2 text-sm text-gray-700">
-    <% input = model.input_price_per_million %>
-    <% output = model.output_price_per_million %>
-    <% if input && output %>
-      $<%= "%.2f" % input %> / $<%= "%.2f" % output %>
+<% name = model.respond_to?(:display_name) ? model.display_name : model.name %>
+<% input = model.input_price_per_million %>
+<% output = model.output_price_per_million %>
+<% persisted_id = persisted_ids[[ model.provider.to_s, model_id.to_s ]] %>
+
+<tr id="model_<%= [ model.provider, model_id ].join("_").parameterize(separator: "_") %>" class="transition-colors hover:bg-neutral-50">
+  <td class="<%= table_cell_class %> whitespace-nowrap"><%= model.provider_class&.name || model.provider %></td>
+
+  <td class="px-4 py-3 text-sm font-medium text-neutral-900">
+    <% if persisted_id %>
+      <%= link_to name, model_path(persisted_id), class: "hover:underline", data: { turbo_frame: "modal" } %>
+    <% else %>
+      <%= name %>
     <% end %>
   </td>
-  <td class="px-3 py-2 text-sm">
-    <%= link_to "Start llm chat", chats_path(model: model_id), class: "text-blue-600 hover:text-blue-500" %>
+
+  <td class="<%= table_cell_class %> tabular-nums whitespace-nowrap"><%= model.context_window ? number_with_delimiter(model.context_window) : blank_cell %></td>
+
+  <td class="<%= table_cell_class %> tabular-nums whitespace-nowrap">
+    <%= input && output ? "#{number_to_currency(input)} / #{number_to_currency(output)}" : blank_cell %>
+  </td>
+
+  <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
+    <%= link_to "Start a chat", chats_path(model: model_id), class: "font-medium text-neutral-900 hover:underline" %>
   </td>
 </tr>

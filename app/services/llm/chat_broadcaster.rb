@@ -39,6 +39,10 @@ class Llm::ChatBroadcaster
     Turbo::StreamsChannel.broadcast_remove_to stream, target: "proposal_#{proposal.id}"
   end
 
+  def title(text)
+    Turbo::StreamsChannel.broadcast_update_to stream, target: "llm_chat_#{@chat.id}_title", content: text
+  end
+
   def remove_pending
     @chat.broadcast_remove_to stream, target: "llm_chat_#{@chat.id}_pending"
   end

@@ -1,7 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Animates the modal in on connect and back out before emptying the frame, so a
-// dismissed dialog fades rather than vanishing.
 export default class extends Controller {
   static targets = ["backdrop", "panel"]
   static values = { duration: { type: Number, default: 200 } }

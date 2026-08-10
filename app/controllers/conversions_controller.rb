@@ -1,7 +1,3 @@
-# Path A of the conversion loop (manual mark) — the seller tells Stubby which
-# link (or "I don't know") produced a sale. Path B (auto-matched from a
-# forwarded WhatsApp ref tag) surfaces as a pre-selected suggestion on the same
-# form; see Campaign#recent_ref_match and Whatsapp::MessageProcessor.
 class ConversionsController < ApplicationController
   def create
     campaign = current_workspace.campaigns.find(params[:campaign_id])
@@ -15,9 +11,6 @@ class ConversionsController < ApplicationController
       end
     end
 
-    # Source is derived server-side from whether the chosen link matches the
-    # most recent WhatsApp ref-tag hit for this campaign — never trusted from
-    # the client — so a seller can't (even accidentally) claim an auto-match.
     suggested = shortlink && campaign.recent_ref_match&.matched_shortlink_id == shortlink.id
 
     conversion = current_workspace.conversions.build(

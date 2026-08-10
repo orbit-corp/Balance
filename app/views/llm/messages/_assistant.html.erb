@@ -1,14 +1,15 @@
 <% assistant ||= local_assigns[:message] %>
+
 <div id="llm_message_<%= assistant.id %>" class="w-full">
-  <div id="llm_message_<%= assistant.id %>_content" class="whitespace-pre-wrap leading-7 text-[#111318]"><%= assistant.content %></div>
+  <div id="llm_message_<%= assistant.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"><%= assistant.content %></div>
 
   <% if assistant.content.present? %>
-    <div class="mt-1.5 flex items-center gap-1 text-neutral-400">
-      <button type="button" data-controller="copy" data-copy-value-value="<%= assistant.content %>" data-copy-label-value="Copy" data-action="copy#copy"
-              class="rounded-md p-1.5 transition hover:bg-neutral-100 hover:text-neutral-600" aria-label="Copy response">
+    <div class="mt-1.5 flex items-center gap-1">
+      <button type="button" data-controller="copy" data-copy-value-value="<%= assistant.content %>" data-copy-label-value="Copy" data-action="copy#copy" class="<%= icon_button_class %> text-neutral-400">
+        <span class="sr-only">Copy response</span>
         <%= inline_svg_tag "icons/copy.svg", class: "h-3.5 w-3.5" %>
       </button>
-      <span class="text-[11px]"><%= assistant.created_at&.strftime("%I:%M %p") %></span>
+      <span class="text-xs text-neutral-400"><%= assistant.created_at&.strftime("%-l:%M %p") %></span>
     </div>
   <% end %>
 </div>

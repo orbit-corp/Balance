@@ -1,9 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// WhatsApp-style thread: opens scrolled to the newest message, stays pinned to the
-// bottom as new messages arrive (unless the reader has scrolled up), preserves
-// scroll position when older history is prepended above what's on screen, and keeps
-// day separators correct across initial render, prepends, and live appends alike.
 export default class extends Controller {
   static targets = ["olderTrigger"]
 
@@ -15,9 +11,6 @@ export default class extends Controller {
     this.handleScroll = this.handleScroll.bind(this)
     this.element.addEventListener("scroll", this.handleScroll)
 
-    // Images finish loading after connect() and grow the content height, so the
-    // initial scroll-to-bottom goes stale unless we re-pin as each one settles.
-    // "load" doesn't bubble, so this only works in the capture phase.
     this.handleImageLoad = this.handleImageLoad.bind(this)
     this.element.addEventListener("load", this.handleImageLoad, true)
 
@@ -83,10 +76,6 @@ export default class extends Controller {
     this.element.scrollTop = this.element.scrollHeight
   }
 
-  // Rebuilds day separators from the current, chronologically-ordered set of message
-  // nodes (covers initial render, prepended history, and live-appended messages alike).
-  // Mutates the DOM, so the append/prepend observers are disconnected around it to avoid
-  // an observer feedback loop.
   layOutSeparators() {
     this.appendObserver?.disconnect()
     this.prependObserver?.disconnect()
@@ -107,16 +96,16 @@ export default class extends Controller {
 
   buildSeparator(label) {
     const separator = document.createElement("div")
-    separator.className = "day-separator my-2 flex items-center gap-2 text-xs font-medium text-(--color-muted-foreground)"
+    separator.className = "day-separator my-2 flex items-center gap-2 text-xs font-medium text-neutral-500"
 
     const lineBefore = document.createElement("div")
-    lineBefore.className = "h-px flex-1 bg-(--color-border)"
+    lineBefore.className = "h-px flex-1 bg-neutral-200"
 
     const span = document.createElement("span")
     span.textContent = label
 
     const lineAfter = document.createElement("div")
-    lineAfter.className = "h-px flex-1 bg-(--color-border)"
+    lineAfter.className = "h-px flex-1 bg-neutral-200"
 
     separator.append(lineBefore, span, lineAfter)
     return separator

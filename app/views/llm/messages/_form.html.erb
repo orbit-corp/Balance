@@ -1,23 +1,4 @@
-<%= form_with(model: llm_message, url: chat_messages_path(@llm_chat), id: "new_llm_message", data: { controller: "chat-message-form" }) do |form| %>
-  <div class="<%= ["rounded-2xl border bg-white px-3 pt-3 pb-2", llm_message.errors[:content].any? ? "border-red-300" : "border-neutral-200"].join(" ") %>">
-    <% if llm_message.errors.any? %>
-      <div id="error_explanation" class="mb-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
-        <% llm_message.errors.full_messages.each do |message| %>
-          <p><%= message %></p>
-        <% end %>
-      </div>
-    <% end %>
-
-    <%= form.label :content, "Message", class: "sr-only" %>
-    <%= form.text_area :content, rows: 2, placeholder: "Message Stubby…", autofocus: true,
-        data: { chat_message_form_target: "input", action: "keydown.enter->chat-message-form#submitOnEnter" },
-        class: "block w-full resize-none border-0 bg-transparent px-1 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-0" %>
-
-    <div class="mt-1 flex items-center justify-end">
-      <%= form.button type: "submit", class: "inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
-        <span>Send</span>
-        <%= inline_svg_tag "icons/arrow-up-right.svg", class: "h-4 w-4" %>
-      <% end %>
-    </div>
-  </div>
+<%= form_with model: llm_message, url: chat_messages_path(llm_chat), id: "new_llm_message", data: { controller: "chat-message-form" } do |form| %>
+  <%= render "shared/form_errors", record: llm_message %>
+  <%= render "llm/composer", form: form, field: :content, submit_label: "Send message" %>
 <% end %>

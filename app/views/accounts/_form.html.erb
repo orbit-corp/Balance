@@ -1,49 +1,47 @@
-<% field_classes = "w-full rounded-md border border-(--color-input) px-3 py-2 text-sm outline-none focus:border-neutral-400" %>
-<% label_classes = "mb-1.5 block text-sm font-medium text-neutral-900" %>
-
-<% if flash[:alert] %>
-  <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= flash[:alert] %></div>
-<% end %>
-
-<%= form_with model: account, url: accounts_path, class: "space-y-4", data: {
-      turbo_frame: "_top",
+<%= form_with model: account, url: accounts_path, data: {
       controller: "account-taxonomy",
       account_taxonomy_taxonomy_value: Account::TAXONOMY.to_json,
       account_taxonomy_account_type_value: account.account_type,
       account_taxonomy_detail_type_value: account.detail_type
     } do |form| %>
-  <div>
-    <%= form.label :name, class: label_classes %>
-    <%= form.text_field :name, required: true, placeholder: "e.g. GTBank, Sales", class: field_classes %>
+  <%= render "shared/modal/header", title: "New account", subtitle: "Pick a type and subtype, name it, and it's ready to use." %>
+
+  <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+    <%= render "shared/form_errors", record: account %>
+
+    <div>
+      <%= form.label :name, class: field_label_class %>
+      <%= form.text_field :name, required: true, autofocus: true, placeholder: "e.g. GTBank, Sales", class: field_class %>
+    </div>
+
+    <div>
+      <%= form.label :base_type, "Base type", class: field_label_class %>
+      <%= form.select :base_type,
+            Account::TAXONOMY.keys.map { |base_type| [ base_type.humanize, base_type ] },
+            { prompt: "Select base type" },
+            required: true, class: field_class,
+            data: { account_taxonomy_target: "baseType", action: "change->account-taxonomy#baseTypeChanged" } %>
+    </div>
+
+    <div>
+      <%= form.label :account_type, "Type", class: field_label_class %>
+      <%= form.select :account_type, [], { prompt: "Select account type" },
+            required: true, class: field_class,
+            data: { account_taxonomy_target: "accountType", action: "change->account-taxonomy#accountTypeChanged" } %>
+    </div>
+
+    <div>
+      <%= form.label :detail_type, "Detail type", class: field_label_class %>
+      <%= form.select :detail_type, [], { prompt: "Select detail type" },
+            required: true, class: field_class,
+            data: { account_taxonomy_target: "detailType" } %>
+    </div>
+
+    <div>
+      <%= form.label :description, class: field_label_class %>
+      <%= form.text_area :description, rows: 2, placeholder: "Optional", class: field_class %>
+    </div>
   </div>
 
-  <div>
-    <%= form.label :base_type, "Base type", class: label_classes %>
-    <%= form.select :base_type,
-                     Account::TAXONOMY.keys.map { |base_type| [ base_type.humanize, base_type ] },
-                     { prompt: "Select base type" },
-                     required: true, class: field_classes,
-                     data: { account_taxonomy_target: "baseType", action: "change->account-taxonomy#baseTypeChanged" } %>
-  </div>
-
-  <div>
-    <%= form.label :account_type, "Type", class: label_classes %>
-    <%= form.select :account_type, [], { prompt: "Select account type" },
-                     required: true, class: field_classes,
-                     data: { account_taxonomy_target: "accountType", action: "change->account-taxonomy#accountTypeChanged" } %>
-  </div>
-
-  <div>
-    <%= form.label :detail_type, "Detail type", class: label_classes %>
-    <%= form.select :detail_type, [], { prompt: "Select detail type" },
-                     required: true, class: field_classes,
-                     data: { account_taxonomy_target: "detailType" } %>
-  </div>
-
-  <div>
-    <%= form.label :description, class: label_classes %>
-    <%= form.text_area :description, rows: 2, placeholder: "Optional", class: field_classes %>
-  </div>
-
-  <%= form.submit "Create account", class: "w-full rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" %>
+  <%= render "shared/modal/footer", form: form, submit_label: "Create account" %>
 <% end %>

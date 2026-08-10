@@ -1,35 +1,34 @@
-<% content_for :title, "Chat" %>
+<% content_for :title, @llm_chat.title.presence || "New chat" %>
 <% content_for :full_bleed, "true" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [
+        { label: "Chat", path: chats_path },
+        { label: @llm_chat.title.presence || "New chat", id: "llm_chat_#{@llm_chat.id}_title" }
+      ] %>
+<% end %>
+
+<%= content_for(:topbar_actions) do %>
+  <div class="flex items-center gap-1">
+    <%= render "llm/chats/usage", llm_chat: @llm_chat %>
+
+    <%= link_to chats_path(current: @llm_chat.id), title: "All chats", data: { turbo_frame: "modal" }, class: icon_button_class do %>
+      <span class="sr-only">All chats</span>
+      <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
+    <% end %>
+
+    <%= link_to chats_path, title: "New chat", class: "ml-1 #{primary_icon_button_class}" do %>
+      <span class="sr-only">New chat</span>
+      <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
+    <% end %>
+  </div>
+<% end %>
 
 <%= turbo_stream_from "llm_chat_#{@llm_chat.id}" %>
 
 <% timeline = @llm_chat.timeline %>
 
-<div class="flex min-h-0 flex-1 flex-col bg-(--color-sidebar)">
-  <div class="flex flex-none items-center justify-between gap-4 border-b border-(--color-border) bg-white px-4 py-3.5 md:px-6">
-    <div class="flex items-center gap-2 min-w-0">
-      <h1 class="truncate text-base font-semibold text-neutral-900"><%= @llm_chat.title.presence || "New chat" %></h1>
-      <span class="flex-none rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
-        <%= @llm_chat.llm_model&.label || default_model_display_name %>
-      </span>
-    </div>
-
-    <div class="flex flex-none items-center gap-2">
-      <%= link_to chats_path, data: { turbo_frame: "modal" }, class: "inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3.5 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50" do %>
-        <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
-        <span>All chats</span>
-      <% end %>
-      <%= link_to chats_path, class: "inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800" do %>
-        <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
-        <span>New chat</span>
-      <% end %>
-    </div>
-  </div>
-
-  <% if notice.present? %>
-    <p class="mx-4 mt-3 inline-block rounded-md bg-green-50 px-3 py-2 font-medium text-green-600 md:mx-6" id="notice"><%= notice %></p>
-  <% end %>
-
+<div class="flex min-h-0 flex-1 flex-col bg-neutral-50">
   <div class="min-h-0 flex-1 overflow-y-auto" data-controller="messages-thread">
     <% if timeline.none? %>
       <div id="llm_chat_<%= @llm_chat.id %>_empty" class="flex h-full flex-col items-center justify-center gap-2 text-center text-neutral-400">
@@ -45,7 +44,7 @@
     </div>
   </div>
 
-  <div class="flex-none px-4 py-4 md:px-6">
+  <div class="flex-none px-4 pb-4 md:px-6">
     <div class="mx-auto max-w-3xl">
       <%= render "llm/messages/form", llm_chat: @llm_chat, llm_message: @llm_message %>
 

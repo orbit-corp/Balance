@@ -1,27 +1,29 @@
-<% content_for :title, "Showing llm model" %>
+<% content_for :title, @llm_model.name %>
 
-<div class="md:w-2/3 w-full">
-  <% if notice.present? %>
-    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-md inline-block" id="notice"><%= notice %></p>
-  <% end %>
+<% if turbo_frame_request? %>
+  <%= render "shared/modal", width_class: "max-w-lg" do %>
+    <%= render "shared/modal/header", title: @llm_model.name, subtitle: "#{@llm_model.provider_class&.name || @llm_model.provider} · #{@llm_model.model_id}" %>
 
-  <h1 class="font-bold text-4xl">Showing llm model</h1>
+    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      <%= render "llm/models/details", llm_model: @llm_model %>
+    </div>
 
-  <div class="my-5 space-y-3">
-    <p><strong class="block font-medium mb-1">Provider:</strong> <%= @llm_model.provider_class&.name || @llm_model.provider %></p>
-    <p><strong class="block font-medium mb-1">Model:</strong> <%= @llm_model.name %></p>
-    <p><strong class="block font-medium mb-1">ID:</strong> <%= @llm_model.model_id %></p>
-    <p><strong class="block font-medium mb-1">Context Window:</strong> <%= number_with_delimiter(@llm_model.context_window) if @llm_model.context_window %></p>
-    <p><strong class="block font-medium mb-1">Max Output Tokens:</strong> <%= number_with_delimiter(@llm_model.max_output_tokens) if @llm_model.max_output_tokens %></p>
-  </div>
-
-  <% if @llm_model.capabilities.any? %>
-    <div class="my-5">
-      <strong class="block font-medium mb-1">Capabilities:</strong>
-      <%= @llm_model.capabilities.join(", ") %>
+    <div class="flex shrink-0 justify-end gap-3 border-t border-neutral-200 px-5 py-3">
+      <button type="button" data-action="modal#close" class="<%= secondary_button_class %>">Close</button>
+      <%= link_to "Start a chat", chats_path(model: @llm_model.model_id), class: primary_button_class, data: { turbo_frame: "_top" } %>
     </div>
   <% end %>
+<% else %>
+  <%= content_for(:breadcrumb) do %>
+    <%= render "shared/breadcrumb", data: [ { label: "Models", path: models_path }, { label: @llm_model.name } ] %>
+  <% end %>
 
-  <%= link_to "Start llm chat with this model", chats_path(model: @llm_model.model_id), class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-  <%= link_to "All llm models", models_path, class: "w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2 rounded-md px-3.5 py-2.5 bg-gray-100 hover:bg-gray-50 inline-block font-medium" %>
-</div>
+  <%= render "shared/page_header",
+      title: @llm_model.name,
+      description: "#{@llm_model.provider_class&.name || @llm_model.provider} · #{@llm_model.model_id}",
+      action: link_to("Start a chat", chats_path(model: @llm_model.model_id), class: primary_button_class) %>
+
+  <div class="mt-4 max-w-2xl rounded-md border border-neutral-200 bg-white p-5">
+    <%= render "llm/models/details", llm_model: @llm_model %>
+  </div>
+<% end %>

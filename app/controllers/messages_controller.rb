@@ -5,8 +5,6 @@ class MessagesController < ApplicationController
 
   def index
     scope = current_workspace.whatsapp_messages.inbound.order(sent_at: :desc, id: :desc)
-    # :countless avoids a COUNT query on every load — this table only grows, and we only
-    # ever need "is there another page", not a total.
     @pagy, fetched = pagy(:countless, scope, limit: PER_PAGE)
 
     @page = @pagy.page
