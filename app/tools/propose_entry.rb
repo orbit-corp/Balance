@@ -10,7 +10,7 @@ class ProposeEntry < RubyLLM::Tool
       object do
         number :account_id, description: "account ID returned by list_accounts"
         string :side, enum: %w[debit credit], description: "whether this line is a debit or credit"
-        number :amount_naira, description: "positive amount in naira"
+        string :amount_naira, description: "positive amount in naira as a plain number, e.g. \"4550.50\""
         string :counterparty_name, required: false, description: "person or organisation on the other side"
       end
     end

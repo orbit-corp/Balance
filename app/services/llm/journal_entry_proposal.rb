@@ -11,7 +11,7 @@ class Llm::JournalEntryProposal
           {
             "account_id" => (line[:account_id] || line["account_id"]).presence&.to_i,
             "side" => line[:side] || line["side"],
-            "amount_kobo" => ((line[:amount_naira] || line["amount_naira"]).to_d * 100).round,
+            "amount_kobo" => amount_to_kobo(line[:amount_naira] || line["amount_naira"]),
             "counterparty_name" => line[:counterparty_name] || line["counterparty_name"]
           }
         end
@@ -29,13 +29,28 @@ class Llm::JournalEntryProposal
           {
             "account_id" => line[:account_id].presence&.to_i,
             "side" => line[:side],
-            "amount_kobo" => (line[:amount_naira].presence.to_d * 100).round,
+            "amount_kobo" => amount_to_kobo(line[:amount_naira].presence),
             "counterparty_name" => line[:counterparty_name].presence
           }
         end
       }
     )
   end
+
+  def self.amount_to_kobo(value)
+    raw = sanitize_currency_string(value)
+    return nil if raw.blank?
+
+    (BigDecimal(raw) * 100).round
+  rescue ArgumentError
+    nil
+  end
+
+  def self.sanitize_currency_string(value)
+    value.to_s.gsub(/[^\d.]/, "")
+  end
+
+  private_class_method :sanitize_currency_string
 
   def initialize(workspace:, data:)
     @workspace = workspace
