@@ -1,8 +1,19 @@
 class Llm::Chat < ApplicationRecord
+  CONTEXT_WINDOW_TOKENS = 200_000
+  COMPACTION_THRESHOLD = 0.7
+  TAIL_BUDGET_TOKENS = (CONTEXT_WINDOW_TOKENS * 0.6).to_i
+  PRUNE_PROTECT_TOKENS = 40_000
+  CHARS_PER_TOKEN = 4
+  MESSAGE_OVERHEAD_TOKENS = 5
+
   belongs_to :workspace
   has_many :proposals, foreign_key: :llm_chat_id, dependent: :destroy
 
   acts_as_chat messages: :llm_messages, message_class: "Llm::Message", messages_foreign_key: :llm_chat_id, model: :llm_model, model_class: "Llm::Model"
+
+  def self.estimated_tokens(text)
+    (text.to_s.length.to_f / CHARS_PER_TOKEN).ceil + MESSAGE_OVERHEAD_TOKENS
+  end
 
   def timeline
     items = []
@@ -33,5 +44,61 @@ class Llm::Chat < ApplicationRecord
   def derive_title_from(prompt)
     truncated = prompt.to_s.squish.delete_suffix(".").truncate(60, separator: " ", omission: "…")
     self.title = truncated.present? ? truncated[0].upcase + truncated[1..] : "New chat"
+  end
+
+  def needs_compaction?
+    unsummarized.sum { |message| self.class.estimated_tokens(message.content) } > (CONTEXT_WINDOW_TOKENS * COMPACTION_THRESHOLD)
+  end
+
+  def current_summary
+    unsummarized.where(role: "system").order(:id).to_a.drop(1).last
+  end
+
+  def foldable_head
+    dialogue = unsummarized.where.not(role: "system").order(:created_at, :id).to_a
+    dialogue - tail_fitting(dialogue)
+  end
+
+  private
+
+  # RubyLLM replaces every system message with the new instructions on each
+  # agent setup, which would destroy the compaction summary.
+  def replace_persisted_system_instructions(instructions)
+    current = unsummarized.where(role: "system").order(:id).first
+
+    if current
+      current.update!(content: instructions) if current.content != instructions
+    else
+      llm_messages.create!(role: "system", content: instructions)
+    end
+  end
+
+  def order_messages_for_llm(messages)
+    active = messages.reject(&:summarized_at)
+    system_messages, dialogue = active.partition { |message| message.role.to_s == "system" }
+    return active if system_messages.empty?
+
+    merged = system_messages.first.dup
+    merged.content = system_messages.map(&:content).join("\n\n")
+    [ merged ] + dialogue
+  end
+
+  def unsummarized
+    llm_messages.where(summarized_at: nil)
+  end
+
+  def tail_fitting(dialogue)
+    kept = []
+    budget = TAIL_BUDGET_TOKENS
+
+    dialogue.reverse_each do |message|
+      tokens = self.class.estimated_tokens(message.content)
+      break if tokens > budget
+
+      kept.unshift(message)
+      budget -= tokens
+    end
+
+    kept.drop_while { |message| message.role.to_s != "user" }
   end
 end

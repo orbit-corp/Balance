@@ -11,6 +11,7 @@ class CreateLlmMessages < ActiveRecord::Migration[8.1]
       t.integer :output_tokens
       t.integer :cached_tokens
       t.integer :cache_creation_tokens
+      t.datetime :summarized_at
       t.timestamps
     end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -124,8 +124,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
     t.datetime "created_at", null: false
     t.text "description"
     t.date "entry_date", null: false
+    t.bigint "reverses_journal_entry_id"
     t.datetime "updated_at", null: false
     t.bigint "workspace_id", null: false
+    t.index ["reverses_journal_entry_id"], name: "index_journal_entries_on_reverses_journal_entry_id"
     t.index ["workspace_id", "entry_date"], name: "index_journal_entries_on_workspace_id_and_entry_date"
     t.index ["workspace_id"], name: "index_journal_entries_on_workspace_id"
   end
@@ -142,6 +144,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
     t.index ["account_id"], name: "index_journal_entry_lines_on_account_id"
     t.index ["counterparty_type", "counterparty_id"], name: "index_journal_entry_lines_on_counterparty"
     t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
+    t.check_constraint "((debit_kobo > 0)::integer + (credit_kobo > 0)::integer) = 1", name: "journal_entry_lines_single_sided"
+    t.check_constraint "debit_kobo >= 0 AND credit_kobo >= 0", name: "journal_entry_lines_non_negative"
   end
 
   create_table "linking_tokens", force: :cascade do |t|
@@ -177,6 +181,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
     t.bigint "llm_tool_call_id"
     t.integer "output_tokens"
     t.string "role", null: false
+    t.datetime "summarized_at"
     t.text "thinking_signature"
     t.text "thinking_text"
     t.integer "thinking_tokens"
@@ -233,6 +238,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
     t.datetime "updated_at", null: false
     t.integer "version", default: 1, null: false
     t.bigint "workspace_id", null: false
+    t.index ["journal_entry_id"], name: "idx_proposals_one_journal_entry_per_proposal", unique: true, where: "(journal_entry_id IS NOT NULL)"
     t.index ["journal_entry_id"], name: "index_proposals_on_journal_entry_id"
     t.index ["llm_chat_id", "proposal_type", "version"], name: "index_proposals_on_llm_chat_id_and_proposal_type_and_version"
     t.index ["llm_chat_id"], name: "index_proposals_on_llm_chat_id"
@@ -487,6 +493,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160150) do
   add_foreign_key "conversions", "shortlinks"
   add_foreign_key "conversions", "workspaces"
   add_foreign_key "customers", "workspaces"
+  add_foreign_key "journal_entries", "journal_entries", column: "reverses_journal_entry_id"
   add_foreign_key "journal_entries", "workspaces"
   add_foreign_key "journal_entry_lines", "accounts"
   add_foreign_key "journal_entry_lines", "journal_entries"
