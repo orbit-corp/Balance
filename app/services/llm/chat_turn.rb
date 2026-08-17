@@ -3,6 +3,9 @@ class Llm::ChatTurn
   MAX_PROVIDER_ATTEMPTS = 3
   MAX_TOOL_CALLS_PER_TURN = 10
 
+  AFFIRMATIVE_PATTERN = /\A\s*(y(es|eah|ep|up)|ok(ay)?|sure|alright|go ahead|please|do it|proceed|correct|confirmed?)\b/i
+  REVERSAL_DIRECTIVE = "CONFIRMED REVERSAL"
+
   class TurnTimeout < StandardError; end
   class ToolCallLimitExceeded < StandardError; end
 
@@ -27,6 +30,7 @@ class Llm::ChatTurn
 
         run_turn(agent)
         retry_silent_turn(agent)
+        retry_stalled_reversal(agent)
       end
     rescue RubyLLM::ContextLengthExceededError
       raise unless compact_context(force: true)
@@ -59,6 +63,7 @@ class Llm::ChatTurn
 
   def run_turn(agent)
     @tool_calls_this_turn = 0
+    @reversal_attempted_this_turn = false
     @broadcaster.pending
     compact_context
 
@@ -84,12 +89,56 @@ class Llm::ChatTurn
     report_failure("I wasn't able to respond. Could you rephrase that?")
   end
 
+  # The model sometimes repeats its confirmation question instead of calling
+  # propose_reversal after the user approves. Retry once with an explicit
+  # directive once a stalled reversal loop is detected.
+  def retry_stalled_reversal(agent)
+    return unless stalled_reversal_question?
+
+    entry = reversal_target
+    return unless entry && reversal_directive_missing?(entry)
+
+    @chat.with_instructions(
+      "#{REVERSAL_DIRECTIVE} for journal entry #{entry.id}: the user approved its reversal. " \
+      "Call propose_reversal with entry_id #{entry.id} now; do not ask for confirmation again.",
+      replace: false
+    )
+    agent.complete do |chunk|
+      @broadcaster.append_assistant_chunk(chunk.content) if chunk.content.present?
+    end
+  end
+
+  def stalled_reversal_question?
+    return false if @reversal_attempted_this_turn
+
+    last = @chat.llm_messages.order(:id).last
+    return false unless last&.role.to_s == "assistant"
+    return false unless last.content.to_s.match?(ProposeReversal::REVERSAL_QUESTION_PATTERN)
+
+    last_user = @chat.llm_messages.where(role: "user").order(:id).last
+    last_user&.content.to_s.match?(AFFIRMATIVE_PATTERN)
+  end
+
+  def reversal_target
+    question = @chat.llm_messages.order(:id).last&.content.to_s
+    id = question[/\bJE\s*(\d+)\b/i, 1]&.to_i
+    scope = @chat.workspace.journal_entries
+    (id && scope.find_by(id: id)) || scope.order(entry_date: :desc, id: :desc).first
+  end
+
+  def reversal_directive_missing?(entry)
+    !@chat.llm_messages.where(role: "system")
+      .where("content LIKE ?", "%#{REVERSAL_DIRECTIVE} for journal entry #{entry.id}%")
+      .exists?
+  end
+
   def last_assistant_message
     @chat.llm_messages.where(role: "assistant").order(:id).last
   end
 
   def start_tool_call(tool_call)
     @tool_calls_this_turn += 1
+    @reversal_attempted_this_turn ||= tool_call.name == "propose_reversal"
     raise ToolCallLimitExceeded if @tool_calls_this_turn > MAX_TOOL_CALLS_PER_TURN
 
     @broadcaster.remove_empty_assistant_messages

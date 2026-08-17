@@ -70,6 +70,29 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     end
   end
 
+  class ReversalToolAgent
+    attr_reader :completions
+
+    def initialize(chat, repeated_question)
+      @chat = chat
+      @repeated_question = repeated_question
+      @before_tool_call = nil
+      @completions = 0
+    end
+
+    def before_tool_call(&block)
+      @before_tool_call = block
+    end
+
+    def after_tool_result(&block); end
+
+    def complete
+      @completions += 1
+      @before_tool_call&.call(FakeToolCall.new("tool_call_1", "propose_reversal"))
+      @chat.llm_messages.create!(role: "assistant", content: @repeated_question)
+    end
+  end
+
   setup do
     @workspace = workspaces(:ada_store)
     @chat = Llm::Chat.create!(
@@ -77,6 +100,8 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),
       title: "Test chat"
     )
+    @cash = Account.for_role!(@workspace, :cash)
+    @expense = Account.for_role!(@workspace, :other_expense)
   end
 
   def build_fat_turn(number)
@@ -205,5 +230,67 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     Llm::ChatTurn.new(chat: @chat, agent: agent, compactor: compactor).call
 
     assert_equal "Here you go.", @chat.visible_messages.pluck(:content).last
+  end
+
+  test "retries a repeated reversal question with a directive after the user approved" do
+    entry = post_journal_entry!(
+      @workspace,
+      debit_account: @expense,
+      credit_account: @cash,
+      amount_kobo: 250_000
+    )
+    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
+    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
+    @chat.llm_messages.create!(role: "user", content: "yes, go ahead")
+    question = "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?"
+    agent = FakeAgent.new(@chat, [ question, "Reversal proposal created." ])
+
+    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+
+    assert_equal 2, agent.completions
+    assert @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
+      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
+    end
+    assert_equal "Reversal proposal created.", @chat.visible_messages.pluck(:content).last
+  end
+
+  test "does not fire the reversal directive when the user did not confirm" do
+    entry = post_journal_entry!(
+      @workspace,
+      debit_account: @expense,
+      credit_account: @cash,
+      amount_kobo: 250_000
+    )
+    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
+    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
+    @chat.llm_messages.create!(role: "user", content: "Which entry do you mean?")
+    agent = FakeAgent.new(@chat, [ "Here you go." ])
+
+    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+
+    assert_equal 1, agent.completions
+    refute @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
+      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
+    end
+  end
+
+  test "does not fire the reversal directive when propose_reversal was already attempted" do
+    entry = post_journal_entry!(
+      @workspace,
+      debit_account: @expense,
+      credit_account: @cash,
+      amount_kobo: 250_000
+    )
+    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
+    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
+    @chat.llm_messages.create!(role: "user", content: "yes")
+    agent = ReversalToolAgent.new(@chat, "Do you want me to prepare a reversal for this entry?")
+
+    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+
+    assert_equal 1, agent.completions
+    refute @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
+      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
+    end
   end
 end
