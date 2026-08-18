@@ -53,7 +53,7 @@ class Llm::ChatTurn
     report_failure("I stopped after reaching my tool-call limit for this turn. Please send a follow-up message to continue.")
   rescue StandardError => e
     Rails.logger.error("ChatTurn failed: #{e.class}: #{e.message}\n#{e.backtrace&.first(10).to_a.join("\n")}")
-    report_failure("I couldn't complete that accounting request. Please try again.")
+    report_failure("I hit a problem while answering. Please try again.")
   ensure
     @broadcaster.remove_pending
     @broadcaster.remove_empty_assistant_messages

@@ -175,6 +175,18 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
       @chat.visible_messages.pluck(:content)
   end
 
+  test "reports an honest retry hint when the turn fails unexpectedly" do
+    agent = Object.new
+    agent.define_singleton_method(:before_tool_call) { |&_block| }
+    agent.define_singleton_method(:after_tool_result) { |&_block| }
+    agent.define_singleton_method(:complete) { |&_block| raise "boom" }
+
+    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+
+    assert_equal [ "I hit a problem while answering. Please try again." ],
+      @chat.visible_messages.pluck(:content)
+  end
+
   test "start_tool_call raises ToolCallLimitExceeded once the per-turn cap is hit" do
     turn = Llm::ChatTurn.new(chat: @chat)
 
