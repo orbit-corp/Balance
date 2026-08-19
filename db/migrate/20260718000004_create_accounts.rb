@@ -107,6 +107,7 @@ class CreateAccounts < ActiveRecord::Migration[8.1]
 
     create_table :journal_entries do |t|
       t.references :workspace, null: false, foreign_key: true
+      t.references :reverses_journal_entry, foreign_key: { to_table: :journal_entries }
       t.date :entry_date, null: false
       t.text :description
 

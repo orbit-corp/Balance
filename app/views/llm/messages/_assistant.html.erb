@@ -1,7 +1,7 @@
 <% assistant ||= local_assigns[:message] %>
 
 <div id="llm_message_<%= assistant.id %>" class="w-full">
-  <div id="llm_message_<%= assistant.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"><%= assistant.content %></div>
+  <div id="llm_message_<%= assistant.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"><%= assistant_content(assistant.content).html_safe %></div>
 
   <% if assistant.content.present? %>
     <div class="mt-1.5 flex items-center gap-1">

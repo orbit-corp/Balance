@@ -1,0 +1,151 @@
+require "test_helper"
+
+class JournalEntryTest < ActiveSupport::TestCase
+  setup do
+    @workspace = workspaces(:ada_store)
+    @cash = Account.for_role!(@workspace, :cash)
+    @expense = Account.for_role!(@workspace, :other_expense)
+    @entry = post_journal_entry!(
+      @workspace,
+      debit_account: @expense,
+      credit_account: @cash,
+      amount_kobo: 250_000
+    )
+  end
+
+  test "posted entries are immutable" do
+    @entry.description = "Rewritten"
+
+    assert_no_changes -> { @entry.reload.description } do
+      assert_not @entry.save
+    end
+  end
+
+  test "posted entries cannot be destroyed" do
+    assert_no_difference "JournalEntry.count" do
+      assert_not @entry.destroy
+    end
+  end
+
+  test "reverse! creates a balanced reversal with flipped sides" do
+    reversal = nil
+
+    assert_difference "JournalEntry.count", 1 do
+      reversal = @entry.reverse!
+    end
+
+    assert_equal @entry.id, reversal.reverses_journal_entry_id
+    assert_equal 2, reversal.journal_entry_lines.size
+    assert_equal reversal.journal_entry_lines.sum(&:debit_kobo), reversal.journal_entry_lines.sum(&:credit_kobo)
+
+    cash_line = reversal.journal_entry_lines.find { |line| line.account_id == @cash.id }
+    expense_line = reversal.journal_entry_lines.find { |line| line.account_id == @expense.id }
+    assert_equal 250_000, cash_line.debit_kobo
+    assert_equal 250_000, expense_line.credit_kobo
+  end
+
+  test "cannot reverse an entry that is itself a reversal" do
+    reversal = @entry.reverse!
+
+    re_reversal = @workspace.journal_entries.build(
+      entry_date: Date.current,
+      description: "Reversal of the reversal",
+      reverses_journal_entry: reversal,
+      journal_entry_lines_attributes: [
+        { account_id: @expense.id, debit_kobo: 250_000 },
+        { account_id: @cash.id, credit_kobo: 250_000 }
+      ]
+    )
+
+    assert_not re_reversal.valid?
+    assert_includes re_reversal.errors[:reverses_journal_entry], "cannot reverse an entry that is itself a reversal"
+  end
+
+  test "cannot reference an entry from another workspace as its reversal" do
+    other_workspace = workspaces(:bola_shop)
+    other_cash = Account.for_role!(other_workspace, :cash)
+    other_expense = Account.for_role!(other_workspace, :other_expense)
+    other_entry = post_journal_entry!(
+      other_workspace,
+      debit_account: other_expense,
+      credit_account: other_cash,
+      amount_kobo: 250_000
+    )
+
+    entry = @workspace.journal_entries.build(
+      entry_date: Date.current,
+      description: "Reversal of a foreign entry",
+      reverses_journal_entry: other_entry,
+      journal_entry_lines_attributes: [
+        { account_id: @expense.id, debit_kobo: 250_000 },
+        { account_id: @cash.id, credit_kobo: 250_000 }
+      ]
+    )
+
+    assert_not entry.valid?
+    assert_includes entry.errors[:reverses_journal_entry], "must belong to the same workspace as the entry"
+  end
+
+  test "requires a description" do
+    entry = @workspace.journal_entries.build(
+      entry_date: Date.current,
+      journal_entry_lines_attributes: [
+        { account_id: @expense.id, debit_kobo: 250_000 },
+        { account_id: @cash.id, credit_kobo: 250_000 }
+      ]
+    )
+
+    assert_not entry.valid?
+    assert_includes entry.errors[:description], "can't be blank"
+  end
+
+  test "rejects entry dates in the future or too far in the past" do
+    future = build_entry(entry_date: Date.current + 1.day)
+    ancient = build_entry(entry_date: 11.years.ago.to_date)
+
+    assert_not future.valid?
+    assert_includes future.errors[:entry_date], "cannot be in the future"
+    assert_not ancient.valid?
+    assert_includes ancient.errors[:entry_date], "is too far in the past"
+  end
+
+  test "rejects the same account on both sides" do
+    entry = build_entry(
+      lines: [
+        { account_id: @cash.id, debit_kobo: 250_000 },
+        { account_id: @cash.id, credit_kobo: 250_000 }
+      ]
+    )
+
+    assert_not entry.valid?
+    assert_includes entry.errors[:base], "the same account cannot be both debited and credited"
+  end
+
+  test "rejects duplicate identical lines" do
+    entry = build_entry(
+      lines: [
+        { account_id: @cash.id, debit_kobo: 250_000 },
+        { account_id: @cash.id, debit_kobo: 250_000 },
+        { account_id: @expense.id, credit_kobo: 500_000 }
+      ]
+    )
+
+    assert_not entry.valid?
+    assert_includes entry.errors[:base], "duplicate journal lines are not allowed"
+  end
+
+  private
+
+  def build_entry(entry_date: Date.current, lines: nil)
+    lines ||= [
+      { account_id: @expense.id, debit_kobo: 250_000 },
+      { account_id: @cash.id, credit_kobo: 250_000 }
+    ]
+
+    @workspace.journal_entries.build(
+      entry_date: entry_date,
+      description: "Test entry",
+      journal_entry_lines_attributes: lines
+    )
+  end
+end

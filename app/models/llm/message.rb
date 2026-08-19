@@ -1,5 +1,5 @@
 class Llm::Message < ApplicationRecord
-  acts_as_message chat: :llm_chat, chat_class: 'Llm::Chat', tool_calls: :llm_tool_calls, tool_call_class: 'Llm::ToolCall', tool_calls_foreign_key: :llm_message_id, model: :llm_model, model_class: 'Llm::Model'
+  acts_as_message chat: :llm_chat, chat_class: "Llm::Chat", tool_calls: :llm_tool_calls, tool_call_class: "Llm::ToolCall", tool_calls_foreign_key: :llm_message_id, model: :llm_model, model_class: "Llm::Model"
 
   after_create_commit :broadcast_append_if_visible
   after_update_commit :broadcast_replace_if_visible

@@ -41,6 +41,20 @@ class Account < ApplicationRecord
 
   SEED_ON_CREATE = CORE.keys.freeze
 
+  # Canonical accounts a person typically needs. The agent may reference these by
+  # name even before they exist; their taxonomy comes from here, never from the model.
+  RECOMMENDED = [
+    { name: "Cash",            base: "asset",     type: "bank",                detail: "cash_on_hand" },
+    { name: "Savings",         base: "asset",     type: "bank",                detail: "savings" },
+    { name: "Salary Income",   base: "income",    type: "income",              detail: "other_primary_income" },
+    { name: "Interest Earned", base: "income",    type: "other_income",        detail: "interest_earned" },
+    { name: "Rent",            base: "expense",   type: "expense",             detail: "rent_or_lease_of_buildings" },
+    { name: "Utilities",       base: "expense",   type: "expense",             detail: "utilities" },
+    { name: "Car Expenses",    base: "expense",   type: "expense",             detail: "auto" },
+    { name: "Pension",         base: "expense",   type: "expense",             detail: "other_miscellaneous_expense" },
+    { name: "Tax",             base: "expense",   type: "expense",             detail: "other_miscellaneous_expense" }
+  ].freeze
+
   validates :name, presence: true, uniqueness: { scope: :workspace_id }
   validates :base_type, inclusion: { in: TAXONOMY.keys }
   validates :account_type, presence: true

@@ -3,7 +3,20 @@ class LedgerAgent < RubyLLM::Agent
 
   instructions
 
-  tools { [ ListAccounts.new(chat.workspace), ProposeEntry.new(chat.workspace) ] }
+  tools do
+    [
+      ListAccounts.new(chat.workspace),
+      ProposeEntry.new(chat),
+      GetBalanceSummary.new(chat.workspace),
+      ListJournalEntries.new(chat.workspace),
+      CheckProposalStatus.new(chat.workspace),
+      ProposeReversal.new(chat)
+    ]
+  end
 
   temperature 0.2
+
+  params do
+    { max_tokens: 2_000 }
+  end
 end

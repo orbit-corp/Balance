@@ -12,16 +12,7 @@ class Llm::ProposalsController < ApplicationController
   end
 
   def confirm
-    return respond_with_card unless @proposal.pending?
-
-    return respond_with_card(draft.errors) if draft.invalid?
-
-    ActiveRecord::Base.transaction do
-      journal_entry = draft.build_journal_entry!
-      @proposal.confirm!(journal_entry: journal_entry)
-    end
-
-    respond_with_card
+    respond_with_card(@proposal.confirm!(draft: draft))
   rescue ActiveRecord::RecordInvalid => e
     respond_with_card([ e.message ])
   end
@@ -42,7 +33,7 @@ class Llm::ProposalsController < ApplicationController
   end
 
   def proposal_params
-    params.require(:proposal).permit(:description, :entry_date, lines: [ :account_id, :side, :amount_naira, :counterparty_name ])
+    params.expect(proposal: [ :description, :entry_date, :reverses_journal_entry_id, lines: [ [ :account_id, :side, :amount_naira, :counterparty_name ] ] ])
   end
 
   def draft

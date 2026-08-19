@@ -1,6 +1,6 @@
 class Proposal < ApplicationRecord
   TYPES = %w[journal_entry].freeze
-  STATUSES = %w[proposed confirmed dismissed superseded].freeze
+  STATUSES = %w[proposed confirming confirmed dismissed superseded].freeze
 
   belongs_to :workspace
   belongs_to :llm_chat, class_name: "Llm::Chat"
@@ -48,8 +48,16 @@ class Proposal < ApplicationRecord
     total_debit_kobo == total_credit_kobo
   end
 
-  def confirm!(journal_entry:)
-    update!(status: "confirmed", journal_entry: journal_entry)
+  def confirm!(draft:)
+    with_lock do
+      return [] unless pending?
+      return draft.errors if draft.invalid?
+      return [] unless transition_to_confirming?
+
+      journal_entry = draft.build_journal_entry!
+      update!(status: "confirmed", journal_entry: journal_entry)
+      nil
+    end
   end
 
   def dismiss!
@@ -58,5 +66,12 @@ class Proposal < ApplicationRecord
 
   def supersede!
     update!(status: "superseded")
+  end
+
+  private
+
+  def transition_to_confirming?
+    Proposal.where(id: id, status: "proposed")
+      .update_all(status: "confirming", updated_at: Time.current) == 1
   end
 end
