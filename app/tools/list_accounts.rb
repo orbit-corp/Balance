@@ -1,6 +1,6 @@
 class ListAccounts < RubyLLM::Tool
   description "List the ledger accounts that exist in this workspace (use their ids when proposing an entry), " \
-              "and the recommended accounts from the personal-ledger catalog that do not exist yet " \
+              "and the recommended accounts from the workspace's catalog that do not exist yet " \
               "(reference those only by their account_name — never invent an id for them)."
 
   def initialize(workspace)
@@ -13,9 +13,9 @@ class ListAccounts < RubyLLM::Tool
 
     {
       existing_accounts: existing.map { |account| account_hash(account) },
-      recommended_accounts: Account::RECOMMENDED
+      recommended_accounts: @workspace.catalog.recommended.values
         .reject { |spec| existing_names.include?(spec[:name].downcase) }
-        .map { |spec| spec.slice(:name, :base) }
+        .map { |spec| recommended_hash(spec) }
     }
   end
 
@@ -29,5 +29,17 @@ class ListAccounts < RubyLLM::Tool
       account_type: account.account_type,
       detail_type: account.detail_type
     }
+  end
+
+  def recommended_hash(spec)
+    {
+      name: spec[:name],
+      base: spec[:base],
+      parent: parent_name(spec)
+    }.compact
+  end
+
+  def parent_name(spec)
+    @workspace.catalog.core[spec[:parent]]&.dig(:name)
   end
 end

@@ -4,7 +4,7 @@ class ListJournalEntriesTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
   end
 
   test "returns posted entries from the current workspace" do
@@ -40,7 +40,7 @@ class ListJournalEntriesTest < ActiveSupport::TestCase
   test "does not return entries from other workspaces" do
     other_workspace = workspaces(:bola_shop)
     other_cash = Account.for_role!(other_workspace, :cash)
-    other_expense = Account.for_role!(other_workspace, :other_expense)
+    other_expense = Account.for_role!(other_workspace, :general_expense)
     post_journal_entry!(
       other_workspace,
       debit_account: other_expense,

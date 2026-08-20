@@ -7,7 +7,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
 
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
     @chat = Llm::Chat.create!(
       workspace: @workspace,
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),

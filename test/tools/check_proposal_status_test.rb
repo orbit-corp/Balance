@@ -4,7 +4,7 @@ class CheckProposalStatusTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
     @chat = Llm::Chat.create!(
       workspace: @workspace,
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),

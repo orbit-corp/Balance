@@ -6,6 +6,7 @@ class LedgerAgent < RubyLLM::Agent
   tools do
     [
       ListAccounts.new(chat.workspace),
+      CreateAccount.new(chat.workspace),
       ProposeEntry.new(chat),
       GetBalanceSummary.new(chat.workspace),
       ListJournalEntries.new(chat.workspace),

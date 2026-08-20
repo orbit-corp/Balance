@@ -76,7 +76,7 @@ class ProposeEntry < RubyLLM::Tool
     account = @workspace.accounts.find_by("LOWER(name) = LOWER(?)", name)
     return line.merge(account_id: account.id) if account
 
-    spec = Account::RECOMMENDED.find { |candidate| candidate[:name].casecmp?(name) }
+    spec = @workspace.catalog.recommended.values.find { |candidate| candidate[:name].casecmp?(name) }
     missing << {
       name: name,
       base_type: spec ? spec[:base] : (line[:side] == "debit" ? "expense" : "income")

@@ -4,7 +4,7 @@ class JournalEntryTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
     @entry = post_journal_entry!(
       @workspace,
       debit_account: @expense,
@@ -64,7 +64,7 @@ class JournalEntryTest < ActiveSupport::TestCase
   test "cannot reference an entry from another workspace as its reversal" do
     other_workspace = workspaces(:bola_shop)
     other_cash = Account.for_role!(other_workspace, :cash)
-    other_expense = Account.for_role!(other_workspace, :other_expense)
+    other_expense = Account.for_role!(other_workspace, :general_expense)
     other_entry = post_journal_entry!(
       other_workspace,
       debit_account: other_expense,

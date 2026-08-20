@@ -7,8 +7,15 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
   end
 
+  def create_account(**attributes)
+    @workspace.accounts.create!(
+      { name: "Cash", base_type: "asset", account_type: "Cash & Liquid Assets", detail_type: "Checking Account" }
+        .merge(attributes)
+    )
+  end
+
   test "lists accounts for the current workspace" do
-    cash = Account.for_role!(@workspace, :cash)
+    cash = create_account(name: "Kuda")
 
     get accounts_path
 
@@ -16,15 +23,24 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "body", /#{Regexp.escape(cash.name)}/
   end
 
+  test "new renders account types grouped by category" do
+    get new_account_path
+
+    assert_response :success
+    assert_select "optgroup[label='ASSET'] option", text: "Cash & Liquid Assets"
+    assert_select "optgroup[label='EXPENSE'] option", text: "Personal Outflows"
+  end
+
   test "creates an account" do
-    post accounts_path, params: { account: { name: "GTBank", base_type: "asset", account_type: "bank", detail_type: "checking" } }
+    post accounts_path,
+         params: { account: { name: "GTBank", base_type: "asset", account_type: "Cash & Liquid Assets", detail_type: "Checking Account" } }
 
     assert_redirected_to accounts_path
     assert @workspace.accounts.exists?(name: "GTBank")
   end
 
-  test "renames a core account" do
-    cash = Account.for_role!(@workspace, :cash)
+  test "renames an account" do
+    cash = create_account
 
     patch account_path(cash), params: { account: { name: "GTBank" } }
 
@@ -32,8 +48,8 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "GTBank", cash.reload.name
   end
 
-  test "cannot change a core account's base type" do
-    cash = Account.for_role!(@workspace, :cash)
+  test "cannot move an account to an incompatible base type" do
+    cash = create_account
 
     patch account_path(cash), params: { account: { base_type: "liability" } }
 
@@ -42,7 +58,12 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
 
   test "cannot rename another workspace's account" do
     other_workspace = workspaces(:bola_shop)
-    foreign = Account.for_role!(other_workspace, :cash)
+    foreign = other_workspace.accounts.create!(
+      name: "Cash",
+      base_type: "asset",
+      account_type: "Cash & Liquid Assets",
+      detail_type: "Checking Account"
+    )
 
     patch account_path(foreign), params: { account: { name: "Hijacked" } }
 

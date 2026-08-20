@@ -1,6 +1,6 @@
 <%= form_with model: account, url: accounts_path, data: {
       controller: "account-taxonomy",
-      account_taxonomy_taxonomy_value: Account::TAXONOMY.to_json,
+      account_taxonomy_taxonomy_value: current_workspace.catalog.to_h,
       account_taxonomy_account_type_value: account.account_type,
       account_taxonomy_detail_type_value: account.detail_type
     } do |form| %>
@@ -11,21 +11,16 @@
 
     <div>
       <%= form.label :name, class: field_label_class %>
-      <%= form.text_field :name, required: true, autofocus: true, placeholder: "e.g. GTBank, Sales", class: field_class %>
+      <%= form.text_field :name, required: true, autofocus: true, placeholder: "Account name", class: field_class %>
     </div>
 
-    <div>
-      <%= form.label :base_type, "Base type", class: field_label_class %>
-      <%= form.select :base_type,
-            Account::TAXONOMY.keys.map { |base_type| [ base_type.humanize, base_type ] },
-            { prompt: "Select base type" },
-            required: true, class: field_class,
-            data: { account_taxonomy_target: "baseType", action: "change->account-taxonomy#baseTypeChanged" } %>
-    </div>
+    <%= form.hidden_field :base_type, data: { account_taxonomy_target: "baseType" } %>
 
     <div>
-      <%= form.label :account_type, "Type", class: field_label_class %>
-      <%= form.select :account_type, [], { prompt: "Select account type" },
+      <%= form.label :account_type, "Account type", class: field_label_class %>
+      <%= form.select :account_type,
+            catalog_grouped_options_for_select(current_workspace.catalog),
+            { prompt: "Select account type" },
             required: true, class: field_class,
             data: { account_taxonomy_target: "accountType", action: "change->account-taxonomy#accountTypeChanged" } %>
     </div>

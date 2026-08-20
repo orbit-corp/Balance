@@ -1,46 +1,35 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["baseType", "accountType", "detailType"]
+  static targets = ["accountType", "baseType", "detailType"]
   static values = { taxonomy: Object, accountType: String, detailType: String }
 
   connect() {
-    this.refreshAccountTypes(this.accountTypeValue)
-    this.refreshDetailTypes(this.detailTypeValue)
-  }
-
-  baseTypeChanged() {
-    this.refreshAccountTypes()
-    this.refreshDetailTypes()
+    this.refreshDetailTypes(this.accountTypeValue, this.detailTypeValue)
   }
 
   accountTypeChanged() {
-    this.refreshDetailTypes()
+    this.refreshDetailTypes(this.accountTypeTarget.value)
   }
 
-  refreshAccountTypes(preselect) {
-    const accountTypes = this.taxonomyValue[this.baseTypeTarget.value] || {}
-    this.fillSelect(this.accountTypeTarget, Object.keys(accountTypes), "Select account type", preselect)
-  }
+  refreshDetailTypes(accountType, preselect) {
+    const entry = this.taxonomyValue[accountType] || {}
 
-  refreshDetailTypes(preselect) {
-    const accountTypes = this.taxonomyValue[this.baseTypeTarget.value] || {}
-    const detailTypes = accountTypes[this.accountTypeTarget.value] || []
-    this.fillSelect(this.detailTypeTarget, detailTypes, "Select detail type", preselect)
+    if (this.hasBaseTypeTarget && entry.category) {
+      this.baseTypeTarget.value = entry.category.toLowerCase()
+    }
+
+    this.fillSelect(this.detailTypeTarget, entry.detail_types || [], "Select detail type", preselect)
   }
 
   fillSelect(select, values, promptText, preselect) {
-    const options = [ `<option value="">${promptText}</option>` ]
+    const options = [`<option value="">${promptText}</option>`]
 
     for (const value of values) {
       const selected = value === preselect ? " selected" : ""
-      options.push(`<option value="${value}"${selected}>${this.humanize(value)}</option>`)
+      options.push(`<option value="${value}"${selected}>${value}</option>`)
     }
 
     select.innerHTML = options.join("")
-  }
-
-  humanize(value) {
-    return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
   }
 }

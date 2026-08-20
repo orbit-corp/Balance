@@ -9,5 +9,8 @@
 7. The system should be able to tell you what your most expensive transaction is - It should not loop through the entire system instead it will query the db for JEs and order DESC then return the first txn
 8. harness improvements here https://medium.com/@visrow/harness-engineering-vs-prompt-engineering-vs-context-engineering-explained-0423b692c87d
 9. state machine integration (aasm)
-10. When deployed, you can download the underlying model. consult https://github.com/vishalmysore/harnessEngineeringDemo. The goal is to make this the easy default in dev mode. In prod we will use the prod models with a great harness
-
+10. When deployed, you can download the underlying model. consult https://github.com/vishalmysore/harnessEngineeringDemo. The goal is to make this the easy default in dev mode. In prod we will use the prod models with a great harness.
+11. Strategy for account classification
+12. Implement rotating thinking words
+13. Use RAD with Spec-Driven-Development
+14. The system should not end conversation. Rather it proposes a tool, wait for user action and continue

@@ -1,4 +1,8 @@
 class Workspace < ApplicationRecord
+  self.inheritance_column = :_type_disabled
+
+  enum :type, { personal: 0, business: 1 }, default: :personal
+
   has_many :users, dependent: :destroy
   has_many :journal_entries, dependent: :destroy
   has_many :accounts, dependent: :destroy
@@ -13,6 +17,14 @@ class Workspace < ApplicationRecord
   has_many :proposals, dependent: :destroy
 
   validates :name, presence: true
+
+  def catalog
+    AccountCatalog.for(type)
+  end
+
+  def seed_core_accounts!
+    catalog.core.each_key { |role| Account.for_role!(self, role) }
+  end
 
   def whatsapp_link
     whatsapp_links.order(created_at: :desc).first

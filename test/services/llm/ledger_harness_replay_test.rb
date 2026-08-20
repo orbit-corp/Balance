@@ -9,7 +9,7 @@ class LedgerHarnessReplayTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
   end
 
   test "corpus declares the expected safe outcomes" do

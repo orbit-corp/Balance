@@ -4,7 +4,7 @@ class ProposeEntryTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :other_expense)
+    @expense = Account.for_role!(@workspace, :general_expense)
   end
 
   test "proposes a balanced entry for a clear transaction" do
@@ -15,12 +15,12 @@ class ProposeEntryTest < ActiveSupport::TestCase
   end
 
   test "resolves an account_name that already exists" do
-    income = Account.for_role!(@workspace, :other_income)
+    income = Account.for_role!(@workspace, :primary_income)
 
     result = execute_tool_with_lines("My salary was 300k this month.", [
-      { account_name: "cash", side: "debit", amount_naira: "245000" },
-      { account_name: "Other Expense", side: "debit", amount_naira: "55000" },
-      { account_name: "Other Income", side: "credit", amount_naira: "300000" }
+      { account_name: "Cash & Bank", side: "debit", amount_naira: "245000" },
+      { account_name: "Expenses", side: "debit", amount_naira: "55000" },
+      { account_name: "Income", side: "credit", amount_naira: "300000" }
     ])
 
     assert result[:proposal]
@@ -31,18 +31,18 @@ class ProposeEntryTest < ActiveSupport::TestCase
 
   test "refuses when a recommended account does not exist and lists it with the catalog type" do
     result = execute_tool_with_lines("My salary was 300k this month.", [
-      { account_name: "Cash", side: "debit", amount_naira: "245000" },
-      { account_name: "Pension", side: "debit", amount_naira: "35000" },
-      { account_name: "Tax", side: "debit", amount_naira: "20000" },
-      { account_name: "Salary Income", side: "credit", amount_naira: "300000" }
+      { account_name: "Cash & Bank", side: "debit", amount_naira: "245000" },
+      { account_name: "Groceries & Food", side: "debit", amount_naira: "35000" },
+      { account_name: "Rent & Housing", side: "debit", amount_naira: "20000" },
+      { account_name: "Salary & Wages", side: "credit", amount_naira: "300000" }
     ])
 
     assert_nil result[:proposal]
     assert_includes result[:error], "I couldn't record this transaction because the necessary accounts to do so are insufficient."
-    assert_includes result[:error], "Pension (expense)"
-    assert_includes result[:error], "Tax (expense)"
-    assert_includes result[:error], "Salary Income (income)"
-    refute_includes result[:error], "Cash"
+    assert_includes result[:error], "Groceries & Food (expense)"
+    assert_includes result[:error], "Rent & Housing (expense)"
+    assert_includes result[:error], "Salary & Wages (income)"
+    refute_includes result[:error], "Cash & Bank"
   end
 
   test "refuses when a non-catalog account does not exist and falls back to a side-based type" do
@@ -58,15 +58,15 @@ class ProposeEntryTest < ActiveSupport::TestCase
   test "refuses when only some lines reference missing accounts" do
     result = execute_tool_with_lines("My salary was 300k this month.", [
       { account_id: @cash.id, side: "debit", amount_naira: "245000" },
-      { account_name: "Pension", side: "debit", amount_naira: "35000" },
-      { account_name: "Tax", side: "debit", amount_naira: "20000" },
-      { account_name: "Salary Income", side: "credit", amount_naira: "300000" }
+      { account_name: "Groceries & Food", side: "debit", amount_naira: "35000" },
+      { account_name: "Rent & Housing", side: "debit", amount_naira: "20000" },
+      { account_name: "Salary & Wages", side: "credit", amount_naira: "300000" }
     ])
 
     assert_nil result[:proposal]
-    assert_includes result[:error], "Pension (expense)"
-    assert_includes result[:error], "Tax (expense)"
-    assert_includes result[:error], "Salary Income (income)"
+    assert_includes result[:error], "Groceries & Food (expense)"
+    assert_includes result[:error], "Rent & Housing (expense)"
+    assert_includes result[:error], "Salary & Wages (income)"
   end
 
   test "rejects a line that has both an account_id and an account_name" do
@@ -92,15 +92,15 @@ class ProposeEntryTest < ActiveSupport::TestCase
   test "handles string-keyed lines the way the model sends them" do
     result = execute_tool_with_lines("My salary was 300k this month.", [
       { "account_id" => @cash.id, "side" => "debit", "amount_naira" => "245000" },
-      { "account_name" => "Pension", "side" => "debit", "amount_naira" => "35000" },
-      { "account_name" => "Tax", "side" => "debit", "amount_naira" => "20000" },
-      { "account_name" => "Salary Income", "side" => "credit", "amount_naira" => "300000" }
+      { "account_name" => "Groceries & Food", "side" => "debit", "amount_naira" => "35000" },
+      { "account_name" => "Rent & Housing", "side" => "debit", "amount_naira" => "20000" },
+      { "account_name" => "Salary & Wages", "side" => "credit", "amount_naira" => "300000" }
     ])
 
     assert_nil result[:proposal]
-    assert_includes result[:error], "Pension (expense)"
-    assert_includes result[:error], "Tax (expense)"
-    assert_includes result[:error], "Salary Income (income)"
+    assert_includes result[:error], "Groceries & Food (expense)"
+    assert_includes result[:error], "Rent & Housing (expense)"
+    assert_includes result[:error], "Salary & Wages (income)"
   end
 
   test "returns a clean error when a line is an array, not an object" do

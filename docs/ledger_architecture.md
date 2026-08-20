@@ -16,10 +16,6 @@ Accounts get a **three-tier** classification, matching QuickBooks:
 differ from QuickBooks, which infers the group header from the account type. Deriving it is what broke the previous
 implementation.
 
-`normal_balance` derives from `base_type` only:
-- `asset`, `expense` → debit-normal
-- `liability`, `equity`, `income` → credit-normal
-
 ## 2. Schema
 
 `20260718000004_create_accounts.rb` is the last migration, and workspaces/users/sessions are created in earlier ones.

@@ -9,7 +9,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   test "shows today, week, and month totals reflecting recorded entries" do
     cash = Account.for_role!(@workspace, :cash)
-    other_income = Account.for_role!(@workspace, :other_income)
+    other_income = Account.for_role!(@workspace, :primary_income)
     rent = @workspace.accounts.create!(name: "Rent Expense", base_type: "expense", account_type: "expense", detail_type: "rent_or_lease_of_buildings")
 
     post_journal_entry!(@workspace, debit_account: cash, credit_account: other_income, amount_kobo: 500_00)
@@ -25,6 +25,6 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "shows empty state when there are no journal entries" do
     get dashboard_path
     assert_response :success
-    assert_select "body", /No entries yet/
+    assert_select "body", /Nothing recorded yet/
   end
 end
