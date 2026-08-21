@@ -5,12 +5,8 @@ module AccountCatalogs
         self::CHART_OF_ACCOUNTS
       end
 
-      def categories
-        chart_of_accounts
-      end
-
       def account_types
-        @account_types ||= categories.flat_map { |category| category[:account_types] }
+        @account_types ||= chart_of_accounts.flat_map { |category| category[:account_types] }
       end
 
       def find(account_type)
@@ -18,7 +14,7 @@ module AccountCatalogs
       end
 
       def category_for(account_type)
-        categories.find do |category|
+        chart_of_accounts.find do |category|
           category[:account_types].any? do |entry|
             entry[:account_type] == account_type
           end

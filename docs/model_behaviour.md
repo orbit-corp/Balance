@@ -14,3 +14,4 @@
 12. Implement rotating thinking words
 13. Use RAD with Spec-Driven-Development
 14. The system should not end conversation. Rather it proposes a tool, wait for user action and continue
+15. review hyperbot https://www.hyperbots.com/glossary/accounting-rules-engine
