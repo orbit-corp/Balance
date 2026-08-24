@@ -3,8 +3,8 @@ require "test_helper"
 class JournalEntryTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
-    @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @cash = create_account("Cash", "asset", "Cash & Liquid Assets", "Checking Account")
+    @expense = create_account("General Expense", "expense", "Personal Outflows", "Living & Daily Needs")
     @entry = post_journal_entry!(
       @workspace,
       debit_account: @expense,
@@ -63,8 +63,8 @@ class JournalEntryTest < ActiveSupport::TestCase
 
   test "cannot reference an entry from another workspace as its reversal" do
     other_workspace = workspaces(:bola_shop)
-    other_cash = Account.for_role!(other_workspace, :cash)
-    other_expense = Account.for_role!(other_workspace, :general_expense)
+    other_cash = create_account("Cash", "asset", "Cash & Liquid Assets", "Checking Account", workspace: other_workspace)
+    other_expense = create_account("General Expense", "expense", "Personal Outflows", "Living & Daily Needs", workspace: other_workspace)
     other_entry = post_journal_entry!(
       other_workspace,
       debit_account: other_expense,
@@ -134,7 +134,57 @@ class JournalEntryTest < ActiveSupport::TestCase
     assert_includes entry.errors[:base], "duplicate journal lines are not allowed"
   end
 
+  test "accepts income received against cash" do
+    income = create_account("Salary", "income", "Personal Inflows", "Earned Salary & Wages")
+
+    entry = build_entry(
+      lines: [
+        { account_id: @cash.id, debit_kobo: 90_000 },
+        { account_id: income.id, credit_kobo: 90_000 }
+      ]
+    )
+
+    assert entry.valid?
+  end
+
+  test "accepts a liability settled against an expense credit (accrual reversal pattern)" do
+    payable = create_account("Accounts Payable", "liability", "Short-Term Debt", "Short-Term Loans")
+
+    entry = build_entry(
+      lines: [
+        { account_id: payable.id, debit_kobo: 40_000 },
+        { account_id: @expense.id, credit_kobo: 40_000 }
+      ]
+    )
+
+    assert entry.valid?
+  end
+
+  test "reversals are valid even though they flip the sides of the original" do
+    reversal = nil
+
+    assert_difference "JournalEntry.count", 1 do
+      reversal = @entry.reverse!
+    end
+
+    cash_line = reversal.journal_entry_lines.find { |line| line.account_id == @cash.id }
+    expense_line = reversal.journal_entry_lines.find { |line| line.account_id == @expense.id }
+
+    assert cash_line.debit_kobo.positive?
+    assert expense_line.credit_kobo.positive?
+    assert reversal.valid?
+  end
+
   private
+
+  def create_account(name, base_type, account_type, detail_type, workspace: @workspace)
+    workspace.accounts.create!(
+      name: name,
+      base_type: base_type,
+      account_type: account_type,
+      detail_type: detail_type
+    )
+  end
 
   def build_entry(entry_date: Date.current, lines: nil)
     lines ||= [
