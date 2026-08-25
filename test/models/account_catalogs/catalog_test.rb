@@ -32,7 +32,7 @@ class AccountCatalogs::CatalogTest < ActiveSupport::TestCase
   test "detail_types_for returns the detail types of an account type" do
     catalog = AccountCatalogs::Personal
 
-    assert_equal [ "Checking Account", "Savings Account", "Physical Cash & Digital Wallets" ],
+    assert_equal [ "Checking Account", "Savings Account", "Physical Cash & Digital Wallets", "Suspense / Clearing" ],
                  catalog.detail_types_for("Cash & Liquid Assets")
     assert_nil catalog.detail_types_for("Bogus")
   end
@@ -40,7 +40,7 @@ class AccountCatalogs::CatalogTest < ActiveSupport::TestCase
   test "as_hash maps every account type to its category and detail types" do
     hash = AccountCatalogs::Personal.as_hash
 
-    assert_equal({ category: "ASSET", detail_types: [ "Checking Account", "Savings Account", "Physical Cash & Digital Wallets" ] },
+    assert_equal({ category: "ASSET", detail_types: [ "Checking Account", "Savings Account", "Physical Cash & Digital Wallets", "Suspense / Clearing" ] },
                  hash["Cash & Liquid Assets"])
     assert_equal hash.keys, AccountCatalogs::Personal.account_types.map { |entry| entry[:account_type] }
   end
@@ -56,7 +56,7 @@ class AccountCatalogs::CatalogTest < ActiveSupport::TestCase
   test "workspace resolves its catalog by type" do
     personal = workspaces(:ada_store)
     business = workspaces(:bola_shop)
-    business.update!(type: :business)
+    business.update!(workspace_type: :business)
 
     assert_equal AccountCatalogs::Personal, personal.catalog
     assert_equal AccountCatalogs::Business, business.catalog

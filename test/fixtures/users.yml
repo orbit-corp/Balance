@@ -1,11 +1,11 @@
 <% password_digest = BCrypt::Password.create("password") %>
 
 one:
+  full_name: Ada Okafor
   email_address: one@example.com
   password_digest: <%= password_digest %>
-  workspace: ada_store
 
 two:
+  full_name: Bola Adeyemi
   email_address: two@example.com
   password_digest: <%= password_digest %>
-  workspace: bola_shop

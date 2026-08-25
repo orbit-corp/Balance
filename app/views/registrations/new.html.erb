@@ -1,16 +1,16 @@
-<% content_for :title, "Create your workspace" %>
+<% content_for :title, "Create your account" %>
 
 <%= render layout: "shared/auth/page", locals: {
-      title: "Create your workspace",
-      description: "Start keeping your books in one place.",
+      title: "Create your account",
+      description: "Set up your identity first. Your personal workspace comes next.",
       links: [ { label: "Already have an account? Sign in", path: new_session_path } ]
     } do %>
   <%= form_with url: registration_path, class: "space-y-4" do |form| %>
     <%= render "shared/form_errors", record: @user %>
 
     <div>
-      <%= label_tag :business_name, "Business name", class: field_label_class %>
-      <%= text_field_tag :business_name, params[:business_name], required: true, autofocus: true, class: field_class %>
+      <%= label_tag :full_name, "Full name", class: field_label_class %>
+      <%= text_field_tag :full_name, params[:full_name], required: true, autofocus: true, autocomplete: "name", class: field_class %>
     </div>
 
     <div>

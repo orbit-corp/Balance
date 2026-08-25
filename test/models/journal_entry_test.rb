@@ -27,6 +27,19 @@ class JournalEntryTest < ActiveSupport::TestCase
     end
   end
 
+  test "posted lines cannot be changed or destroyed" do
+    line = @entry.journal_entry_lines.first
+
+    assert_no_changes -> { line.reload.debit_kobo } do
+      line.debit_kobo += 100
+      assert_not line.save
+    end
+
+    assert_no_difference "JournalEntryLine.count" do
+      assert_not line.destroy
+    end
+  end
+
   test "reverse! creates a balanced reversal with flipped sides" do
     reversal = nil
 
@@ -118,7 +131,7 @@ class JournalEntryTest < ActiveSupport::TestCase
     )
 
     assert_not entry.valid?
-    assert_includes entry.errors[:base], "the same account cannot be both debited and credited"
+    assert_includes entry.errors[:base], "Account(s) used on both sides: #{@cash.id}"
   end
 
   test "rejects duplicate identical lines" do
@@ -173,6 +186,20 @@ class JournalEntryTest < ActiveSupport::TestCase
     assert cash_line.debit_kobo.positive?
     assert expense_line.credit_kobo.positive?
     assert reversal.valid?
+  end
+
+  test "rejects unbalanced entries before they reach the database" do
+    assert_no_difference "JournalEntry.count" do
+      entry = build_entry(
+        lines: [
+          { account_id: @expense.id, debit_kobo: 100_000 },
+          { account_id: @cash.id, credit_kobo: 90_000 }
+        ]
+      )
+
+      assert_not entry.valid?
+      assert_includes entry.errors[:base], "Total debits (1000.00) must equal total credits (900.00)"
+    end
   end
 
   private

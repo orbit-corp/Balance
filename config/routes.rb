@@ -25,36 +25,14 @@ Rails.application.routes.draw do
 
   resource :session
   resource :registration, only: %i[new create]
+  get "onboarding/:step", to: "onboarding#show", as: :onboarding_step
+  patch "onboarding/:step", to: "onboarding#update"
   resources :passwords, param: :token
 
-  namespace :webhooks do
-    resource :whatsapp, only: %i[show create], controller: "whatsapp"
-  end
-
   resource :dashboard, only: [ :show ]
-  resources :integrations, only: [ :index ]
-  namespace :integrations do
-    resource :whatsapp, only: [], controller: "whatsapp" do
-      post :connect
-      delete :disconnect
-    end
-  end
   resources :journal_entries, only: %i[index new create]
   resources :accounts, only: %i[index new create update]
   resources :customers
-  resources :messages, only: [ :index ]
-  resources :document_reviews, only: [ :index ] do
-    patch :dismiss, on: :member
-  end
-  resources :campaigns, only: %i[index new create show update] do
-    resources :conversions, only: %i[create]
-    resources :campaign_channels, only: %i[create], path: "channels" do
-      resources :shortlinks, only: %i[create]
-    end
-  end
 
   root "dashboards#show"
-
-  # Redirect engine — must stay last so it never shadows a named route above.
-  get "/:slug", to: "redirects#show", constraints: { slug: /[a-z0-9-]+/ }
 end

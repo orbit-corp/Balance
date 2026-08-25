@@ -1,0 +1,32 @@
+<% content_for :title, "Choose accounts — Balance" %>
+
+<div class="mb-6">
+  <p class="mb-2 text-sm font-medium text-[#0f7082]">Your accounts</p>
+  <h1 class="text-3xl font-medium tracking-[-0.035em] text-neutral-950 sm:text-4xl">Where do you keep or owe money?</h1>
+  <p class="mt-2 max-w-xl text-base leading-7 text-neutral-500">Choose what applies today. Balance will also create the protected accounts required for double-entry bookkeeping.</p>
+</div>
+
+<%= form_with url: onboarding_step_path(:accounts), method: :patch do %>
+  <div class="divide-y divide-neutral-200 border-y border-neutral-200">
+    <% [
+      ["checking", "Bank account", "Your everyday current or checking account"],
+      ["savings", "Savings", "Money kept separately for saving"],
+      ["wallet", "Digital wallet", "Mobile money and digital wallets"],
+      ["credit_card", "Credit card", "Money currently owed on a card"]
+    ].each do |value, label, description| %>
+      <label class="group flex cursor-pointer items-center gap-4 py-4">
+        <%= check_box_tag "starter_account_roles[]", value, false, id: "starter_#{value}", class: "peer sr-only" %>
+        <span class="flex h-5 w-5 items-center justify-center rounded border border-neutral-300 text-transparent transition peer-checked:border-[#0f7082] peer-checked:bg-[#0f7082] peer-checked:text-white">✓</span>
+        <span class="flex-1">
+          <span class="block text-sm font-medium text-neutral-900"><%= label %></span>
+          <span class="mt-0.5 block text-sm text-neutral-500"><%= description %></span>
+        </span>
+      </label>
+    <% end %>
+  </div>
+
+  <div class="mt-6 flex items-center justify-between">
+    <%= link_to "Back", onboarding_step_path(:details), class: ghost_button_class %>
+    <%= submit_tag "Create workspace", class: primary_button_class %>
+  </div>
+<% end %>

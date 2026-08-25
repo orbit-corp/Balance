@@ -4,7 +4,7 @@ class ProposeEntryTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
   end
 
   test "proposes a balanced entry for a clear transaction" do
@@ -15,23 +15,25 @@ class ProposeEntryTest < ActiveSupport::TestCase
   end
 
   test "resolves an account_name that already exists" do
-    income = Account.for_role!(@workspace, :primary_income)
+    income = Account.for_role!(@workspace, :uncategorized_income)
+    savings = Account.for_role!(@workspace, :savings)
 
     result = execute_tool_with_lines("My salary was 300k this month.", [
-      { account_name: "Cash & Bank", side: "debit", amount_naira: "245000" },
-      { account_name: "Expenses", side: "debit", amount_naira: "55000" },
-      { account_name: "Income", side: "credit", amount_naira: "300000" }
+      { account_name: "Cash", side: "debit", amount_naira: "245000" },
+      { account_name: "Savings", side: "debit", amount_naira: "55000" },
+      { account_name: "Uncategorized Income", side: "credit", amount_naira: "300000" }
     ])
 
     assert result[:proposal]
     account_ids = result.dig(:entry_data, "lines").pluck("account_id")
     assert_includes account_ids, @cash.id
     assert_includes account_ids, income.id
+    assert_includes account_ids, savings.id
   end
 
   test "refuses when a recommended account does not exist and lists it with the catalog type" do
     result = execute_tool_with_lines("My salary was 300k this month.", [
-      { account_name: "Cash & Bank", side: "debit", amount_naira: "245000" },
+      { account_name: "Cash", side: "debit", amount_naira: "245000" },
       { account_name: "Groceries & Food", side: "debit", amount_naira: "35000" },
       { account_name: "Rent & Housing", side: "debit", amount_naira: "20000" },
       { account_name: "Salary & Wages", side: "credit", amount_naira: "300000" }
@@ -42,7 +44,7 @@ class ProposeEntryTest < ActiveSupport::TestCase
     assert_includes result[:error], "Groceries & Food (expense)"
     assert_includes result[:error], "Rent & Housing (expense)"
     assert_includes result[:error], "Salary & Wages (income)"
-    refute_includes result[:error], "Cash & Bank"
+    refute_includes result[:error], "Cash"
   end
 
   test "refuses when a non-catalog account does not exist and falls back to a side-based type" do

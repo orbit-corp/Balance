@@ -8,7 +8,7 @@ class Llm::ChatCompactorTest < ActiveSupport::TestCase
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),
       title: "Compactor test"
     )
-    @chat.llm_messages.create!(role: "system", content: "You are Stubby.")
+    @chat.llm_messages.create!(role: "system", content: "You are Balance.")
   end
 
   def build_turn(number, weight: 1)

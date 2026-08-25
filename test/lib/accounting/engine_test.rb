@@ -1,318 +1,160 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require "date"
-
 require_relative "../../../lib/accounting/engine"
 
 module Accounting
   class EngineTest < Minitest::Test
-    def self.test(description, &block)
-      name = "test_#{description.gsub(/[^a-z0-9]+/i, "_").downcase.sub(/_$/, "")}"
-      define_method(name, &block)
-    end
+    Account = Data.define(:id, :name, :base_type)
+    ModelLine = Data.define(:account, :debit_kobo, :credit_kobo)
 
     def setup
-      @engine = Accounting::Engine.new
-      @engine.add_account("1000", "Cash", "asset")
-      @engine.add_account("1100", "Bank Account", "asset")
-      @engine.add_account("1200", "Pension RSA", "asset")
-      @engine.add_account("2000", "Accounts Payable", "liability")
-      @engine.add_account("3000", "Owner's Equity", "equity")
-      @engine.add_account("4000", "Sales", "income")
-      @engine.add_account("4500", "Salary Income", "income")
-      @engine.add_account("5000", "Rent Expense", "expense")
-      @engine.add_account("5500", "Tax Withheld", "expense")
-
-      @engine.post(entry([
-        line("1000", :debit, 1000, "asset"),
-        line("3000", :credit, 1000, "equity")
-      ]))
+      @cash = account("cash", "Cash", "asset")
+      @bank = account("bank", "Bank", "asset")
+      @payable = account("payable", "Accounts Payable", "liability")
+      @income = account("income", "Income", "income")
+      @expense = account("expense", "Expense", "expense")
     end
 
-    test "posting a classified entry updates balances" do
-      posted = post_rent(250)
-
-      assert_includes @engine.journal, posted
-      assert_equal BigDecimal("750"), @engine.balance("asset")
-      assert_equal BigDecimal("250"), @engine.balance("expense")
-      assert @engine.equation_holds?
-    end
-
-    test "proves the Example 11 classification can happen" do
-      result = salary_entry_check
+    def test_derives_effects_from_account_base_types
+      result = check(line(@cash, :debit, 10_000), line(@income, :credit, 10_000))
 
       assert result.ok?, result.errors.join(" ")
-      proof = result.proof
-
-      assert proof.balanced?
-      assert_equal BigDecimal("300000"), proof.total_debits
-      assert_equal BigDecimal("300000"), proof.total_credits
-
-      effects = { "1100" => :increase, "1200" => :increase, "5500" => :increase, "4500" => :increase }
-      proof.lines.each do |line_proof|
-        assert_equal effects[line_proof.account_code], line_proof.effect,
-          "#{line_proof.account_code} [#{line_proof.base_type}] #{line_proof.side}"
-      end
-      assert_equal %i[increase increase increase increase], proof.lines.map(&:effect)
+      assert_equal %i[increase increase], result.lines.map(&:effect)
+      assert_equal :expansion, result.proof.relationships.first.law
     end
 
-    test "assets increase on debit and decrease on credit" do
-      incoming = @engine.check([
-        hash_line("1100", :debit, 500, "asset"),
-        hash_line("4000", :credit, 500, "income")
-      ])
-      outgoing = @engine.check([
-        hash_line("5000", :debit, 500, "expense"),
-        hash_line("1100", :credit, 500, "asset")
-      ])
-
-      assert_equal :increase, incoming.proof.lines.first.effect
-      assert_equal :decrease, outgoing.proof.lines.last.effect
-    end
-
-    test "liabilities equity and income increase on credit" do
-      result = @engine.check([
-        hash_line("1000", :debit, 100, "asset"),
-        hash_line("2000", :credit, 40, "liability"),
-        hash_line("3000", :credit, 30, "equity"),
-        hash_line("4000", :credit, 30, "income")
-      ])
-
-      assert result.ok?, result.errors.join(" ")
-      credit_effects = result.proof.lines.select { |l| l.side == :credit }.map(&:effect)
-
-      assert_equal %i[increase increase increase], credit_effects
-    end
-
-    test "rejects unclassified lines" do
-      result = @engine.check([
-        { account_code: "5000", side: :debit, amount: 25 },
-        { account_code: "1000", side: :credit, amount: 25 }
-      ])
-
-      refute result.ok?
-      assert_match(/Line 1: missing base_type/, result.errors.join)
-    end
-
-    test "rejects unknown base types on lines" do
-      assert_raises(ArgumentError) { line("5000", :debit, 25, "crypto") }
-
-      result = @engine.check([
-        { account_code: "5000", base_type: "crypto", side: :debit, amount: 25 },
-        { account_code: "1000", base_type: "asset", side: :credit, amount: 25 }
-      ])
-
-      refute result.ok?
-      assert_match(/Line 1: Unknown base type/, result.errors.join)
-    end
-
-    test "rejects misclassified lines against registered accounts" do
-      result = @engine.check([
-        hash_line("1000", :debit, 50, "expense"),
-        hash_line("3000", :credit, 50, "equity")
-      ])
-
-      refute result.ok?
-      assert_match(/Account 1000 is registered as "asset" but the line declares "expense"/, result.errors.join)
-    end
-
-    test "rejects unbalanced entries without mutating balances" do
-      assert_raises(Accounting::Engine::ValidationError) do
-        @engine.post(entry([
-          line("5000", :debit, 250, "expense"),
-          line("1000", :credit, 200, "asset")
-        ]))
-      end
-
-      assert_equal BigDecimal("1000"), @engine.balance("asset")
-      assert_equal BigDecimal("0"), @engine.balance("expense")
-    end
-
-    test "rejects single-line entries" do
-      assert_raises(Accounting::Engine::ValidationError) do
-        @engine.post(entry([line("5000", :debit, 250, "expense")]))
-      end
-    end
-
-    test "rejects lines with non-positive amounts" do
-      assert_raises(ArgumentError) { line("5000", :debit, 0, "expense") }
-      assert_raises(ArgumentError) { line("5000", :debit, -5, "expense") }
-    end
-
-    test "rejects the same account on both sides" do
-      assert_raises(Accounting::Engine::ValidationError) do
-        @engine.post(entry([
-          line("1000", :debit, 100, "asset"),
-          line("1000", :credit, 100, "asset")
-        ]))
-      end
-    end
-
-    test "unknown account is rejected" do
-      assert_raises(Accounting::Engine::ValidationError) do
-        @engine.post(entry([
-          line("9999", :debit, 100, "asset"),
-          line("1000", :credit, 100, "asset")
-        ]))
-      end
-    end
-
-    test "unknown base type is rejected when adding an account" do
-      assert_raises(ArgumentError) { @engine.add_account("6000", "Crypto Wallet", "crypto") }
-    end
-
-    test "reverse flips sides links and restores balances" do
-      original = post_rent(250)
-      journal_size = @engine.journal.size
-      reversal = @engine.reverse!(original)
-
-      assert_equal original.entry_id, reversal.reverses_entry_id
-      assert_equal journal_size + 1, @engine.journal.size
-      assert_equal BigDecimal("1000"), @engine.balance("asset")
-      assert_equal BigDecimal("0"), @engine.balance("expense")
-      assert @engine.equation_holds?
-    end
-
-    test "a reversal cannot be reversed" do
-      original = post_rent(250)
-      reversal = @engine.reverse!(original)
-
-      assert_raises(Accounting::Engine::ValidationError) { @engine.reverse!(reversal) }
-    end
-
-    test "an unposted entry cannot be reversed" do
-      unposted = entry([line("5000", :debit, 10, "expense"), line("1000", :credit, 10, "asset")])
-
-      assert_raises(Accounting::Engine::ValidationError) { @engine.reverse!(unposted) }
-    end
-
-    test "the equation detects tampering" do
-      assert @engine.equation_holds?
-      @engine.get_account("3000").credit(BigDecimal("500"))
-      refute @engine.equation_holds?
-    end
-
-    test "check accepts raw hash lines and reports proof" do
-      result = @engine.check([
-        { account_code: "5000", base_type: "expense", side: :debit, amount: 25 },
-        { account_code: "1000", base_type: "asset", side: :credit, amount: 25 }
-      ])
+    def test_recognizes_reallocation_between_debit_normal_accounts
+      result = check(line(@cash, :debit, 10_000), line(@bank, :credit, 10_000))
 
       assert result.ok?
-      assert_empty result.errors
-      assert_equal 2, result.lines.size
-      assert_equal %w[expense asset], result.proof.lines.map(&:base_type)
-      assert_equal %i[increase decrease], result.proof.lines.map(&:effect)
-      assert result.proof.balanced?
-      assert_includes result.proof.to_s, "5000 [expense] debit => increase"
+      assert_equal %i[increase decrease], result.lines.map(&:effect)
+      assert_equal :reallocation, result.proof.relationships.first.law
     end
 
-    test "check reports line construction problems as precise errors" do
-      result = @engine.check([
-        { account_code: "5000", base_type: "expense", side: :debit, amount: 0 },
-        { account_code: "1000" }
-      ])
+    def test_recognizes_reallocation_between_credit_normal_accounts
+      result = check(line(@payable, :debit, 10_000), line(@income, :credit, 10_000))
 
-      refute result.ok?
-      assert_match(/Line 1: Amount must be positive/, result.errors[0])
-      assert_match(/Line 2: missing base_type/, result.errors[1])
+      assert result.ok?
+      assert_equal %i[decrease increase], result.lines.map(&:effect)
+      assert_equal :reallocation, result.proof.relationships.first.law
     end
 
-    test "check collects all structural errors at once" do
-      result = @engine.check([
-        { account_code: "9999", base_type: "asset", side: :debit, amount: 10 },
-        { account_code: "1000", base_type: "asset", side: :credit, amount: 5 }
-      ])
+    def test_recognizes_contraction
+      result = check(line(@payable, :debit, 10_000), line(@cash, :credit, 10_000))
 
-      refute result.ok?
-      joined = result.errors.join(" | ")
-      assert_match(/Total debits \(10\.00\) must equal total credits \(5\.00\)/, joined)
-      assert_match(/Unknown account: 9999/, joined)
+      assert result.ok?
+      assert_equal %i[decrease decrease], result.lines.map(&:effect)
+      assert_equal :contraction, result.proof.relationships.first.law
     end
 
-    test "check mutates nothing" do
-      journal_size = @engine.journal.size
+    def test_rejects_a_relationship_missing_from_the_rules_matrix
+      rejecting_rules = Object.new
+      def rejecting_rules.relationship_for(debit:, credit:) = nil
 
-      salary_entry_check
-
-      assert_equal journal_size, @engine.journal.size
-      assert_equal BigDecimal("1000"), @engine.balance("asset")
-    end
-
-    test "post_lines creates and posts atomically when valid" do
-      posted = @engine.post_lines(
-        date: Date.new(2026, 8, 21),
-        description: "Cash sale",
-        lines: [
-          { account_code: "1000", base_type: "asset", side: :debit, amount: 120 },
-          { account_code: "4000", base_type: "income", side: :credit, amount: 120 }
-        ]
+      result = Engine.check(
+        [ line(@cash, :debit, 10_000), line(@income, :credit, 10_000) ],
+        rules: rejecting_rules
       )
 
-      assert_includes @engine.journal, posted
-      assert_equal BigDecimal("1120"), @engine.balance("asset")
-      assert_equal BigDecimal("120"), @engine.balance("income")
-      assert @engine.equation_holds?
+      refute result.ok?
+      assert_includes result.errors, "Cash cannot be debited against Income"
     end
 
-    test "post_lines never creates or posts anything when invalid" do
-      journal_size = @engine.journal.size
-      totals_before = deep_totals_snapshot
+    def test_rejects_unbalanced_entries
+      result = check(line(@expense, :debit, 10_000), line(@cash, :credit, 9_000))
 
-      assert_raises(Accounting::Engine::ValidationError) do
-        @engine.post_lines(
-          date: Date.new(2026, 8, 21),
-          description: "Broken entry",
-          lines: [
-            { account_code: "3000", base_type: "equity", side: :debit, amount: 50 },
-            { account_code: "5000", base_type: "expense", side: :credit, amount: 45 }
-          ]
-        )
-      end
+      refute result.ok?
+      assert_includes result.errors, "Total debits (100.00) must equal total credits (90.00)"
+    end
 
-      assert_equal journal_size, @engine.journal.size
-      assert_equal totals_before, deep_totals_snapshot
+    def test_rejects_an_account_used_on_both_sides
+      result = check(line(@cash, :debit, 10_000), line(@cash, :credit, 10_000))
+
+      refute result.ok?
+      assert_includes result.errors, "Account(s) used on both sides: cash"
+    end
+
+    def test_rejects_duplicate_lines
+      result = check(
+        line(@expense, :debit, 5_000),
+        line(@expense, :debit, 5_000),
+        line(@cash, :credit, 10_000)
+      )
+
+      refute result.ok?
+      assert_includes result.errors, "duplicate journal lines are not allowed"
+    end
+
+    def test_rejects_single_line_entries
+      result = check(line(@cash, :debit, 10_000))
+
+      refute result.ok?
+      assert_includes result.errors, "An entry requires at least two lines"
+    end
+
+    def test_reports_invalid_lines_without_a_proof
+      result = check(
+        { side: :debit, amount_kobo: 10_000 },
+        line(@cash, :sideways, 10_000),
+        line(@cash, :credit, 0)
+      )
+
+      refute result.ok?
+      assert_nil result.proof
+      assert_match(/Line 1: missing account/, result.errors[0])
+      assert_match(/Line 2: Unknown side/, result.errors[1])
+      assert_match(/Line 3: Amount must be a positive whole number of kobo/, result.errors[2])
+    end
+
+    def test_rejects_unknown_account_base_types
+      crypto = account("crypto", "Crypto", "crypto")
+      result = check(line(crypto, :debit, 10_000), line(@cash, :credit, 10_000))
+
+      refute result.ok?
+      assert_match(/Line 1: Unknown base type/, result.errors.first)
+    end
+
+    def test_accepts_model_lines_and_derives_their_sides
+      result = Engine.check([
+        ModelLine.new(@expense, 25_000, 0),
+        ModelLine.new(@cash, 0, 25_000)
+      ])
+
+      assert result.ok?, result.errors.join(" ")
+      assert_equal %i[debit credit], result.lines.map(&:side)
+      assert_equal 25_000, result.proof.total_debits_kobo
+      assert result.proof.balanced?
+    end
+
+    def test_rejects_model_lines_with_both_sides
+      result = Engine.check([
+        ModelLine.new(@expense, 25_000, 25_000),
+        ModelLine.new(@cash, 0, 25_000)
+      ])
+
+      refute result.ok?
+      assert_match(/either a debit or a credit/, result.errors.first)
+    end
+
+    def test_has_no_persistence_api
+      refute_respond_to Engine.new([]), :post
+      refute_respond_to Engine.new([]), :post_lines
+      refute_respond_to Engine.new([]), :journal
     end
 
     private
 
-    def deep_totals_snapshot
-      @engine.accounts.transform_values { |a| [a.debit_total, a.credit_total] }
+    def account(id, name, base_type)
+      Account.new(id, name, base_type)
     end
 
-    def salary_entry_check
-      @engine.check([
-        hash_line("1100", :debit, 250_000, "asset"),
-        hash_line("1200", :debit, 30_000, "asset"),
-        hash_line("5500", :debit, 20_000, "expense"),
-        hash_line("4500", :credit, 300_000, "income")
-      ])
+    def line(account, side, amount_kobo)
+      { account: account, side: side, amount_kobo: amount_kobo }
     end
 
-    def post_rent(amount)
-      @engine.post(entry([
-        line("5000", :debit, amount, "expense"),
-        line("1000", :credit, amount, "asset")
-      ]))
-    end
-
-    def line(account_code, side, amount, base_type)
-      Accounting::Engine::EntryLine.new(
-        account_code: account_code, side: side, amount: amount, base_type: base_type
-      )
-    end
-
-    def hash_line(account_code, side, amount, base_type)
-      { account_code: account_code, side: side, amount: amount, base_type: base_type }
-    end
-
-    def entry(lines)
-      Accounting::Engine::JournalEntry.new(
-        date: Date.new(2026, 8, 21),
-        description: "Test entry",
-        lines: lines
-      )
+    def check(*lines)
+      Engine.check(lines)
     end
   end
 end

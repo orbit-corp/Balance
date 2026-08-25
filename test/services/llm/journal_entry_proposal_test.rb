@@ -4,7 +4,7 @@ class LlmJournalEntryProposalTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
   end
 
   test "parses decimal naira exactly into kobo" do
@@ -25,7 +25,7 @@ class LlmJournalEntryProposalTest < ActiveSupport::TestCase
       ]
     )
 
-    assert_includes draft.errors, "the same account cannot be both debited and credited"
+    assert_includes draft.errors, "Account(s) used on both sides: #{@cash.id.to_s}"
   end
 
   test "rejects duplicate identical lines" do

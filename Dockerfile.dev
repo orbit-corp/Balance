@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# Development image for stubby, used by compose.yaml (profile: dev).
+# Development image for balance, used by compose.yaml (profile: dev).
 # This is NOT for production — the production image is the top-level Dockerfile,
 # which strips the development gem group and bakes the code in. This one keeps
 # the dev/test gems and expects the code to be bind-mounted at runtime so edits
@@ -13,11 +13,10 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim
 
 WORKDIR /rails
 
-# Build deps for native gems (pg, image_processing) plus the postgres client and
-# libvips used at runtime. curl is handy for debugging inside the container.
+# Build dependencies for native gems plus the PostgreSQL client.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
-      build-essential curl git libpq-dev libvips libyaml-dev pkg-config postgresql-client && \
+      build-essential curl git libpq-dev libyaml-dev pkg-config postgresql-client && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # BINDING makes `bin/rails server` listen on all interfaces; in development Rails

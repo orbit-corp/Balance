@@ -21,7 +21,10 @@ module Llm::MessagesHelper
   }.freeze
 
   def default_model_display_name
-    "Default: #{RubyLLM.models.find(RubyLLM.config.default_model).label}"
+    model = RubyLLM.models.find(RubyLLM.config.default_model)
+    "Default: #{model.label}"
+  rescue RubyLLM::ModelNotFoundError
+    "Default: #{RubyLLM.config.default_model}"
   end
 
   def tool_running_label(tool_name) = TOOL_LABELS[:running][tool_name] || tool_name.to_s.humanize

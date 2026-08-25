@@ -11,16 +11,16 @@ class ListAccountsTest < ActiveSupport::TestCase
 
     existing = result[:existing_accounts]
     assert_includes existing.map { |account| account[:id] }, @cash.id
-    assert_includes existing.map { |account| account[:name] }, "Cash & Bank"
+    assert_includes existing.map { |account| account[:name] }, "Cash"
 
     recommended = result[:recommended_accounts]
-    assert_includes recommended, { name: "Salary & Wages", base: "income", parent: "Income" }
-    assert_includes recommended, { name: "Groceries & Food", base: "expense", parent: "Expenses" }
-    refute_includes recommended.map { |account| account[:name] }, "Cash & Bank"
+    assert_includes recommended, { name: "Salary & Wages", base: "income", parent: "Uncategorized Income" }
+    assert_includes recommended, { name: "Groceries & Food", base: "expense", parent: "Uncategorized Expense" }
+    refute_includes recommended.map { |account| account[:name] }, "Cash"
   end
 
   test "drops recommended accounts that already exist" do
-    Account.for_role!(@workspace, :primary_income).update!(name: "Salary & Wages")
+    Account.for_role!(@workspace, :uncategorized_income).update!(name: "Salary & Wages")
 
     result = ListAccounts.new(@workspace).execute
 

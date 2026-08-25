@@ -1,0 +1,31 @@
+<% content_for :title, "Choose a workspace — Balance" %>
+
+<div class="mb-6">
+  <p class="mb-2 text-sm font-medium text-[#0f7082]">Start with the right books</p>
+  <h1 class="max-w-xl text-3xl font-medium tracking-[-0.035em] text-neutral-950 sm:text-4xl">What are you keeping track of?</h1>
+  <p class="mt-2 max-w-lg text-base leading-7 text-neutral-500">Your choice shapes the account catalog and the accounting rules available in this workspace.</p>
+</div>
+
+<%= form_with url: onboarding_step_path(:workspace_type), method: :patch, class: "space-y-3" do %>
+  <label class="group flex cursor-pointer items-center gap-5 border-y border-neutral-200 bg-white px-1 py-5 transition hover:border-neutral-400">
+    <%= radio_button_tag :workspace_type, "personal", true, class: "peer sr-only" %>
+    <span class="flex h-11 w-11 items-center justify-center rounded-full bg-[#e8f1ef] text-lg text-[#0f7082]">₦</span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-base font-medium text-neutral-950">Personal</span>
+      <span class="mt-1 block text-sm text-neutral-500">Track your money, income, spending, savings, and debts.</span>
+    </span>
+    <span class="h-4 w-4 rounded-full border border-neutral-300 p-[3px] peer-checked:border-[#0f7082] peer-checked:bg-[#0f7082]"></span>
+  </label>
+
+  <div class="flex cursor-not-allowed items-center gap-5 border-b border-neutral-200 px-1 py-5 opacity-55" aria-disabled="true">
+    <span class="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 text-lg text-neutral-500">B</span>
+    <span class="min-w-0 flex-1">
+      <span class="flex items-center gap-2 text-base font-medium text-neutral-700">Business <span class="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">Coming soon</span></span>
+      <span class="mt-1 block text-sm text-neutral-500">Accounting for companies, teams, customers, and operations.</span>
+    </span>
+  </div>
+
+  <div class="flex justify-end pt-4">
+    <%= submit_tag "Continue", class: primary_button_class %>
+  </div>
+<% end %>

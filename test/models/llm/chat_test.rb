@@ -22,12 +22,12 @@ class Llm::ChatTest < ActiveSupport::TestCase
 
   test "orders system messages first and keeps the full dialogue" do
     2.times { |number| build_turn(number + 1) }
-    @chat.llm_messages.create!(role: "system", content: "You are Stubby.")
+    @chat.llm_messages.create!(role: "system", content: "You are Balance.")
     2.times { |number| build_turn(number + 3) }
 
     result = payload
 
-    assert_equal "You are Stubby.", result.first
+    assert_equal "You are Balance.", result.first
     assert_equal "user 1", result.second
     assert_includes result, "user 3"
     assert_equal "assistant 4", result.last
@@ -79,13 +79,13 @@ class Llm::ChatTest < ActiveSupport::TestCase
   end
 
   test "current_summary is nil until a compaction summary exists" do
-    @chat.llm_messages.create!(role: "system", content: "You are Stubby.")
+    @chat.llm_messages.create!(role: "system", content: "You are Balance.")
 
     assert_nil @chat.current_summary
   end
 
   test "current_summary returns the latest system message beyond the instructions" do
-    @chat.llm_messages.create!(role: "system", content: "You are Stubby.")
+    @chat.llm_messages.create!(role: "system", content: "You are Balance.")
     @chat.llm_messages.create!(role: "system", content: "Salary pending.")
 
     assert_equal "Salary pending.", @chat.current_summary.content

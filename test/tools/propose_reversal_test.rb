@@ -4,7 +4,7 @@ class ProposeReversalTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
     @entry = post_journal_entry!(
       @workspace,
       debit_account: @expense,

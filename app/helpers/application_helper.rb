@@ -9,9 +9,6 @@ module ApplicationHelper
       ] },
       { label: "Records", items: [
         { path: customers_path, svg: "icons/users.svg", text: "Customers" }
-      ] },
-      { label: "Workspace", items: [
-        { path: integrations_path, svg: "icons/puzzle.svg", text: "Integrations" }
       ] }
     ]
   end

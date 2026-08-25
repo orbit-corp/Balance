@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-const STORAGE_KEY = "stubby:prompt-history"
+const STORAGE_KEY = "balance:prompt-history"
 const LIMIT = 50
 
 export default class extends Controller {

@@ -66,8 +66,10 @@ class Llm::JournalEntryProposal
   end
 
   def build_journal_entry!
-    entry.save!
-    entry
+    result = Accounting::PostingService.call(entry: entry)
+    raise ActiveRecord::RecordInvalid, entry unless result.success?
+
+    result.entry
   end
 
   def entry

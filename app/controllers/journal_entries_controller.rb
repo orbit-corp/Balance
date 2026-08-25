@@ -12,8 +12,9 @@ class JournalEntriesController < ApplicationController
 
   def create
     @journal_entry = current_workspace.journal_entries.build(journal_entry_params)
+    result = Accounting::PostingService.call(entry: @journal_entry)
 
-    if @journal_entry.save
+    if result.success?
       redirect_to journal_entries_path, notice: "Journal entry recorded."
     else
       render :new, status: :unprocessable_content

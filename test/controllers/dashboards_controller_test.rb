@@ -9,8 +9,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   test "shows today, week, and month totals reflecting recorded entries" do
     cash = Account.for_role!(@workspace, :cash)
-    other_income = Account.for_role!(@workspace, :primary_income)
-    rent = @workspace.accounts.create!(name: "Rent Expense", base_type: "expense", account_type: "expense", detail_type: "rent_or_lease_of_buildings")
+    other_income = Account.for_role!(@workspace, :uncategorized_income)
+    rent = @workspace.accounts.create!(name: "Rent Expense", base_type: "expense", account_type: "Personal Outflows", detail_type: "Housing & Utilities")
 
     post_journal_entry!(@workspace, debit_account: cash, credit_account: other_income, amount_kobo: 500_00)
     post_journal_entry!(@workspace, debit_account: rent, credit_account: cash, amount_kobo: 200_00)

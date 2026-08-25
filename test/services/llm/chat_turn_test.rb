@@ -101,7 +101,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
       title: "Test chat"
     )
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
   end
 
   def build_fat_turn(number)

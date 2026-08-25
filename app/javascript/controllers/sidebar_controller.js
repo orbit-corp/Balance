@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-const COLLAPSED_KEY = "stubby:sidebar-collapsed"
+const COLLAPSED_KEY = "balance:sidebar-collapsed"
 
 export default class extends Controller {
   static targets = ["panel", "backdrop"]

@@ -7,6 +7,9 @@ class JournalEntryLine < ApplicationRecord
   validate :exactly_one_side_is_positive
   validate :account_belongs_to_same_workspace
 
+  before_update { throw(:abort) }
+  before_destroy { throw(:abort) }
+
   def debit
     return nil if debit_kobo.nil?
 

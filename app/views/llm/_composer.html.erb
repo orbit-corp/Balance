@@ -1,6 +1,6 @@
 <div class="relative rounded-xl border border-neutral-200 bg-white p-2 shadow-sm transition-colors focus-within:border-neutral-400">
   <%= form.label field, submit_label, class: "sr-only" %>
-  <%= form.text_area field, rows: 2, placeholder: "Message Stubby…", autofocus: true, value: local_assigns[:value],
+  <%= form.text_area field, rows: 2, placeholder: "Message Balance…", autofocus: true, value: local_assigns[:value],
         data: { chat_message_form_target: "input", action: "keydown.enter->chat-message-form#submitOnEnter keydown.up->chat-message-form#previousPrompt keydown.down->chat-message-form#nextPrompt" },
         class: "block w-full resize-none border-0 bg-transparent px-2 py-1.5 text-sm leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-0" %>
 

@@ -1,4 +1,4 @@
-<div aria-label="top-bar" class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-x-2 border-b border-neutral-200 bg-white/80 px-4 backdrop-blur md:px-6">
+<div aria-label="top-bar" class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-x-2 border-b border-neutral-200/80 bg-white/90 px-5 backdrop-blur md:px-8">
   <button type="button" data-action="sidebar#toggle" class="-ml-1 <%= icon_button_class %> md:hidden">
     <span class="sr-only">Open sidebar</span>
     <%= inline_svg_tag "icons/menu.svg", class: "h-5 w-5" %>
@@ -17,11 +17,9 @@
     <span class="truncate text-sm font-medium text-neutral-900"><%= content_for(:title) %></span>
   <% end %>
 
-  <div class="ml-auto flex shrink-0 items-center gap-3">
-    <% if content_for?(:topbar_actions) %>
+  <% if content_for?(:topbar_actions) %>
+    <div class="ml-auto flex shrink-0 items-center gap-3">
       <%= yield :topbar_actions %>
-    <% else %>
-      <span class="hidden text-sm tabular-nums text-neutral-500 sm:block"><%= Date.current.strftime("%A, %b %-d") %></span>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 </div>

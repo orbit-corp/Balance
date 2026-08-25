@@ -18,9 +18,6 @@ gem "stimulus-rails"
 gem "tailwindcss-rails"
 # Embed and style SVG icons inline [https://github.com/jamesmartin/inline_svg]
 gem "inline_svg"
-# Build JSON APIs with ease [https://github.com/rails/jbuilder]
-gem "jbuilder"
-
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
 
@@ -41,20 +38,8 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
-
-# Pagination [https://github.com/ddnexus/pagy]
-gem "pagy"
-
 # Loads environment variables from .env [https://github.com/bkeepers/dotenv]
 gem "dotenv-rails"
-
-# Vision layer: extract text from forwarded bank-transfer attachments (no external API).
-# Read text-based PDFs directly [https://github.com/yob/pdf-reader]
-gem "pdf-reader"
-# OCR image screenshots via the Tesseract engine [https://github.com/dannnylo/rtesseract]
-gem "rtesseract"
 
 # Unified LLM client with tool-calling, used against a local LM Studio server [https://rubyllm.com]
 gem "ruby_llm"

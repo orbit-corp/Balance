@@ -21,7 +21,7 @@
     <div class="w-full max-w-3xl">
       <div class="mb-5 flex flex-col gap-y-1 text-center">
         <h1 class="text-xl font-semibold tracking-tight text-neutral-900">What did you spend on?</h1>
-        <p class="text-sm text-neutral-500">Describe a transaction in plain words and Stubby drafts the entry for you to approve.</p>
+        <p class="text-sm text-neutral-500">Describe a transaction in plain words and Balance drafts the entry for you to approve.</p>
       </div>
 
       <%= form_with url: chats_path, method: :post, scope: :llm_chat, data: { controller: "chat-message-form" }, class: "contents" do |form| %>
@@ -34,7 +34,7 @@
       <% end %>
 
       <p class="mt-2.5 text-center text-xs text-neutral-400">
-        Stubby may get transactions wrong — review any proposed entry before recording it.
+        Balance may get transactions wrong — review any proposed entry before recording it.
       </p>
     </div>
   </div>

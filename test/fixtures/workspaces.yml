@@ -1,5 +1,11 @@
 ada_store:
   name: Ada's Store
+  workspace_type: personal
+  currency_code: NGN
+  onboarding_completed_at: <%= Time.current %>
 
 bola_shop:
   name: Bola's Shop
+  workspace_type: personal
+  currency_code: NGN
+  onboarding_completed_at: <%= Time.current %>

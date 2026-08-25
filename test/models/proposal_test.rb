@@ -4,7 +4,7 @@ class ProposalTest < ActiveSupport::TestCase
   setup do
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
     @chat = Llm::Chat.create!(
       workspace: @workspace,
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),
@@ -59,7 +59,7 @@ class ProposalTest < ActiveSupport::TestCase
 
     assert_no_difference "JournalEntry.count" do
       result = @proposal.confirm!(draft: draft)
-      assert_includes result, "Journal entry lines must contain at least two lines"
+      assert_includes result, "An entry requires at least two lines"
     end
 
     assert_equal "proposed", @proposal.reload.status
@@ -76,7 +76,7 @@ class ProposalTest < ActiveSupport::TestCase
 
     assert_no_difference "JournalEntry.count" do
       result = @proposal.confirm!(draft: draft)
-      assert_includes result, "debits and credits must balance"
+      assert_includes result, "Total debits (2500.00) must equal total credits (2000.00)"
     end
 
     assert_equal "proposed", @proposal.reload.status

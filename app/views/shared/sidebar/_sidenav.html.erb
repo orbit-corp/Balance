@@ -1,6 +1,6 @@
 <div aria-label="sidenav" class="flex h-full flex-col py-3">
-  <div class="flex items-center px-6 py-2">
-    <span class="text-base font-semibold text-neutral-900">Bouc</span>
+  <div class="flex items-center px-5 py-2">
+    <%= render "shared/brand", compact: true %>
   </div>
 
   <nav class="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pt-2">
@@ -30,7 +30,7 @@
 
       <div class="my-1 h-px bg-neutral-200"></div>
 
-      <%= button_to session_path, method: :delete, class: "#{menu_item_class} text-red-600 hover:bg-red-50", form: { data: { turbo_confirm: "Sign out of Stubby?" } } do %>
+      <%= button_to session_path, method: :delete, class: "#{menu_item_class} text-red-600 hover:bg-red-50", form: { data: { turbo_confirm: "Sign out of Balance?" } } do %>
         <%= inline_svg_tag "icons/log-out.svg", class: "h-4 w-4 flex-none" %>
         Log out
       <% end %>

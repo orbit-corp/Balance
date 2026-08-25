@@ -7,7 +7,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
 
     @cash = Account.for_role!(@workspace, :cash)
-    @expense = Account.for_role!(@workspace, :general_expense)
+    @expense = Account.for_role!(@workspace, :uncategorized_expense)
     @chat = Llm::Chat.create!(
       workspace: @workspace,
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),
@@ -57,7 +57,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_match "Journal entry lines must contain at least two lines", response.body
+    assert_match "An entry requires at least two lines", response.body
     assert_equal "proposed", @proposal.reload.status
   end
 
