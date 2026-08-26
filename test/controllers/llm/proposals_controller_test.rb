@@ -61,6 +61,58 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "proposed", @proposal.reload.status
   end
 
+  test "confirming an account proposal creates the account and resumes the transaction" do
+    proposal = @chat.proposals.create!(
+      workspace: @workspace,
+      proposal_type: "account_creation",
+      version: 1,
+      data: {
+        "reason" => "Rent needs its own expense account.",
+        "accounts" => [ {
+          "name" => "Rent & Housing",
+          "base_type" => "expense",
+          "account_type" => "Personal Outflows",
+          "detail_type" => "Housing & Utilities"
+        } ]
+      }
+    )
+
+    assert_difference "Account.count", 1 do
+      assert_enqueued_with(job: LlmChatResponseJob, args: [ @chat.id ]) do
+        patch confirm_chat_proposal_path(@chat, proposal), headers: { Accept: "text/vnd.turbo-stream.html" }
+      end
+    end
+
+    assert_response :success
+    assert_match "Created and ready to use", response.body
+    assert_equal "confirmed", proposal.reload.status
+    assert_equal "Rent & Housing", proposal.data.dig("created_accounts", 0, "name")
+    assert_match "ACCOUNT PROPOSAL APPROVED", @chat.llm_messages.where(role: "system").last.content
+  end
+
+  test "dismissing an account proposal creates nothing" do
+    proposal = @chat.proposals.create!(
+      workspace: @workspace,
+      proposal_type: "account_creation",
+      version: 1,
+      data: {
+        "reason" => "Rent needs its own expense account.",
+        "accounts" => [ {
+          "name" => "Rent & Housing",
+          "base_type" => "expense",
+          "account_type" => "Personal Outflows",
+          "detail_type" => "Housing & Utilities"
+        } ]
+      }
+    )
+
+    assert_no_difference "Account.count" do
+      patch dismiss_chat_proposal_path(@chat, proposal)
+    end
+
+    assert_equal "dismissed", proposal.reload.status
+  end
+
   private
 
   def form_params

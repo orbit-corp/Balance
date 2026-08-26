@@ -39,4 +39,12 @@ class Llm::ChatsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
   end
+
+  test "renders the start button disabled until a prompt is entered" do
+    get chats_path
+
+    assert_response :success
+    assert_select "textarea[data-chat-message-form-target='input']"
+    assert_select "button[data-chat-message-form-target='submitButton'][disabled]", text: /Start chat/
+  end
 end

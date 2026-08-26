@@ -24,6 +24,14 @@ class ProposeReversalTest < ActiveSupport::TestCase
     assert_equal "I need your confirmation before I prepare a reversal. Please confirm you want to reverse journal entry #{@entry.id}.", result[:error]
   end
 
+  test "refuses when the assistant asked but the user did not confirm" do
+    @chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
+
+    result = execute
+
+    assert_match(/need your confirmation/, result[:error])
+  end
+
   test "proposes opposite lines once the assistant asked for confirmation" do
     ask_for_confirmation
 
@@ -44,6 +52,7 @@ class ProposeReversalTest < ActiveSupport::TestCase
       title: "Test chat"
     )
     other_chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
+    other_chat.llm_messages.create!(role: "user", content: "yes")
 
     result = ProposeReversal.new(other_chat).execute(entry_id: @entry.id)
 
@@ -64,7 +73,8 @@ class ProposeReversalTest < ActiveSupport::TestCase
 
   def ask_for_confirmation
     @chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
-    @chat.llm_messages.create!(role: "assistant", content: "")
+    @chat.llm_messages.create!(role: "user", content: "yes")
+    @chat.llm_messages.create!(role: "assistant", content: "Preparing that now.")
   end
 
   def execute

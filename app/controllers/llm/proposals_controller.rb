@@ -3,6 +3,7 @@ class Llm::ProposalsController < ApplicationController
   before_action :set_proposal
 
   def update
+    return respond_with_card if @proposal.account_creation_proposal?
     return respond_with_card unless @proposal.pending?
 
     return respond_with_card(draft.errors) if draft.invalid?
@@ -12,7 +13,14 @@ class Llm::ProposalsController < ApplicationController
   end
 
   def confirm
-    respond_with_card(@proposal.confirm!(draft: draft))
+    errors = if @proposal.account_creation_proposal?
+      @proposal.confirm_accounts!(draft: account_draft)
+    else
+      @proposal.confirm!(draft: journal_entry_draft)
+    end
+
+    resume_after_account_creation if errors.nil? && @proposal.reload.account_creation_proposal? && @proposal.confirmed?
+    respond_with_card(errors)
   rescue ActiveRecord::RecordInvalid => e
     respond_with_card([ e.message ])
   end
@@ -36,16 +44,34 @@ class Llm::ProposalsController < ApplicationController
     params.expect(proposal: [ :description, :entry_date, :reverses_journal_entry_id, lines: [ [ :account_id, :side, :amount_naira, :counterparty_name ] ] ])
   end
 
-  def draft
-    @draft ||= Llm::JournalEntryProposal.from_form(workspace: current_workspace, params: proposal_params)
+  def journal_entry_draft
+    @journal_entry_draft ||= Llm::JournalEntryProposal.from_form(workspace: current_workspace, params: proposal_params)
+  end
+
+  alias_method :draft, :journal_entry_draft
+
+  def account_draft
+    @account_draft ||= Llm::AccountCreationProposal.new(workspace: current_workspace, data: @proposal.data)
+  end
+
+  def resume_after_account_creation
+    created = @proposal.data.fetch("created_accounts").map { |account| "#{account.fetch("name")} (id #{account.fetch("id")})" }.join(", ")
+    @llm_chat.llm_messages.create!(
+      role: "system",
+      content: "ACCOUNT PROPOSAL APPROVED: Created #{created}. Continue the user's pending transaction now. " \
+               "Call list_accounts to refresh IDs, then call propose_entry. Do not ask for account approval again."
+    )
+    LlmChatResponseJob.perform_later(@llm_chat.id)
   end
 
   def respond_with_card(errors = nil)
+    partial = Llm::MessagesHelper::PROPOSAL_PARTIALS.fetch(@proposal.proposal_type)
+
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "proposal_#{@proposal.id}",
-          partial: "llm/messages/proposals/journal_entry",
+          partial: partial,
           locals: { proposal: @proposal, errors: errors }
         )
       end

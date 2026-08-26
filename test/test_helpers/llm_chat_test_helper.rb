@@ -11,6 +11,11 @@ module LlmChatTestHelper
       FakeLlmMessages.new(filtered)
     end
 
+    def not(content:)
+      excluded = Array(content)
+      FakeLlmMessages.new(@messages.reject { |message| excluded.include?(message.content) })
+    end
+
     def order(*)
       self
     end
@@ -20,8 +25,7 @@ module LlmChatTestHelper
     end
 
     def last
-      message = @messages.last
-      message && OpenStruct.new(content: message.content)
+      @messages.last
     end
 
     def to_a

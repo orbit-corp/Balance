@@ -1,13 +1,19 @@
 <% assistant ||= local_assigns[:message] %>
 
-<div id="llm_message_<%= assistant.id %>" class="w-full">
-  <div id="llm_message_<%= assistant.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"><%= assistant_content(assistant.content).html_safe %></div>
+<div id="llm_message_<%= assistant.id %>" class="w-full" data-message-role="assistant">
+  <div id="llm_message_<%= assistant.id %>_content" class="assistant-markdown text-neutral-900"><%= assistant_content(assistant.content) %></div>
 
   <% if assistant.content.present? %>
-    <div class="mt-1.5 flex items-center gap-1">
-      <button type="button" data-controller="copy" data-copy-value-value="<%= assistant.content %>" data-copy-label-value="Copy" data-action="copy#copy" class="<%= icon_button_class %> text-neutral-400">
-        <span class="sr-only">Copy response</span>
-        <%= inline_svg_tag "icons/copy.svg", class: "h-3.5 w-3.5" %>
+    <div class="mt-1 flex items-center gap-1">
+      <button type="button" data-controller="copy" data-copy-value-value="<%= assistant.content %>" data-action="copy#copy" class="<%= icon_button_class %> text-neutral-400">
+        <span data-copy-target="defaultIcon">
+          <span class="sr-only">Copy response</span>
+          <%= inline_svg_tag "icons/copy.svg", class: "h-3.5 w-3.5" %>
+        </span>
+        <span hidden data-copy-target="doneIcon" class="text-green-600">
+          <span class="sr-only">Copied</span>
+          <%= inline_svg_tag "icons/check.svg", class: "h-3.5 w-3.5" %>
+        </span>
       </button>
       <span class="text-xs text-neutral-400"><%= assistant.created_at&.strftime("%-l:%M %p") %></span>
     </div>

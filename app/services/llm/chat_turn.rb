@@ -3,7 +3,7 @@ class Llm::ChatTurn
   MAX_PROVIDER_ATTEMPTS = 3
   MAX_TOOL_CALLS_PER_TURN = 10
 
-  AFFIRMATIVE_PATTERN = /\A\s*(y(es|eah|ep|up)|ok(ay)?|sure|alright|go ahead|please|do it|proceed|correct|confirmed?)\b/i
+  AFFIRMATIVE_PATTERN = ProposeReversal::AFFIRMATIVE_PATTERN
   REVERSAL_DIRECTIVE = "CONFIRMED REVERSAL"
 
   class TurnTimeout < StandardError; end
@@ -24,6 +24,7 @@ class Llm::ChatTurn
     begin
       attempts += 1
       Timeout.timeout(TIMEOUT_SECONDS, TurnTimeout) do
+        prepare_confirmed_reversal_directive
         agent = @agent || LedgerAgent.new(chat: @chat)
         agent.before_tool_call { |tool_call| start_tool_call(tool_call) }
         agent.after_tool_result { |result| finish_tool_call(result) }
@@ -96,13 +97,10 @@ class Llm::ChatTurn
     return unless stalled_reversal_question?
 
     entry = reversal_target
-    return unless entry && reversal_directive_missing?(entry)
+    last_user = @chat.llm_messages.where(role: "user").order(:id).last
+    return unless entry && reversal_directive_missing?(entry, last_user)
 
-    @chat.with_instructions(
-      "#{REVERSAL_DIRECTIVE} for journal entry #{entry.id}: the user approved its reversal. " \
-      "Call propose_reversal with entry_id #{entry.id} now; do not ask for confirmation again.",
-      replace: false
-    )
+    @chat.with_instructions(reversal_directive(entry, last_user), replace: false)
     agent.complete do |chunk|
       @broadcaster.append_assistant_chunk(chunk.content) if chunk.content.present?
     end
@@ -111,25 +109,53 @@ class Llm::ChatTurn
   def stalled_reversal_question?
     return false if @reversal_attempted_this_turn
 
+    last_user = @chat.llm_messages.where(role: "user").order(:id).last
+    return false unless confirmed_reversal_question_before(last_user)
+
     last = @chat.llm_messages.order(:id).last
     return false unless last&.role.to_s == "assistant"
     return false unless last.content.to_s.match?(ProposeReversal::REVERSAL_QUESTION_PATTERN)
 
-    last_user = @chat.llm_messages.where(role: "user").order(:id).last
     last_user&.content.to_s.match?(AFFIRMATIVE_PATTERN)
   end
 
-  def reversal_target
-    question = @chat.llm_messages.order(:id).last&.content.to_s
+  def prepare_confirmed_reversal_directive
+    last_user = @chat.llm_messages.where(role: "user").order(:id).last
+    question = confirmed_reversal_question_before(last_user)
+    return unless question
+
+    entry = reversal_target(question.content)
+    return unless entry && reversal_directive_missing?(entry, last_user)
+
+    @chat.with_instructions(reversal_directive(entry, last_user), replace: false)
+  end
+
+  def confirmed_reversal_question_before(user_message)
+    return unless user_message&.content.to_s.match?(AFFIRMATIVE_PATTERN)
+
+    message = @chat.llm_messages.where(role: "assistant")
+      .where("id < ?", user_message.id)
+      .where.not(content: [ nil, "" ])
+      .order(:id)
+      .last
+    message if message&.content.to_s.match?(ProposeReversal::REVERSAL_QUESTION_PATTERN)
+  end
+
+  def reversal_target(question = @chat.llm_messages.order(:id).last&.content.to_s)
     id = question[/\bJE\s*(\d+)\b/i, 1]&.to_i
     scope = @chat.workspace.journal_entries
     (id && scope.find_by(id: id)) || scope.order(entry_date: :desc, id: :desc).first
   end
 
-  def reversal_directive_missing?(entry)
+  def reversal_directive_missing?(entry, user_message)
     !@chat.llm_messages.where(role: "system")
-      .where("content LIKE ?", "%#{REVERSAL_DIRECTIVE} for journal entry #{entry.id}%")
+      .where("content LIKE ?", "%#{REVERSAL_DIRECTIVE} for journal entry #{entry.id} after user message #{user_message.id}%")
       .exists?
+  end
+
+  def reversal_directive(entry, user_message)
+    "#{REVERSAL_DIRECTIVE} for journal entry #{entry.id} after user message #{user_message.id}: the user approved its reversal. " \
+      "The entry is posted. Call propose_reversal with entry_id #{entry.id} now; do not check proposal status or ask again."
   end
 
   def last_assistant_message

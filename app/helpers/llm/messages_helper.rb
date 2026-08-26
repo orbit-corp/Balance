@@ -1,5 +1,6 @@
 module Llm::MessagesHelper
   PROPOSAL_PARTIALS = {
+    "account_creation" => "llm/messages/proposals/account_creation",
     "journal_entry" => "llm/messages/proposals/journal_entry"
   }.freeze
 
@@ -7,6 +8,7 @@ module Llm::MessagesHelper
     running: {
       "get_balance_summary" => "Calculating your balance…",
       "list_accounts" => "Checking your accounts…",
+      "propose_account" => "Preparing an account proposal…",
       "list_journal_entries" => "Checking posted entries…",
       "propose_reversal" => "Preparing a reversal proposal…",
       "propose_entry" => "Working out the entry…"
@@ -14,6 +16,7 @@ module Llm::MessagesHelper
     completed: {
       "get_balance_summary" => "Calculated your balance",
       "list_accounts" => "Checked your accounts",
+      "propose_account" => "Prepared an account proposal",
       "list_journal_entries" => "Checked posted entries",
       "propose_reversal" => "Prepared a reversal proposal",
       "propose_entry" => "Worked out the entry"
@@ -31,7 +34,19 @@ module Llm::MessagesHelper
   def tool_completed_label(tool_name) = TOOL_LABELS[:completed][tool_name] || tool_name.to_s.humanize
 
   def assistant_content(content)
-    ERB::Util.html_escape(content.to_s).gsub(/\*\*(.+?)\*\*/, '<strong>\\1</strong>')
+    html = Commonmarker.to_html(
+      content.to_s,
+      options: {
+        parse: { smart: true },
+        render: { hardbreaks: false, unsafe: false }
+      }
+    )
+
+    sanitize(
+      html,
+      tags: %w[p br strong em a ul ol li h1 h2 h3 h4 blockquote pre code table thead tbody tr th td hr del],
+      attributes: %w[href title class]
+    )
   end
 
   def user_correction_request?(content)

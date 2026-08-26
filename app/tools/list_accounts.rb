@@ -1,7 +1,7 @@
 class ListAccounts < RubyLLM::Tool
   description "List the ledger accounts that exist in this workspace (use their ids when proposing an entry), " \
               "and the recommended accounts from the workspace's catalog that do not exist yet " \
-              "(reference those only by their account_name — never invent an id for them)."
+              "(use their taxonomy when proposing a missing account — never invent an id for them)."
 
   def initialize(workspace)
     @workspace = workspace

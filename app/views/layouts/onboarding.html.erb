@@ -25,10 +25,10 @@
           <% @steps.each_with_index do |step, index| %>
             <% active = step == @step %>
             <% complete = @steps.index(@step) > index %>
-            <div class="flex flex-1 items-center gap-3 border-t px-1 py-3 lg:flex-none <%= active ? "border-[#0f7082] text-neutral-950" : "border-neutral-200 text-neutral-400" %>">
+            <div class="flex flex-1 items-center gap-3 border-t px-1 py-3 lg:flex-none <%= active ? "border-balance-teal-700 text-neutral-950" : "border-neutral-200 text-neutral-400" %>">
               <span class="text-xs font-medium tabular-nums"><%= format("%02d", index + 1) %></span>
               <span class="hidden text-sm font-medium sm:block"><%= { "workspace_type" => "Workspace", "details" => "Details", "accounts" => "Accounts" }.fetch(step) %></span>
-              <% if complete %><span class="ml-auto text-xs text-[#0f7082]">Done</span><% end %>
+              <% if complete %><span class="ml-auto text-xs text-balance-teal-700">Done</span><% end %>
             </div>
           <% end %>
         </nav>

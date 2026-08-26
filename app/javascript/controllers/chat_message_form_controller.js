@@ -4,19 +4,49 @@ const STORAGE_KEY = "balance:prompt-history"
 const LIMIT = 50
 
 export default class extends Controller {
-  static targets = ["input"]
+  static targets = ["input", "submitButton"]
 
   connect() {
     this.cursor = null
     this.draft = ""
+    this.resize()
+    this.resetHandler = this.reset.bind(this)
+    this.element.addEventListener("turbo:submit-end", this.resetHandler)
+    this.updateSubmitState()
+  }
+
+  disconnect() {
+    this.element.removeEventListener("turbo:submit-end", this.resetHandler)
+  }
+
+  resize() {
+    const input = this.inputTarget
+    input.style.height = "auto"
+    input.style.height = `${Math.min(input.scrollHeight, 160)}px`
+  }
+
+  reset(event) {
+    if (!event.detail.success) return
+
+    this.inputTarget.value = ""
+    this.resize()
+    this.updateSubmitState()
   }
 
   submitOnEnter(event) {
     if (event.shiftKey) return
 
     event.preventDefault()
+    if (!this.hasInput) return
+
     this.remember(this.inputTarget.value)
     this.element.requestSubmit()
+  }
+
+  updateSubmitState() {
+    if (!this.hasSubmitButtonTarget) return
+
+    this.submitButtonTarget.disabled = !this.hasInput
   }
 
   previousPrompt(event) {
@@ -56,6 +86,8 @@ export default class extends Controller {
     const input = this.inputTarget
     input.value = value
     input.setSelectionRange(value.length, value.length)
+    this.resize()
+    this.updateSubmitState()
   }
 
   remember(prompt) {
@@ -77,6 +109,10 @@ export default class extends Controller {
     } catch {
       return []
     }
+  }
+
+  get hasInput() {
+    return this.inputTarget.value.trim().length > 0
   }
 
   get caretOnFirstLine() {

@@ -1,4 +1,4 @@
-<% tool_message ||= local_assigns[:message] %>
+<% tool_message = local_assigns[:tool_message] || local_assigns[:message] || local_assigns[:tool_calls] %>
 
 <div id="llm_message_<%= tool_message.id %>" class="w-full">
   <div id="llm_message_<%= tool_message.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"></div>

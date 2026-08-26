@@ -1,9 +1,9 @@
 <div class="flex items-center gap-2.5" aria-label="Balance">
   <% if local_assigns.fetch(:compact, false) %>
-    <span class="relative block h-9 w-9 overflow-hidden rounded-lg bg-[#fbfaf7]" aria-hidden="true">
+    <span class="relative block h-9 w-9 overflow-hidden rounded-lg bg-balance-cream-50" aria-hidden="true">
       <%= image_tag "balance-logo.png", class: "pointer-events-none absolute h-[120px] w-[120px] max-w-none -translate-x-[44px] -translate-y-[34px]" %>
     </span>
-    <span class="text-[1.05rem] font-medium tracking-[-0.02em] text-neutral-900">Balance</span>
+    <span class="text-base font-medium tracking-tight text-neutral-900">Balance</span>
   <% else %>
     <span class="relative block h-[108px] w-[210px] overflow-hidden" aria-hidden="true">
       <%= image_tag "balance-logo.png", class: "pointer-events-none absolute h-[240px] w-[240px] max-w-none -translate-x-[20px] -translate-y-[66px]" %>
