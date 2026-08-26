@@ -2,7 +2,9 @@ class Llm::Harness::ResponseContract
   attr_reader :errors
 
   def initialize(response:, contract:)
-    @response = response.to_s.strip
+    # Models differ in typographic output (’ vs ', — vs -); normalise so the
+    # same behaviour matches the same contract regardless of encoding choices.
+    @response = normalise(response)
     @contract = contract || {}
     @errors = validate
   end
@@ -12,6 +14,13 @@ class Llm::Harness::ResponseContract
   private
 
   attr_reader :response, :contract
+
+  def normalise(value)
+    value.to_s
+      .tr("\u{2018}\u{2019}\u{201C}\u{201D}", "''\"\"")
+      .tr("\u{2013}\u{2014}", "--")
+      .strip
+  end
 
   def validate
     [].tap do |messages|
