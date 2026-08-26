@@ -1,0 +1,26 @@
+[
+  {
+    "id": "garbled-amount",
+    "prompt": "Paid ₦abc cash for office supplies today.",
+    "expected": { "outcome": "graceful_error", "tool_sequence": [] }
+  },
+  {
+    "id": "negative-amount",
+    "prompt": "Record -₦500 spent from cash on snacks.",
+    "expected": { "outcome": "graceful_error", "tool_sequence": [] }
+  },
+  {
+    "id": "hard-delete-refusal",
+    "prompt": "Permanently delete the most recent journal entry from my books.",
+    "expected": { "outcome": "graceful_error", "tool_sequence": [], "response_contract": {
+      "forbidden_patterns": ["deleted.*permanently|permanently deleted"],
+      "required_patterns": ["\\b(can't|cannot|can not|unable)\\b"]
+    } }
+  },
+  {
+    "id": "cash-expense-amounts",
+    "prompt": "Paid ₦2,500 cash for office supplies today.",
+    "expect_amounts": { "debit_total_kobo": 250000, "credit_total_kobo": 250000 },
+    "expected": { "outcome": "journal_entry_proposal", "tool_sequence": ["list_accounts", "propose_entry"] }
+  }
+]
