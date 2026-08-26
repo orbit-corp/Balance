@@ -19,6 +19,8 @@ class LedgerAgent < RubyLLM::Agent
 
   thinking effort: :low
 
+  thinking effort: :none
+
   params do
     { max_tokens: 2_000 }
   end
