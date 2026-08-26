@@ -1,3 +1,5 @@
+require "digest"
+
 module Llm
   module Harness
     # Orchestrates a full live evaluation: config overrides, corpus loading,
@@ -8,15 +10,17 @@ module Llm
     #   HARNESS_EVAL_MODEL=qwen3-30b HARNESS_EVAL_BASE_URL=http://127.0.0.1:1234/v1 \
     #     bin/rails harness_eval:run
     class LiveRunner
-      CORPUS_PATHS = %w[
-        test/fixtures/files/ledger_harness_cases.json
-        test/fixtures/files/ledger_harness_live_cases.json
+      SOURCE_PATHS = %w[
+        docs/journal_entry_examples.md
+        config/ledger_harness/transactions.yml
       ].freeze
 
       def initialize(case_ids: [], model_id: nil, base_url: nil)
         @case_ids = case_ids
         @requested_model = model_id.presence || RubyLLM.config.default_model
         @requested_base_url = base_url.presence
+        @repetitions = ENV.fetch("HARNESS_EVAL_RUNS", "1").to_i.clamp(1, 10)
+        @run_label = Time.current.utc.strftime("%Y%m%d-%H%M%S")
         $stdout.sync = true
       end
 
@@ -24,13 +28,15 @@ module Llm
         apply_config_overrides!
         @llm_model = resolve_llm_model!
         cases = load_cases
+        puts "harness_eval: validated #{cases.size} transactions from docs/journal_entry_examples.md"
         output_dir = prepare_artifacts
 
         meta = build_meta(cases, @llm_model)
-        puts "harness_eval: model=#{@requested_model} base=#{RubyLLM.config.openai_api_base} cases=#{cases.size} dir=#{output_dir}"
+        executions = cases.product((1..@repetitions).to_a)
+        puts "harness_eval: model=#{@requested_model} base=#{RubyLLM.config.openai_api_base} cases=#{cases.size} runs=#{@repetitions} dir=#{output_dir}"
 
-        entries = cases.each_with_index.map do |test_case, index|
-          execute_one(test_case, output_dir, "#{index + 1}/#{cases.size}")
+        entries = executions.each_with_index.map do |(test_case, run_index), index|
+          execute_one(test_case, output_dir, "#{index + 1}/#{executions.size}", run_index)
         end
 
         summary = ReportBuilder.new(entries: entries, meta: meta, output_dir: output_dir).call
@@ -51,50 +57,42 @@ module Llm
       end
 
       def load_cases
-        all = CORPUS_PATHS.filter_map do |relative|
-          path = Rails.root.join(relative)
-          JSON.parse(path.read) if path.exist?
-        end
+        cases = JournalExamplesCorpus.load!
+        return cases if @case_ids.empty?
 
-        seen = {}
-        merged = all.flatten.reject do |test_case|
-          id = test_case.fetch("id")
-          if seen.key?(id)
-            warn "harness_eval: duplicate case id #{id.inspect} in #{seen[id]}; keeping first"
-            true
-          else
-            seen[id] = "earlier corpus"
-            false
-          end
-        end
+        selected = cases.select { |test_case| @case_ids.include?(test_case.fetch("id")) }
+        missing = @case_ids - selected.pluck("id")
+        raise ArgumentError, "Unknown harness cases: #{missing.join(', ')}" if missing.any?
 
-        return merged.select { |test_case| @case_ids.include?(test_case.fetch("id")) } if @case_ids.any?
-
-        merged
+        selected
       end
 
       def prepare_artifacts
         dir = Rails.root.join(
-          "tmp/harness_eval/#{Time.current.utc.strftime('%Y%m%d-%H%M%S')}-#{@requested_model.gsub(/[^a-z0-9.-]/i, '_')}"
+          "tmp/harness_eval/#{@run_label}-#{@requested_model.gsub(/[^a-z0-9.-]/i, '_')}"
         )
         FileUtils.mkdir_p([ dir.join("transcripts"), dir.join("results") ])
         dir
       end
 
-      def execute_one(test_case, output_dir, progress)
+      def execute_one(test_case, output_dir, progress, run_index)
         case_id = test_case.fetch("id")
-        print "harness_eval: #{progress} #{case_id} ... "
+        suffix = @repetitions > 1 ? " run #{run_index}/#{@repetitions}" : ""
+        print "harness_eval: #{progress} #{case_id}#{suffix} ... "
 
         capture = CaseExecutor.new(
           test_case: test_case,
           llm_model: @llm_model,
-          run_label: run_label,
-          transcript_path: output_dir.join("transcripts/#{case_id}.jsonl")
+          run_label: @run_label,
+          transcript_path: output_dir.join("transcripts/#{artifact_name(case_id, run_index)}.jsonl")
         ).call
+        capture[:run_index] = run_index
         result = Scorer.new(test_case: test_case, capture: capture).result
+        result["run_index"] = run_index
 
-        write_result(output_dir, case_id, test_case, capture, result)
-        puts "#{result['verdict']} (#{result['overall']})"
+        write_result(output_dir, artifact_name(case_id, run_index), test_case, capture, result)
+        score = result["overall"] || "—"
+        puts "#{result['verdict']} (#{score})"
 
         { case: test_case, capture: json_capture(capture), result: result }
       rescue StandardError => e
@@ -104,10 +102,15 @@ module Llm
           capture: {},
           result: {
             "case_id" => case_id, "outcome_expected" => test_case.dig("expected", "outcome"),
+            "run_index" => run_index,
             "scores" => Scorer::CATEGORIES.index_with { 0 }, "overall" => 0.0, "verdict" => "FAIL",
             "note" => "executor crashed: #{e.class}: #{e.message}", "observed" => {}
           }
         }
+      end
+
+      def artifact_name(case_id, run_index)
+        @repetitions > 1 ? "#{case_id}-run-#{run_index}" : case_id
       end
 
       def write_result(output_dir, case_id, test_case, capture, result)
@@ -143,8 +146,14 @@ module Llm
           "ruby_version" => RUBY_VERSION,
           "rails_version" => Rails.version,
           "git_sha" => git_sha,
-          "corpus_files" => CORPUS_PATHS.select { |path| Rails.root.join(path).exist? },
-          "case_count" => cases.size
+          "git_dirty" => git_dirty?,
+          "implementation_fingerprint" => implementation_fingerprint,
+          "repetitions" => @repetitions,
+          "timeout_seconds" => Llm::ChatTurn::TIMEOUT_SECONDS,
+          "source_files" => SOURCE_PATHS,
+          "source_examples" => cases.pluck("source_example").uniq.size,
+          "source_entries" => cases.size,
+          "expected_journal_lines" => cases.sum { |test_case| test_case.fetch("expect_lines").size }
         }
       end
 
@@ -154,14 +163,36 @@ module Llm
         "unknown"
       end
 
-      def run_label
-        Time.current.utc.strftime("%Y%m%d-%H%M%S")
+      def git_dirty?
+        `git status --porcelain`.present?
+      rescue StandardError
+        nil
+      end
+
+      def implementation_fingerprint
+        paths = SOURCE_PATHS + %w[
+          app/services/llm/harness/journal_examples_corpus.rb
+          app/prompts/ledger_agent/instructions.txt.erb
+          app/services/llm/chat_turn.rb
+          app/services/llm/harness/case_executor.rb
+          app/services/llm/harness/scorer.rb
+          app/services/llm/harness/transcript_recorder.rb
+          app/tools/list_accounts.rb
+          app/tools/propose_account.rb
+          app/tools/propose_entry.rb
+          app/tools/propose_reversal.rb
+        ]
+        content = paths.filter_map do |path|
+          file = Rails.root.join(path)
+          "#{path}\0#{file.read}" if file.exist?
+        end.join("\0")
+        Digest::SHA256.hexdigest(content).first(16)
       end
 
       def print_summary(summary, output_dir)
         totals = summary["totals"]
         puts <<~SUMMARY
-          harness_eval: done — pass #{totals['passed']}/#{totals['cases']} (#{totals['pass_rate']}%), overall avg #{totals['overall_average']}
+          harness_eval: done — pass #{totals['passed']}/#{totals['evaluated']} (#{totals['pass_rate']}%), infra #{totals['infrastructure_errors']}, overall avg #{totals['overall_average']}
           harness_eval: report #{output_dir.join('report.md')}
         SUMMARY
       end

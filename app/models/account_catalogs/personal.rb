@@ -12,7 +12,7 @@ module AccountCatalogs
 
           {
             account_type: "Investments & Long-Term Assets",
-            detail_types: [ "Retirement Accounts", "Taxable Brokerage", "Real Estate & Property", "Health Savings" ],
+            detail_types: [ "Retirement Accounts", "Taxable Brokerage", "Real Estate & Property", "Health Savings", "Loans & Receivables", "Personal Property & Equipment" ],
             description: "Investments and valuable assets held for long-term financial growth or use."
           }
         ]

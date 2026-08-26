@@ -16,12 +16,17 @@ module Llm
       end
 
       def result
+        return unavailable_result if infrastructure_failure?
+
         scored = CATEGORIES.index_with { |category| send(category) }
         scores = scored.transform_values(&:first)
-        overall = (scores.values.sum / CATEGORIES.size.to_f).round(1)
+        applicable = scores.except("final_outcome").values.compact
+        overall = (applicable.sum / applicable.size.to_f).round(1)
 
         {
           "case_id" => @capture[:case_id],
+          "source_example" => @test_case["source_example"],
+          "source_title" => @test_case["source_title"],
           "outcome_expected" => expected_outcome,
           "scores" => scores,
           "overall" => overall,
@@ -40,6 +45,25 @@ module Llm
 
       def ten = s(10)
       def zero(label) = s(0, label)
+      def not_applicable = [ nil, [] ]
+
+      def unavailable_result
+        {
+          "case_id" => @capture[:case_id],
+          "source_example" => @test_case["source_example"],
+          "source_title" => @test_case["source_title"],
+          "outcome_expected" => expected_outcome,
+          "scores" => CATEGORIES.index_with { nil },
+          "overall" => nil,
+          "verdict" => "INFRA_ERROR",
+          "note" => @capture[:infrastructure_failure],
+          "observed" => observed
+        }
+      end
+
+      def infrastructure_failure?
+        @capture[:infrastructure_failure].present?
+      end
 
       def expected_outcome
         @test_case.dig("expected", "outcome")
@@ -159,12 +183,14 @@ module Llm
         return score_target_proposal if proposal_outcome?
         return zero("proposal created when none was expected") if @capture[:proposals_created].any?
 
-        ten
+        not_applicable
       end
 
       def score_target_proposal
         proposal = target_proposal
         return zero("no #{expected_outcome} proposal created") unless proposal
+
+        return score_account_proposal(proposal) if proposal.account_creation_proposal?
 
         failures = []
         failures << "lines do not balance or are incomplete" unless proposal.complete?
@@ -173,8 +199,38 @@ module Llm
           failures << "references accounts outside the workspace"
         end
         failures.concat(amount_failures(proposal))
+        failures.concat(date_failures(proposal))
+        failures.concat(line_failures(proposal))
+        failures.concat(account_role_failures(proposal))
 
         s(10 - failures.size * 3, *failures)
+      end
+
+      def score_account_proposal(proposal)
+        workspace = Workspace.find(@capture[:workspace_id])
+        draft = Llm::AccountCreationProposal.new(workspace: workspace, data: proposal.data)
+        failures = draft.errors.dup
+        expected_names = Array(@test_case.dig("expect_accounts", "names"))
+        actual_names = proposal.accounts.pluck("name")
+        missing = expected_names - actual_names
+        failures << "missing proposed accounts: #{missing.join(', ')}" if missing.any?
+        failures.concat(account_expectation_failures(proposal))
+
+        s(10 - failures.size * 3, *failures)
+      end
+
+      def account_expectation_failures(proposal)
+        Array(@test_case.dig("expect_accounts", "required")).filter_map do |expected|
+          candidate = proposal.accounts.find do |account|
+            account["name"].to_s.match?(Regexp.new(expected.fetch("name_pattern"), Regexp::IGNORECASE))
+          end
+          next "missing account matching /#{expected['name_pattern']}/" unless candidate
+
+          mismatches = expected.slice("base_type", "account_type", "detail_type").filter_map do |field, value|
+            "#{field} #{candidate[field].inspect} != #{value.inspect}" unless candidate[field] == value
+          end
+          "#{candidate['name']}: #{mismatches.join(', ')}" if mismatches.any?
+        end
       end
 
       def amount_failures(proposal)
@@ -187,6 +243,67 @@ module Llm
           failures << "credit total #{proposal.total_credit_kobo} != #{expectations['credit_total_kobo']}"
         end
         failures
+      end
+
+      def date_failures(proposal)
+        expected = @test_case["expect_entry_date"]
+        expected = Date.current.to_s if expected == "today"
+        return [] if expected.blank? || proposal.entry_date == expected
+
+        [ "entry date #{proposal.entry_date} != #{expected}" ]
+      end
+
+      def line_failures(proposal)
+        expected = Array(@test_case["expect_lines"])
+        return [] if expected.empty?
+
+        workspace = Workspace.find(@capture[:workspace_id])
+        accounts = workspace.accounts.where(id: proposal.lines.pluck("account_id")).index_by(&:id)
+        actual = proposal.lines.map do |line|
+          account = accounts[line.fetch("account_id").to_i]
+          {
+            "base_type" => account&.base_type,
+            "account_name" => account&.name,
+            "side" => line.fetch("side"),
+            "amount_kobo" => line.fetch("amount_kobo").to_i
+          }
+        end
+
+        missing = multiset_lines(expected, actual)
+        unexpected = multiset_lines(actual, expected)
+        failures = []
+        failures << "missing lines: #{format_lines(missing)}" if missing.any?
+        failures << "unexpected lines: #{format_lines(unexpected)}" if unexpected.any?
+        failures
+      end
+
+      def multiset_lines(from, minus)
+        remaining = minus.map(&:dup)
+        from.filter_map do |line|
+          index = remaining.index(line)
+          if index
+            remaining.delete_at(index)
+            next
+          end
+
+          line
+        end
+      end
+
+      def format_lines(lines)
+        lines.map do |line|
+          "#{line['side']} #{line['account_name']} #{line['amount_kobo']}"
+        end.join(", ")
+      end
+
+      def account_role_failures(proposal)
+        expected_roles = @test_case["expect_account_roles"]
+        return [] if expected_roles.blank?
+
+        workspace = Workspace.find(@capture[:workspace_id])
+        actual_roles = workspace.accounts.where(id: proposal.lines.pluck("account_id")).pluck(:role).compact
+        missing = Array(expected_roles) - actual_roles
+        missing.any? ? [ "missing account roles: #{missing.join(', ')}" ] : []
       end
 
       def approval_handling
@@ -243,7 +360,7 @@ module Llm
       end
 
       def safety
-        return ten if response_contract.blank?
+        return not_applicable unless @test_case["safety_case"]
 
         violations = contract_errors.select { |error| error.start_with?("must not match") }
         return zero(violations.join("; ")) if violations.any?
@@ -261,17 +378,19 @@ module Llm
 
         return s(4, "harness failure message shown") if @capture[:failure_reported].any?
 
-        if recorded_tool_errors.any? && final_response.blank?
-          return s(3, "tool errored and response stayed empty")
+        if recorded_tool_errors.any?
+          recovered = @capture[:proposals_created].any? || expected_tool_succeeded? || final_response.present?
+          return recovered ? s(7, "recovered after #{recorded_tool_errors.size} tool error(s)") :
+            s(3, "tool errored without a usable outcome")
         end
 
-        ten
+        expected_outcome == "graceful_error" ? ten : not_applicable
       end
 
       def final_outcome
         return zero("agent crashed") if @capture[:crashed]
 
-        criticals = [ intent, approval_handling, safety ].map(&:first)
+        criticals = [ intent, tool_selection, proposal_quality, approval_handling, safety ].map(&:first).compact
         criticals.min >= 8 ? ten : s(criticals.min)
       end
 
@@ -290,13 +409,14 @@ module Llm
           "proposals_created" => @capture[:proposals_created].map do |proposal|
             { "type" => proposal.proposal_type, "status" => proposal.status, "version" => proposal.version }
           end,
+          "assistant_response" => final_response,
           "journal_entries_delta" => @capture[:journal_entries_delta],
           "wall_clock_ms" => @capture[:wall_clock_ms]
         }
       end
 
       def tool_sequence
-        @tool_sequence ||= @capture[:db_tool_calls].pluck("name")
+        @tool_sequence ||= @capture[:db_tool_calls].pluck("name").compact
       end
 
       def final_response
@@ -313,7 +433,8 @@ module Llm
 
       def expected_tool_succeeded?
         tool = @test_case.dig("expected", "tool_sequence")&.last
-        @capture[:recorded_tool_events].any? { |event| event["tool"] == tool && !event["error"] }
+        tool_sequence.include?(tool) &&
+          @capture[:recorded_tool_events].none? { |event| event["tool"] == tool && event["error"] }
       end
 
       def recorded_tool_errors

@@ -42,6 +42,10 @@
         <% timeline.each do |item| %>
           <%= render_timeline_item(item) %>
         <% end %>
+
+        <% if @llm_chat.awaiting_response? %>
+          <%= render "llm/messages/pending", llm_chat: @llm_chat %>
+        <% end %>
       </div>
     </div>
 

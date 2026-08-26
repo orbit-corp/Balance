@@ -14,9 +14,21 @@ class ListAccountsTest < ActiveSupport::TestCase
     assert_includes existing.map { |account| account[:name] }, "Cash"
 
     recommended = result[:recommended_accounts]
-    assert_includes recommended, { name: "Salary & Wages", base: "income", parent: "Uncategorized Income" }
-    assert_includes recommended, { name: "Groceries & Food", base: "expense", parent: "Uncategorized Expense" }
+    assert_includes recommended, {
+      name: "Salary & Wages", base_type: "income", account_type: "Personal Inflows",
+      detail_type: "Earned Salary & Wages", parent: "Uncategorized Income"
+    }
+    assert_includes recommended, {
+      name: "Groceries & Food", base_type: "expense", account_type: "Personal Outflows",
+      detail_type: "Living & Daily Needs", parent: "Uncategorized Expense"
+    }
     refute_includes recommended.map { |account| account[:name] }, "Cash"
+
+    personal_outflows = result[:account_taxonomy]
+      .find { |category| category[:base_type] == "expense" }
+      .fetch(:account_types)
+      .find { |account_type| account_type[:account_type] == "Personal Outflows" }
+    assert_includes personal_outflows[:detail_types], "Financial Expenses"
   end
 
   test "drops recommended accounts that already exist" do

@@ -70,6 +70,23 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     end
   end
 
+  class HaltAgent
+    attr_reader :completions
+
+    def initialize
+      @completions = 0
+    end
+
+    def before_tool_call(&block); end
+
+    def after_tool_result(&block); end
+
+    def complete
+      @completions += 1
+      RubyLLM::Tool::Halt.new({ proposal: true })
+    end
+  end
+
   class ReversalToolAgent
     attr_reader :completions
 
@@ -187,24 +204,22 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
       @chat.visible_messages.pluck(:content)
   end
 
-  test "start_tool_call raises ToolCallLimitExceeded once the per-turn cap is hit" do
-    turn = Llm::ChatTurn.new(chat: @chat)
-
-    assert_raises(Llm::ChatTurn::ToolCallLimitExceeded) do
-      (Llm::ChatTurn::MAX_TOOL_CALLS_PER_TURN + 1).times do |number|
-        turn.send(:start_tool_call, FakeToolCall.new("tool_call_#{number}", "list_journal_entries"))
-      end
-    end
-  end
-
-  test "stops the turn when the tool-call limit is exceeded" do
-    agent = ToolLoopAgent.new(@chat, Llm::ChatTurn::MAX_TOOL_CALLS_PER_TURN + 1)
+  test "does not impose an application tool-call limit" do
+    agent = ToolLoopAgent.new(@chat, 25)
 
     Llm::ChatTurn.new(chat: @chat, agent: agent).call
 
     assert_equal 1, agent.completions
-    assert_equal [ "I stopped after reaching my tool-call limit for this turn. Please send a follow-up message to continue." ],
-      @chat.visible_messages.pluck(:content)
+    assert_equal [ "Here you go." ], @chat.visible_messages.pluck(:content)
+  end
+
+  test "a halted proposal result ends the turn without a silent retry" do
+    agent = HaltAgent.new
+
+    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+
+    assert_equal 1, agent.completions
+    assert_empty @chat.visible_messages
   end
 
   test "lets a turn with tool calls under the limit complete normally" do

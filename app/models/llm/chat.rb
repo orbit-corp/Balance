@@ -18,12 +18,29 @@ class Llm::Chat < ApplicationRecord
   def timeline
     items = []
     visible_messages.each { |message| items << { type: :message, record: message, at: message.created_at } }
+    persisted_tool_calls.each { |tool_call| items << { type: :tool_call, record: tool_call, at: tool_call.created_at } }
     proposals.each { |proposal| items << { type: :proposal, record: proposal, at: proposal.created_at } }
     items.sort_by { |item| item[:at] }
   end
 
   def visible_messages
     llm_messages.where(role: %w[user assistant]).where.not(content: [ nil, "" ]).order(:created_at, :id)
+  end
+
+  def awaiting_response?
+    visible_messages.last&.role == "user"
+  end
+
+  def persisted_tool_calls
+    scope = Llm::ToolCall.joins(:llm_message)
+      .where(llm_messages: { llm_chat_id: id })
+
+    visible_tools = %w[list_accounts list_journal_entries get_balance_summary check_proposal_status]
+    proposal_tools = scope.where(name: %w[propose_entry propose_account propose_reversal])
+      .where(llm_message_id: proposals.where.not(llm_message_id: nil).select(:llm_message_id))
+
+    scope.where(name: visible_tools).or(proposal_tools)
+      .order(:created_at, :id)
   end
 
   def latest_proposal(type = nil)
@@ -76,7 +93,11 @@ class Llm::Chat < ApplicationRecord
   def order_messages_for_llm(messages)
     active = messages.reject(&:summarized_at)
     system_messages, dialogue = active.partition { |message| message.role.to_s == "system" }
-    return active if system_messages.empty?
+    dialogue = Llm::ActiveTransactionContext.new(
+      dialogue,
+      currency_code: workspace.currency_code
+    ).messages
+    return dialogue if system_messages.empty?
 
     merged = system_messages.first.dup
     merged.content = system_messages.map(&:content).join("\n\n")

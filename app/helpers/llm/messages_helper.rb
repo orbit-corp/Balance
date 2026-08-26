@@ -16,10 +16,10 @@ module Llm::MessagesHelper
     completed: {
       "get_balance_summary" => "Calculated your balance",
       "list_accounts" => "Checked your accounts",
-      "propose_account" => "Prepared an account proposal",
+      "propose_account" => "Prepared the account proposal",
       "list_journal_entries" => "Checked posted entries",
-      "propose_reversal" => "Prepared a reversal proposal",
-      "propose_entry" => "Worked out the entry"
+      "propose_reversal" => "Prepared the reversal proposal",
+      "propose_entry" => "Prepared the journal entry"
     }
   }.freeze
 
@@ -57,6 +57,11 @@ module Llm::MessagesHelper
     case item[:type]
     when :message
       render item[:record]
+    when :tool_call
+      render "llm/messages/tool_execution",
+        tool_call_id: item[:record].tool_call_id,
+        tool_name: item[:record].name,
+        state: :completed
     when :proposal
       render_proposal(item[:record])
     end

@@ -10,6 +10,7 @@ class ProposeEntryTest < ActiveSupport::TestCase
 
   test "proposes a balanced entry using existing account IDs" do
     result = execute_tool
+    result = result.content
 
     assert result[:proposal]
     assert_equal "journal_entry", result[:proposed_action]

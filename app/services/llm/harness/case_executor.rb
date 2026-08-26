@@ -22,11 +22,15 @@ module Llm
 
       def call
         @recorder.event("case_started", case_id: @test_case.fetch("id"))
-        @workspace = Workspace.create!(name: workspace_name, workspace_type: "personal", currency_code: "NGN")
+        @workspace = Workspace.create!(
+          name: workspace_name,
+          workspace_type: @test_case.fetch("workspace_type", "personal"),
+          currency_code: "NGN"
+        )
         seed_accounts!
         seed_posted_entries!
         @chat = @workspace.llm_chats.create!(llm_model: @llm_model, title: @test_case.fetch("id"))
-        seed_pending_proposal!
+        seed_pending_proposal! if seed_pending_proposal?
         replay_prior_messages!
 
         baseline = baseline_snapshot
@@ -49,14 +53,20 @@ module Llm
       end
 
       def seed_accounts!
-        Array(setup["accounts"] || DEFAULT_ACCOUNT_ROLES).each do |role|
+        roles = setup.key?("accounts") ? Array(setup["accounts"]) : []
+        roles = DEFAULT_ACCOUNT_ROLES if roles.empty? && setup["account_specs"].blank?
+
+        roles.each do |role|
           Account.for_role!(@workspace, role.to_sym)
+        end
+
+        Array(setup["account_specs"]).each do |attributes|
+          @workspace.accounts.create!(attributes)
         end
       end
 
       def seed_posted_entries!
-        entries = setup["posted_entries"] || [ { "description" => "Test entry", "amount_kobo" => 200_000 } ]
-        entries.each do |spec|
+        Array(setup["posted_entries"]).each do |spec|
           amount = spec.fetch("amount_kobo")
           @workspace.journal_entries.create!(
             description: spec["description"] || "Test entry",
@@ -70,7 +80,7 @@ module Llm
       end
 
       def seed_pending_proposal?
-        setup.fetch("pending_journal_entry_proposal", true)
+        setup.fetch("pending_journal_entry_proposal", false)
       end
 
       def seed_pending_proposal!
@@ -93,8 +103,13 @@ module Llm
 
       def replay_prior_messages!
         Array(@test_case["prior_messages"]).each do |message|
-          @chat.llm_messages.create!(role: message.fetch("role"), content: message.fetch("content"))
+          @chat.llm_messages.create!(role: message.fetch("role"), content: interpolate(message.fetch("content")))
         end
+      end
+
+      def interpolate(content)
+        latest_id = @workspace.journal_entries.order(entry_date: :desc, id: :desc).pick(:id)
+        content.gsub("{{latest_posted_id}}", latest_id.to_s)
       end
 
       # Everything after this point — user prompt, assistant replies, tool calls,
@@ -143,6 +158,7 @@ module Llm
           assistant_messages: assistant,
           final_response: assistant.last,
           failure_reported: assistant.select { |content| failure?(content) },
+          infrastructure_failure: assistant.find { |content| content.match?(/temporarily unavailable/i) },
           journal_entries_delta: @workspace.journal_entries.count - baseline[:journal_entries],
           accounts_delta: @workspace.accounts.count - baseline[:accounts],
           proposals_created: created_proposals(baseline),

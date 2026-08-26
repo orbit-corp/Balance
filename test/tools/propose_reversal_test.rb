@@ -36,6 +36,7 @@ class ProposeReversalTest < ActiveSupport::TestCase
     ask_for_confirmation
 
     result = execute
+    result = result.content
 
     assert result[:proposal]
     assert_equal @entry.id, result.dig(:entry_data, "reverses_journal_entry_id")

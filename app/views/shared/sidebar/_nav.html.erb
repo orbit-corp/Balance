@@ -1,6 +1,6 @@
 <li>
-  <%= link_to item[:path], class: "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors #{active_nav?(item[:path]) ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}" do %>
+  <%= link_to item[:path], title: item[:text], data: { sidebar_target: "navLink" }, class: "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors #{active_nav?(item[:path]) ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'}" do %>
     <%= inline_svg_tag item[:svg], class: "h-4 w-4 flex-none" %>
-    <span><%= item[:text] %></span>
+    <span data-sidebar-target="expanded"><%= item[:text] %></span>
   <% end %>
 </li>

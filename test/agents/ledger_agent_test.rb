@@ -21,4 +21,8 @@ class LedgerAgentTest < ActiveSupport::TestCase
     assert_includes prompt, "Treat facts the user has already resolved as settled"
     assert_includes prompt, "Ask only for the missing payment source"
   end
+
+  test "uses direct answer mode so visible tokens start without a reasoning delay" do
+    assert_equal :none, LedgerAgent.thinking[:effort]
+  end
 end

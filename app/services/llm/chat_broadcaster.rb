@@ -1,9 +1,12 @@
 class Llm::ChatBroadcaster
   def initialize(chat)
     @chat = chat
+    @response_started = false
   end
 
   def append_assistant_chunk(content)
+    @response_started = true
+
     @chat.llm_messages.last.broadcast_append_chunk(content)
   end
 
@@ -45,8 +48,8 @@ class Llm::ChatBroadcaster
     partial = Llm::MessagesHelper::PROPOSAL_PARTIALS.fetch(proposal.proposal_type)
     Turbo::StreamsChannel.broadcast_replace_to stream,
       target: "tool_call_#{tool_call.id}",
-      partial: partial,
-      locals: { proposal: proposal }
+      partial: "llm/messages/tool_proposal",
+      locals: { tool_call: tool_call, proposal: proposal, proposal_partial: partial }
   end
 
   def remove_proposal(proposal)
@@ -62,6 +65,7 @@ class Llm::ChatBroadcaster
   end
 
   def pending
+    @response_started = false
     Turbo::StreamsChannel.broadcast_replace_to stream,
       target: "llm_chat_#{@chat.id}_pending",
       partial: "llm/messages/pending",

@@ -36,34 +36,46 @@ module Llm
 
       def totals
         {
-          "cases" => @entries.size,
+          "cases" => @entries.map { |entry| entry[:result]["case_id"] }.uniq.size,
+          "executions" => @entries.size,
+          "evaluated" => evaluated.size,
           "passed" => passes.size,
-          "failed" => @entries.size - passes.size,
+          "failed" => evaluated.size - passes.size,
+          "infrastructure_errors" => infrastructure_errors.size,
           "pass_rate" => pass_rate,
-          "overall_average" => average_of(@entries) { |entry| entry[:result]["overall"] }
+          "overall_average" => average_of(evaluated) { |entry| entry[:result]["overall"] }
         }
       end
 
       def passes
-        @passes ||= @entries.select { |entry| entry[:result]["verdict"] == "PASS" }
+        @passes ||= evaluated.select { |entry| entry[:result]["verdict"] == "PASS" }
+      end
+
+      def evaluated
+        @evaluated ||= @entries.select { |entry| %w[PASS FAIL].include?(entry[:result]["verdict"]) }
+      end
+
+      def infrastructure_errors
+        @infrastructure_errors ||= @entries.select { |entry| entry[:result]["verdict"] == "INFRA_ERROR" }
       end
 
       def pass_rate
-        return 0.0 if @entries.empty?
+        return 0.0 if evaluated.empty?
 
-        (passes.size.to_f / @entries.size * 100).round(1)
+        (passes.size.to_f / evaluated.size * 100).round(1)
       end
 
       def category_averages
         Scorer::CATEGORIES.index_with do |category|
-          average_of(@entries) { |entry| entry[:result]["scores"].fetch(category) }
+          average_of(evaluated) { |entry| entry[:result]["scores"].fetch(category) }
         end
       end
 
       def average_of(entries)
-        return 0.0 if entries.empty?
+        values = entries.filter_map { |entry| yield(entry) }
+        return nil if values.empty?
 
-        (entries.sum { |entry| yield(entry).to_f } / entries.size).round(2)
+        (values.sum(&:to_f) / values.size).round(2)
       end
 
       def tool_stats
@@ -80,10 +92,11 @@ module Llm
       end
 
       def critical_failures
-        @entries.reject { |entry| entry[:result]["verdict"] == "PASS" }.map do |entry|
-          weak = entry[:result]["scores"].select { |_, score| score < 8 }
+        evaluated.reject { |entry| entry[:result]["verdict"] == "PASS" }.map do |entry|
+          weak = entry[:result]["scores"].select { |_, score| score && score < 8 }
           {
             "case_id" => entry[:result]["case_id"],
+            "run_index" => entry[:result]["run_index"],
             "overall" => entry[:result]["overall"],
             "note" => entry[:result]["note"],
             "weak_categories" => weak
@@ -99,9 +112,16 @@ module Llm
 
           ## Totals
 
-          - Cases: #{@entries.size}
-          - Pass rate: #{pass_rate}% (#{passes.size}/#{@entries.size})
+          - Cases: #{totals['cases']}
+          - Executions: #{totals['executions']}
+          - Evaluated: #{totals['evaluated']}
+          - Infrastructure errors: #{totals['infrastructure_errors']}
+          - Pass rate: #{pass_rate}% (#{passes.size}/#{totals['evaluated']})
           - Overall average: #{totals['overall_average']}
+
+          ## Consistency
+
+          #{consistency_table}
 
           ## Category averages
 
@@ -126,19 +146,36 @@ module Llm
       end
 
       def category_table
-        rows = category_averages.map { |category, avg| "| #{category} | #{avg} |" }
+        rows = category_averages.map { |category, avg| "| #{category} | #{avg || '—'} |" }
         ([ "| category | avg |", "| --- | --- |" ] + rows).join("\n")
       end
 
       def per_case_table
-        header = "| case | expected outcome | #{Scorer::CATEGORIES.map { |c| CATEGORY_HEADERS.fetch(c) }.join(' | ')} | overall | verdict |"
-        divider = "| #{'--- | ' * (Scorer::CATEGORIES.size + 4)}"
+        header = "| source | case | expected outcome | #{Scorer::CATEGORIES.map { |c| CATEGORY_HEADERS.fetch(c) }.join(' | ')} | overall | verdict |"
+        divider = "| #{'--- | ' * (Scorer::CATEGORIES.size + 5)}"
         rows = @entries.map do |entry|
           result = entry[:result]
-          scores = Scorer::CATEGORIES.map { |category| result["scores"].fetch(category) }
-          "| #{result['case_id']} | #{result['outcome_expected']} | #{scores.join(' | ')} | #{result['overall']} | #{result['verdict']} |"
+          scores = Scorer::CATEGORIES.map { |category| result["scores"].fetch(category) || "—" }
+          case_label = result["run_index"] ? "#{result['case_id']} · run #{result['run_index']}" : result["case_id"]
+          source = result["source_example"] ? "#{result['source_example']}. #{result['source_title']}" : "—"
+          "| #{source} | #{case_label} | #{result['outcome_expected']} | #{scores.join(' | ')} | #{result['overall'] || '—'} | #{result['verdict']} |"
         end
         ([ header, divider ] + rows).join("\n")
+      end
+
+      def consistency_table
+        rows = @entries.group_by { |entry| entry[:result]["case_id"] }.sort.map do |case_id, grouped|
+          valid = grouped.select { |entry| %w[PASS FAIL].include?(entry[:result]["verdict"]) }
+          verdicts = valid.map { |entry| entry[:result]["verdict"] }
+          agreement = if verdicts.empty?
+            "—"
+          else
+            "#{(verdicts.tally.values.max.to_f / verdicts.size * 100).round(1)}%"
+          end
+          infra = grouped.count { |entry| entry[:result]["verdict"] == "INFRA_ERROR" }
+          "| #{case_id} | #{verdicts.count('PASS')}/#{valid.size} | #{infra} | #{agreement} |"
+        end
+        ([ "| case | passes | infra | verdict agreement |", "| --- | --- | --- | --- |" ] + rows).join("\n")
       end
 
       def tool_table
@@ -154,11 +191,28 @@ module Llm
 
       def failures_section
         failures = critical_failures
-        return "_none — all cases passed_" if failures.empty?
+        return "_none — all cases passed_" if failures.empty? && infrastructure_errors.empty?
 
-        failures.map do |failure|
-          "### #{failure['case_id']} (overall #{failure['overall']})\n\n#{failure['note']}"
+        failed = failures.map do |failure|
+          run = failure["run_index"] ? " · run #{failure['run_index']}" : ""
+          entry = @entries.find do |candidate|
+            candidate[:result]["case_id"] == failure["case_id"] &&
+              candidate[:result]["run_index"] == failure["run_index"]
+          end
+          response = entry&.dig(:result, "observed", "assistant_response").to_s.squish
+          response_line = response.present? ? "\n\nAssistant response: #{response}" : ""
+          "### #{failure['case_id']}#{run} (overall #{failure['overall']})\n\n#{failure['note']}#{response_line}"
         end.join("\n\n")
+        failed + infrastructure_section
+      end
+
+      def infrastructure_section
+        return "" if infrastructure_errors.empty?
+
+        rows = infrastructure_errors.map do |entry|
+          "- #{entry[:result]['case_id']} run #{entry[:result]['run_index']}: #{entry[:result]['note']}"
+        end
+        "\n\n### Infrastructure errors\n\n#{rows.join("\n")}"
       end
     end
   end

@@ -26,10 +26,8 @@
 
     <%= turbo_frame_tag "modal" %>
 
-    <div class="md:flex" data-controller="sidebar">
-      <div data-sidebar-target="backdrop" data-action="click->sidebar#toggle" class="fixed inset-0 z-20 hidden bg-neutral-950/40 md:hidden"></div>
-
-      <aside data-sidebar-target="panel" class="fixed inset-y-0 left-0 z-30 w-64 -translate-x-full border-r border-neutral-200/80 bg-white transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0">
+    <div class="flex" data-controller="sidebar">
+      <aside data-sidebar-target="panel" class="sticky top-0 z-30 h-screen w-64 flex-none overflow-hidden border-r border-neutral-200/80 bg-white transition-[width] duration-200 ease-out">
         <%= render "shared/sidebar/sidenav" %>
       </aside>
 

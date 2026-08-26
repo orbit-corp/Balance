@@ -15,7 +15,8 @@ class ListAccounts < RubyLLM::Tool
       existing_accounts: existing.map { |account| account_hash(account) },
       recommended_accounts: @workspace.catalog.recommended.values
         .reject { |spec| existing_names.include?(spec[:name].downcase) }
-        .map { |spec| recommended_hash(spec) }
+        .map { |spec| recommended_hash(spec) },
+      account_taxonomy: taxonomy
     }
   end
 
@@ -34,9 +35,25 @@ class ListAccounts < RubyLLM::Tool
   def recommended_hash(spec)
     {
       name: spec[:name],
-      base: spec[:base],
+      base_type: spec[:base],
+      account_type: spec[:type],
+      detail_type: spec[:detail],
       parent: parent_name(spec)
     }.compact
+  end
+
+  def taxonomy
+    @workspace.catalog.categories.map do |category|
+      {
+        base_type: category.fetch(:category).downcase,
+        account_types: category.fetch(:account_types).map do |account_type|
+          {
+            account_type: account_type.fetch(:account_type),
+            detail_types: account_type.fetch(:detail_types)
+          }
+        end
+      }
+    end
   end
 
   def parent_name(spec)

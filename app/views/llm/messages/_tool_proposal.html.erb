@@ -1,0 +1,7 @@
+<div id="tool_call_<%= tool_call.id %>" data-message-role="tool" class="flex flex-col gap-2">
+  <%= render "llm/messages/tool_execution",
+        tool_call_id: "#{tool_call.id}_activity",
+        tool_name: tool_call.name,
+        state: :completed %>
+  <%= render proposal_partial, proposal: proposal %>
+</div>

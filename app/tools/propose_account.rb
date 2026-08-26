@@ -16,6 +16,7 @@ class ProposeAccount < RubyLLM::Tool
   end
 
   def initialize(chat)
+    @chat = chat
     @workspace = chat.workspace
   end
 
@@ -23,11 +24,19 @@ class ProposeAccount < RubyLLM::Tool
     draft = Llm::AccountCreationProposal.from_tool(workspace: @workspace, reason: reason, accounts: accounts)
     return { error: draft.errors.join(", ") } if draft.invalid?
 
-    {
+    grounding = Llm::AccountProposalGrounding.new(chat: @chat, data: draft.data)
+    if grounding.invalid?
+      return {
+        error: "That account proposal is not grounded in the active request: #{grounding.errors.join(', ')}.",
+        grounding_error: true
+      }
+    end
+
+    halt({
       proposal: true,
       proposed_action: "account_creation",
       entry_data: draft.data,
       message: "Account proposal created for review."
-    }
+    })
   end
 end

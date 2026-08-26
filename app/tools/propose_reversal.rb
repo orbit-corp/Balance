@@ -26,7 +26,7 @@ class ProposeReversal < RubyLLM::Tool
     return { error: "That journal entry does not exist in this workspace." } unless entry
     return { error: "That journal entry has already been reversed." } if @workspace.journal_entries.where(reverses_journal_entry_id: entry.id).exists?
 
-    {
+    halt({
       proposal: true,
       proposed_action: "journal_entry",
       entry_data: {
@@ -44,7 +44,7 @@ class ProposeReversal < RubyLLM::Tool
         end
       },
       message: "Reversal proposal created for review."
-    }
+    })
   end
 
   private

@@ -1,6 +1,6 @@
 <% expandable = state == :completed && tool_name == "list_accounts" && local_assigns[:output].present? %>
 
-<div id="tool_call_<%= tool_call_id %>" data-controller="<%= "row-expand" if expandable %>">
+<div id="tool_call_<%= tool_call_id %>" data-message-role="tool" data-controller="<%= "row-expand" if expandable %>">
   <% if state == :running %>
     <div class="inline-flex items-center gap-2 py-1 text-neutral-400">
       <span class="h-3 w-3 flex-none animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-500"></span>

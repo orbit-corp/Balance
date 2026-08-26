@@ -1,7 +1,7 @@
 <% errors ||= local_assigns[:errors] %>
 <% editable = proposal.pending? %>
 
-<div id="proposal_<%= proposal.id %>" class="w-full max-w-xl overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+<div id="proposal_<%= proposal.id %>" data-message-role="proposal" class="w-full max-w-xl overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
   <div class="flex items-start gap-3 px-5 py-4">
     <div class="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#e9f5f6] text-[#0f7082]">
       <%= inline_svg_tag "icons/wallet.svg", class: "h-4.5 w-4.5" %>

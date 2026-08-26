@@ -18,10 +18,18 @@ class ProposeEntry < RubyLLM::Tool
   end
 
   def initialize(chat)
+    @chat = chat
     @workspace = chat.workspace
   end
 
   def execute(description:, lines:, entry_date: nil)
+    unless account_lookup_for_active_turn?
+      return {
+        error: "Check the active workspace accounts before proposing an entry.",
+        grounding_error: true
+      }
+    end
+
     draft = Llm::JournalEntryProposal.from_tool(
       workspace: @workspace,
       description: description,
@@ -31,14 +39,34 @@ class ProposeEntry < RubyLLM::Tool
 
     return { error: draft.errors.join(", ") } if draft.invalid?
 
-    {
+    grounding = Llm::ProposalGrounding.new(chat: @chat, data: draft.data)
+    if grounding.invalid?
+      return {
+        error: "That proposal is not grounded in the active transaction: #{grounding.errors.join(', ')}.",
+        grounding_error: true
+      }
+    end
+
+    halt({
       proposal: true,
       proposed_action: "journal_entry",
       entry_data: draft.data,
       message: "Journal-entry proposal created for review."
-    }
+    })
   rescue StandardError => e
     Rails.logger.error("ProposeEntry failed: #{e.class}: #{e.message}\n#{e.backtrace&.first(10).to_a.join("\n")}")
     { error: "I couldn't structure that entry from what you described. Please restate the transaction with explicit naira amounts." }
+  end
+
+
+  private
+
+  def account_lookup_for_active_turn?
+    last_user_id = @chat.llm_messages.where(role: "user").order(id: :desc).pick(:id)
+
+    Llm::ToolCall.joins(:llm_message)
+      .where(name: "list_accounts", llm_messages: { llm_chat_id: @chat.id })
+      .where("llm_messages.id > ?", last_user_id)
+      .exists?
   end
 end
