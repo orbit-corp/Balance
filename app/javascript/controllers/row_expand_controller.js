@@ -6,5 +6,6 @@ export default class extends Controller {
   toggle() {
     this.detailTarget.hidden = !this.detailTarget.hidden
     this.iconTarget.classList.toggle("rotate-90")
+    this.element.querySelector("button")?.setAttribute("aria-expanded", String(!this.detailTarget.hidden))
   }
 }

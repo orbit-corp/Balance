@@ -1,6 +1,6 @@
 class Proposal < ApplicationRecord
-  TYPES = %w[journal_entry].freeze
-  STATUSES = %w[proposed confirmed dismissed superseded].freeze
+  TYPES = %w[account_creation journal_entry].freeze
+  STATUSES = %w[proposed confirming confirmed dismissed superseded].freeze
 
   belongs_to :workspace
   belongs_to :llm_chat, class_name: "Llm::Chat"
@@ -18,6 +18,10 @@ class Proposal < ApplicationRecord
     proposal_type == "journal_entry"
   end
 
+  def account_creation_proposal?
+    proposal_type == "account_creation"
+  end
+
   def pending?
     status == "proposed"
   end
@@ -31,6 +35,7 @@ class Proposal < ApplicationRecord
   def shape = data&.dig("shape")
   def needs_attention = data&.dig("needs_attention")
   def lines = data&.dig("lines") || []
+  def accounts = data&.dig("accounts") || []
 
   def total_debit_kobo
     lines.sum { |line| line["side"] == "debit" ? line["amount_kobo"].to_i : 0 }
@@ -48,8 +53,33 @@ class Proposal < ApplicationRecord
     total_debit_kobo == total_credit_kobo
   end
 
-  def confirm!(journal_entry:)
-    update!(status: "confirmed", journal_entry: journal_entry)
+  def confirm!(draft:)
+    with_lock do
+      return [] unless pending?
+      return draft.errors if draft.invalid?
+      return [] unless transition_to_confirming?
+
+      journal_entry = draft.build_journal_entry!
+      update!(status: "confirmed", journal_entry: journal_entry)
+      nil
+    end
+  end
+
+  def confirm_accounts!(draft:)
+    with_lock do
+      return [] unless pending?
+      return draft.errors if draft.invalid?
+      return [] unless transition_to_confirming?
+
+      created = draft.create_accounts!
+      update!(
+        status: "confirmed",
+        data: data.merge(
+          "created_accounts" => created.map { |account| { "id" => account.id, "name" => account.name } }
+        )
+      )
+      nil
+    end
   end
 
   def dismiss!
@@ -58,5 +88,12 @@ class Proposal < ApplicationRecord
 
   def supersede!
     update!(status: "superseded")
+  end
+
+  private
+
+  def transition_to_confirming?
+    Proposal.where(id: id, status: "proposed")
+      .update_all(status: "confirming", updated_at: Time.current) == 1
   end
 end

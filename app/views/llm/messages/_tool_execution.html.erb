@@ -1,30 +1,32 @@
-<% expandable = state == :completed && tool_name == "list_accounts" && local_assigns[:output].present? %>
+<% details = tool_detail_items(tool_name, local_assigns[:output]) %>
+<% expandable = state != :running && details.any? %>
 
-<div id="tool_call_<%= tool_call_id %>" data-controller="<%= "row-expand" if expandable %>">
+<div id="tool_call_<%= tool_call_id %>" data-message-role="tool" data-controller="<%= "row-expand" if expandable %>">
   <% if state == :running %>
-    <div class="flex items-center gap-2.5 rounded-md border border-neutral-200 bg-white px-3 py-2.5">
-      <span class="h-3.5 w-3.5 flex-none animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-500"></span>
-      <span class="text-sm text-neutral-500"><%= tool_running_label(tool_name) %></span>
+    <div class="inline-flex items-center gap-2 py-0.5 text-neutral-500">
+      <span class="h-3 w-3 flex-none animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-600"></span>
+      <span class="text-xs"><%= tool_running_label(tool_name) %></span>
     </div>
   <% else %>
-    <div class="rounded-md border border-neutral-200 bg-white">
-      <button type="button" data-action="row-expand#toggle" class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left <%= "cursor-pointer" if expandable %>">
-        <span class="flex h-4 w-4 flex-none items-center justify-center rounded-full bg-green-100 text-green-600">
-          <%= inline_svg_tag "icons/check.svg", class: "h-2.5 w-2.5" %>
-        </span>
-
-        <span class="flex-auto text-sm text-neutral-500"><%= tool_completed_label(tool_name) %></span>
+    <div class="w-fit max-w-full">
+      <button type="button"
+              <%= "disabled" unless expandable %>
+              data-action="row-expand#toggle"
+              aria-expanded="false"
+              class="inline-flex max-w-full items-center gap-2 py-0.5 text-left <%= state == :failed ? "text-amber-700" : "text-neutral-500" %> <%= "cursor-pointer hover:text-neutral-800" if expandable %>">
+        <%= inline_svg_tag "icons/tool.svg", class: "h-3.5 w-3.5 flex-none" %>
+        <span class="truncate text-xs"><%= state == :failed ? "#{tool_name.to_s.humanize} needs attention" : tool_completed_label(tool_name) %></span>
 
         <% if expandable %>
-          <%= inline_svg_tag "icons/chevron-right.svg", class: "h-3.5 w-3.5 flex-none text-neutral-400 transition-transform", data: { row_expand_target: "icon" } %>
+          <%= inline_svg_tag "icons/chevron-right.svg", class: "h-3 w-3 flex-none transition-transform", data: { row_expand_target: "icon" } %>
         <% end %>
       </button>
 
       <% if expandable %>
-        <div hidden data-row-expand-target="detail" class="border-t border-neutral-200 bg-neutral-50 px-3 py-2.5">
-          <ul class="flex flex-col gap-0.5 text-xs text-neutral-600">
-            <% local_assigns[:output].each do |account| %>
-              <li><%= account[:name] || account["name"] %></li>
+        <div hidden data-row-expand-target="detail" class="mt-1.5 ml-1 border-l border-neutral-200 pl-5">
+          <ul class="flex max-w-xl flex-col gap-1 text-xs leading-5 text-neutral-500">
+            <% details.each do |detail| %>
+              <li><%= detail %></li>
             <% end %>
           </ul>
         </div>

@@ -19,6 +19,8 @@ class Llm::ChatsController < ApplicationController
       return render :index, status: :unprocessable_content
     end
 
+    ensure_model_registered!(params.dig(:llm_chat, :model).presence)
+
     @llm_chat = current_workspace.llm_chats.new(model: params.dig(:llm_chat, :model).presence)
     @llm_chat.derive_title_from(prompt)
     @llm_chat.save!
@@ -39,6 +41,16 @@ class Llm::ChatsController < ApplicationController
   private
 
   def set_llm_chat
-    @llm_chat = current_workspace.llm_chats.find(params[:id])
+    @llm_chat = current_workspace.llm_chats.find_by!(uuid: params[:uuid])
+  end
+
+  # Local providers (LM Studio) serve models unknown to RubyLLM's registry.
+  # Resolution happens against the in-memory registry, so refresh it from the
+  # provider and persist when the requested model is unknown.
+  def ensure_model_registered!(model_id)
+    id = model_id.presence || RubyLLM.config.default_model
+    RubyLLM.models.find(id)
+  rescue RubyLLM::ModelNotFoundError
+    Llm::Model.refresh!
   end
 end

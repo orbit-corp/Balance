@@ -1,6 +1,12 @@
 class Llm::Message < ApplicationRecord
-  acts_as_message chat: :llm_chat, chat_class: 'Llm::Chat', tool_calls: :llm_tool_calls, tool_call_class: 'Llm::ToolCall', tool_calls_foreign_key: :llm_message_id, model: :llm_model, model_class: 'Llm::Model'
+  self.table_name = "llm_messages"
 
+  acts_as_message chat: :llm_chat, chat_class: "Llm::Chat", tool_calls: :llm_tool_calls, tool_call_class: "Llm::ToolCall", tool_calls_foreign_key: :llm_message_id, model: :llm_model, model_class: "Llm::Model"
+
+  has_one :llm_turn, class_name: "Llm::Turn", foreign_key: :user_message_id, dependent: :destroy
+  belongs_to :response_turn, class_name: "Llm::Turn", foreign_key: :llm_turn_id, optional: true
+
+  before_validation :assign_response_turn, on: :create
   after_create_commit :broadcast_append_if_visible
   after_update_commit :broadcast_replace_if_visible
 
@@ -12,13 +18,27 @@ class Llm::Message < ApplicationRecord
 
   private
 
+  def assign_response_turn
+    return if role == "user" || llm_turn_id.present?
+
+    turn = Llm::Current.turn
+    self.response_turn = turn if turn&.llm_chat_id == llm_chat_id
+  end
+
   def broadcast_append_if_visible
     return unless role == "assistant"
 
-    broadcast_append_to "llm_chat_#{llm_chat_id}", target: "llm_messages"
+    broadcast_append_to "llm_chat_#{llm_chat_id}",
+      target: "llm_messages",
+      partial: "llm/messages/assistant",
+      locals: { assistant: self }
   end
 
   def broadcast_replace_if_visible
-    broadcast_replace_to "llm_chat_#{llm_chat_id}" if role == "assistant" && content.present?
+    return unless role == "assistant" && content.present?
+
+    broadcast_replace_to "llm_chat_#{llm_chat_id}",
+      partial: "llm/messages/assistant",
+      locals: { assistant: self }
   end
 end

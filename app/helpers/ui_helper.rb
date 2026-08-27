@@ -7,7 +7,7 @@ module UiHelper
   }.freeze
 
   def primary_button_class(size: :md)
-    "#{BUTTON_BASE} #{BUTTON_SIZES.fetch(size)} bg-neutral-900 text-white hover:bg-neutral-800"
+    "#{BUTTON_BASE} #{BUTTON_SIZES.fetch(size)} bg-[#0f7082] text-white hover:bg-[#0b5d6d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f7082]"
   end
 
   def secondary_button_class(size: :md)
@@ -27,7 +27,7 @@ module UiHelper
   end
 
   def field_class
-    "block w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 transition-colors placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none"
+    "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-950 shadow-none transition-colors placeholder:text-neutral-400 focus:border-[#0f7082] focus:outline-none focus:ring-1 focus:ring-[#0f7082]"
   end
 
   def field_label_class

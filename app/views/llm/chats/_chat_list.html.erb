@@ -1,28 +1,32 @@
 <% if llm_chats.any? %>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-5">
     <% llm_chats.group_by { |llm_chat| chat_group_label(llm_chat.updated_at.to_date) }.each do |label, group| %>
       <div>
-        <p class="px-3 pb-1 text-xs font-medium tracking-wide text-neutral-400 uppercase"><%= label %></p>
+        <p class="px-1 pb-2 text-[11px] font-semibold tracking-wider text-neutral-400 uppercase"><%= label %></p>
 
-        <div class="flex flex-col gap-0.5">
+        <div class="overflow-hidden rounded-xl border border-neutral-200 bg-white">
           <% group.each do |llm_chat| %>
-            <% current = llm_chat.id == current_chat_id %>
+            <% current = llm_chat.uuid == current_chat_uuid %>
 
             <%= link_to chat_path(llm_chat), data: { turbo_frame: "_top" },
-                  class: "group flex items-center gap-2 rounded-md px-3 py-2 transition-colors #{current ? 'bg-neutral-100' : 'hover:bg-neutral-100'}" do %>
+                  class: "group flex items-center gap-3 border-b border-neutral-100 px-3.5 py-3 last:border-b-0 transition-colors #{current ? 'bg-teal-50/70' : 'hover:bg-neutral-50'}" do %>
+              <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg <%= current ? 'bg-teal-100 text-teal-700' : 'bg-neutral-100 text-neutral-500' %>">
+                <%= inline_svg_tag "icons/bot.svg", class: "h-4 w-4" %>
+              </span>
+
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-neutral-900"><%= llm_chat.title.presence || "New chat" %></p>
-                <p class="mt-0.5 text-xs text-neutral-500">
+                <p class="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-400">
                   <%= pluralize llm_chat.llm_messages.count, "message" %>
-                  <span class="px-0.5 text-neutral-300">·</span>
+                  <span class="h-0.5 w-0.5 rounded-full bg-neutral-300"></span>
                   <%= llm_chat.updated_at.strftime("%-l:%M %p") %>
                 </p>
               </div>
 
               <% if current %>
-                <span class="flex-none rounded-full bg-neutral-900 px-2 py-0.5 text-xs font-medium text-white">Open</span>
+                <span class="h-2 w-2 flex-none rounded-full bg-teal-600" aria-label="Current agent"></span>
               <% else %>
-                <%= inline_svg_tag "icons/chevron-right.svg", class: "h-4 w-4 flex-none text-neutral-300 opacity-0 transition-opacity group-hover:opacity-100" %>
+                <%= inline_svg_tag "icons/chevron-right.svg", class: "h-4 w-4 flex-none text-neutral-300 transition-transform group-hover:translate-x-0.5 group-hover:text-neutral-500" %>
               <% end %>
             <% end %>
           <% end %>
@@ -31,8 +35,11 @@
     <% end %>
   </div>
 <% else %>
-  <div class="flex flex-col items-center gap-2 px-3 py-10 text-center">
-    <%= inline_svg_tag "icons/message-circle.svg", class: "h-6 w-6 text-neutral-300" %>
-    <p class="text-sm text-neutral-400">No chats yet.</p>
+  <div class="flex flex-col items-center gap-2 px-3 py-12 text-center">
+    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100">
+      <%= inline_svg_tag "icons/message-circle.svg", class: "h-5 w-5 text-neutral-400" %>
+    </span>
+    <p class="text-sm font-medium text-neutral-700">No conversations yet</p>
+    <p class="text-xs text-neutral-400">Start a chat to record or review your accounts.</p>
   </div>
 <% end %>

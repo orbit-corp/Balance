@@ -6,6 +6,7 @@ class Llm::MessagesController < ApplicationController
     return head :no_content if content.blank?
 
     @llm_message = @llm_chat.start_turn(content)
+    @llm_turn = @llm_message.llm_turn
 
     respond_to do |format|
       format.turbo_stream
@@ -16,6 +17,6 @@ class Llm::MessagesController < ApplicationController
   private
 
   def set_llm_chat
-    @llm_chat = current_workspace.llm_chats.find(params[:chat_id])
+    @llm_chat = current_workspace.llm_chats.find_by!(uuid: params[:chat_uuid])
   end
 end

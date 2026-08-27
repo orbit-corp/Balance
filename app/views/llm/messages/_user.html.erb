@@ -1,8 +1,8 @@
 <% user ||= local_assigns[:message] %>
 
-<div class="flex justify-end">
-  <div id="llm_message_<%= user.id %>" class="max-w-[75%] rounded-2xl bg-neutral-100 px-3.5 py-2.5">
-    <div id="llm_message_<%= user.id %>_content" class="text-sm leading-relaxed whitespace-pre-wrap text-neutral-900"><%= user.content %></div>
+<div class="flex justify-end" data-message-role="user">
+  <div id="llm_message_<%= user.id %>" class="max-w-[78%] rounded-2xl <%= user_correction_request?(user.content) ? "ring-1 ring-red-100 text-balance-red-600" : "bg-neutral-100" %> px-3.5 py-2.5 sm:max-w-[68%]">
+    <div id="llm_message_<%= user.id %>_content" class="text-[15px] leading-6 whitespace-pre-wrap text-neutral-900"><%= user.content %></div>
     <div class="mt-0.5 text-right text-xs text-neutral-400"><%= user.created_at&.strftime("%-l:%M %p") %></div>
   </div>
 </div>

@@ -1,0 +1,9 @@
+ada_owner:
+  user: one
+  workspace: ada_store
+  role: owner
+
+bola_owner:
+  user: two
+  workspace: bola_shop
+  role: owner

@@ -7,14 +7,8 @@ class Llm::JournalEntryProposal
       data: {
         "description" => description,
         "entry_date" => entry_date || Date.current.to_s,
-        "lines" => lines.map do |line|
-          {
-            "account_id" => (line[:account_id] || line["account_id"]).presence&.to_i,
-            "side" => line[:side] || line["side"],
-            "amount_kobo" => ((line[:amount_naira] || line["amount_naira"]).to_d * 100).round,
-            "counterparty_name" => line[:counterparty_name] || line["counterparty_name"]
-          }
-        end
+        "amount_source" => "user_provided",
+        "lines" => lines.map { |line| line_data(line, form: false) }
       }
     )
   end
@@ -25,23 +19,42 @@ class Llm::JournalEntryProposal
       data: {
         "description" => params[:description],
         "entry_date" => params[:entry_date],
-        "lines" => (params[:lines] || {}).values.map do |line|
-          {
-            "account_id" => line[:account_id].presence&.to_i,
-            "side" => line[:side],
-            "amount_kobo" => (line[:amount_naira].presence.to_d * 100).round,
-            "counterparty_name" => line[:counterparty_name].presence
-          }
-        end
+        "amount_source" => "user_edited",
+        "reverses_journal_entry_id" => params[:reverses_journal_entry_id].presence&.to_i,
+        "lines" => (params[:lines] || {}).values.map { |line| line_data(line, form: true) }
       }
     )
   end
 
+  def self.line_data(line, form:)
+    line = line.to_h.transform_keys(&:to_sym) unless form
+
+    {
+      "account_id" => line[:account_id].presence&.to_i,
+      "side" => line[:side],
+      "amount_kobo" => amount_to_kobo(line[:amount_naira]),
+      "counterparty_name" => line[:counterparty_name]
+    }
+  end
+
+  def self.amount_to_kobo(value)
+    raw = value.to_s.gsub(/[^\d.]/, "")
+    return nil if raw.blank?
+
+    (BigDecimal(raw) * 100).round
+  rescue ArgumentError
+    nil
+  end
+
   def initialize(workspace:, data:)
+    unless workspace.is_a?(Workspace)
+      raise ArgumentError, "JournalEntryProposal needs a Workspace, got #{workspace.class} (was a Chat or workspace wired in place of a workspace?)"
+    end
+
     @workspace = workspace
     @data = data
-    @errors = []
-    validate
+    entry.valid?
+    @errors = entry.errors.full_messages
   end
 
   def valid?
@@ -53,48 +66,46 @@ class Llm::JournalEntryProposal
   end
 
   def build_journal_entry!
-    entry = @workspace.journal_entries.build(
-      description: data["description"],
-      entry_date: Date.iso8601(data["entry_date"])
-    )
+    result = Accounting::PostingService.call(entry: entry)
+    raise ActiveRecord::RecordInvalid, entry unless result.success?
 
-    data["lines"].each do |line|
-      journal_entry_line = entry.journal_entry_lines.build(account: @workspace.accounts.find(line["account_id"]))
-      line["side"] == "debit" ? journal_entry_line.debit_kobo = line["amount_kobo"] : journal_entry_line.credit_kobo = line["amount_kobo"]
+    result.entry
+  end
+
+  def entry
+    @entry ||= begin
+      built = @workspace.journal_entries.build(
+        description: data["description"],
+        entry_date: parse_date(data["entry_date"]),
+        reverses_journal_entry_id: data["reverses_journal_entry_id"]
+      )
+
+      data["lines"].each do |line|
+        attributes = {}
+        if line["side"] == "debit"
+          attributes[:debit_kobo] = line["amount_kobo"]
+        elsif line["side"] == "credit"
+          attributes[:credit_kobo] = line["amount_kobo"]
+        else
+          attributes[:debit_kobo] = attributes[:credit_kobo] = line["amount_kobo"]
+        end
+
+        if line["account_id"].present?
+          attributes[:account] = @workspace.accounts.find_by(id: line["account_id"])
+        end
+
+        built.journal_entry_lines.build(attributes)
+      end
+
+      built
     end
-
-    entry.save!
-    entry
   end
 
   private
 
-  def validate
-    errors << "description is required" if data["description"].blank?
-    errors << "date is required" if data["entry_date"].blank? || !valid_date?
-    errors << "an entry needs at least two lines" if data["lines"].size < 2
-
-    data["lines"].each do |line|
-      errors << "every line needs an account" if line["account_id"].blank?
-      errors << "each line must be a debit or credit" unless line["side"].in?(%w[debit credit])
-      errors << "each line amount must be greater than zero" unless line["amount_kobo"].to_i.positive?
-    end
-
-    account_ids = data["lines"].pluck("account_id").compact
-    errors << "an account on this entry does not belong to this workspace" unless account_ids.all? { |id| @workspace.accounts.exists?(id: id) }
-    errors << "debits and credits must balance" if balanced? == false
-  end
-
-  def valid_date?
-    Date.iso8601(data["entry_date"])
-    true
+  def parse_date(value)
+    Date.iso8601(value)
   rescue ArgumentError, TypeError
-    false
-  end
-
-  def balanced?
-    debit_total = data["lines"].sum { |line| line["side"] == "debit" ? line["amount_kobo"].to_i : 0 }
-    credit_total = data["lines"].sum { |line| line["side"] == "credit" ? line["amount_kobo"].to_i : 0 }
-    debit_total == credit_total
+    nil
   end
 end

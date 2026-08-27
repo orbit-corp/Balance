@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="h-full">
+  <head>
+    <title><%= content_for(:title) || "Set up Balance" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="application-name" content="Balance">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.png" type="image/png" sizes="512x512">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png" sizes="180x180">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-full bg-white text-neutral-950 antialiased">
+    <div id="flash_messages"><%= render "shared/flash" %></div>
+
+    <div class="min-h-screen lg:grid lg:grid-cols-[18rem_1fr]">
+      <aside class="border-b border-neutral-200/80 bg-white px-6 py-5 lg:min-h-screen lg:border-r lg:border-b-0 lg:px-8 lg:py-8">
+        <div class="flex items-center justify-between lg:block">
+          <%= render "shared/brand", compact: true %>
+
+          <p class="text-xs text-neutral-500 lg:mt-2"><%= Current.user.email_address %></p>
+        </div>
+
+        <nav class="mt-6 flex gap-2 lg:mt-16 lg:flex-col lg:gap-0" aria-label="Setup progress">
+          <% @steps.each_with_index do |step, index| %>
+            <% active = step == @step %>
+            <% complete = @steps.index(@step) > index %>
+            <div class="flex flex-1 items-center gap-3 border-t px-1 py-3 lg:flex-none <%= active ? "border-balance-teal-700 text-neutral-950" : "border-neutral-200 text-neutral-400" %>">
+              <span class="text-xs font-medium tabular-nums"><%= format("%02d", index + 1) %></span>
+              <span class="hidden text-sm font-medium sm:block"><%= { "workspace_type" => "Workspace", "details" => "Details", "accounts" => "Accounts" }.fetch(step) %></span>
+              <% if complete %><span class="ml-auto text-xs text-balance-teal-700">Done</span><% end %>
+            </div>
+          <% end %>
+        </nav>
+      </aside>
+
+      <main class="flex items-start bg-white px-5 py-8 sm:px-10 sm:py-10 lg:min-h-screen lg:px-20 lg:py-16">
+        <div class="onboarding-enter mx-auto w-full max-w-2xl">
+          <%= yield %>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

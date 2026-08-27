@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["olderTrigger"]
+  static targets = ["olderTrigger", "scroller", "scrollButton"]
 
   connect() {
     this.pinnedToBottom = true
@@ -9,25 +9,26 @@ export default class extends Controller {
     this.scrollToBottom()
 
     this.handleScroll = this.handleScroll.bind(this)
-    this.element.addEventListener("scroll", this.handleScroll)
+    this.scroller.addEventListener("scroll", this.handleScroll)
 
     this.handleImageLoad = this.handleImageLoad.bind(this)
-    this.element.addEventListener("load", this.handleImageLoad, true)
+    this.scroller.addEventListener("load", this.handleImageLoad, true)
 
     this.appendObserver = new MutationObserver(this.handleAppend.bind(this))
-    this.listElement = this.element.querySelector("#messages_list")
+    this.listElement = this.element.querySelector("#llm_messages")
     this.prependObserver = new MutationObserver(this.handlePrepend.bind(this))
     this.reconnectObservers()
 
-    this.intersectionObserver = new IntersectionObserver(this.handleIntersect.bind(this), { root: this.element })
+    this.intersectionObserver = new IntersectionObserver(this.handleIntersect.bind(this), { root: this.scroller })
     if (this.hasOlderTriggerTarget) this.intersectionObserver.observe(this.olderTriggerTarget)
 
     this.layOutSeparators()
+    this.updateScrollButton()
   }
 
   disconnect() {
-    this.element.removeEventListener("scroll", this.handleScroll)
-    this.element.removeEventListener("load", this.handleImageLoad, true)
+    this.scroller.removeEventListener("scroll", this.handleScroll)
+    this.scroller.removeEventListener("load", this.handleImageLoad, true)
     this.appendObserver?.disconnect()
     this.prependObserver?.disconnect()
     this.intersectionObserver?.disconnect()
@@ -41,22 +42,36 @@ export default class extends Controller {
   handleScroll() {
     const threshold = 120
     this.pinnedToBottom =
-      this.element.scrollHeight - this.element.scrollTop - this.element.clientHeight < threshold
+      this.scroller.scrollHeight - this.scroller.scrollTop - this.scroller.clientHeight < threshold
+    this.updateScrollButton()
   }
 
   handleIntersect(entries) {
     for (const entry of entries) {
       if (entry.isIntersecting && !this.loading) {
         this.loading = true
-        this.scrollHeightBeforePrepend = this.element.scrollHeight
+        this.scrollHeightBeforePrepend = this.scroller.scrollHeight
         entry.target.click()
       }
     }
   }
 
-  handleAppend() {
+  handleAppend(mutations) {
+    const addedElements = mutations.flatMap((mutation) =>
+      Array.from(mutation.addedNodes).filter((node) => node.nodeType === Node.ELEMENT_NODE)
+    )
+    const userMessageAdded = addedElements.some((element) =>
+      element.matches("[data-message-role='user']") || element.querySelector("[data-message-role='user']")
+    )
+
+    addedElements.forEach((element) => {
+      element.classList.add("message-entering")
+      element.addEventListener("animationend", () => element.classList.remove("message-entering"), { once: true })
+    })
+
     this.layOutSeparators()
-    if (this.pinnedToBottom) this.scrollToBottom()
+    if (this.pinnedToBottom || userMessageAdded) requestAnimationFrame(() => this.scrollToBottom(true))
+    else this.updateScrollButton()
   }
 
   handleImageLoad(event) {
@@ -68,12 +83,29 @@ export default class extends Controller {
 
     if (this.scrollHeightBeforePrepend == null) return
 
-    this.element.scrollTop += this.element.scrollHeight - this.scrollHeightBeforePrepend
+    this.scroller.scrollTop += this.scroller.scrollHeight - this.scrollHeightBeforePrepend
     this.scrollHeightBeforePrepend = null
   }
 
-  scrollToBottom() {
-    this.element.scrollTop = this.element.scrollHeight
+  scrollToLatest() {
+    this.scrollToBottom(true)
+  }
+
+  scrollToBottom(smooth = false) {
+    this.scroller.scrollTo({ top: this.scroller.scrollHeight, behavior: smooth ? "smooth" : "auto" })
+    this.pinnedToBottom = true
+    this.updateScrollButton()
+  }
+
+  updateScrollButton() {
+    if (!this.hasScrollButtonTarget) return
+
+    const visible = !this.pinnedToBottom
+    this.scrollButtonTarget.classList.toggle("pointer-events-none", !visible)
+    this.scrollButtonTarget.classList.toggle("opacity-0", !visible)
+    this.scrollButtonTarget.classList.toggle("translate-y-2", !visible)
+    this.scrollButtonTarget.setAttribute("aria-hidden", String(!visible))
+    this.scrollButtonTarget.tabIndex = visible ? 0 : -1
   }
 
   layOutSeparators() {
@@ -112,7 +144,11 @@ export default class extends Controller {
   }
 
   reconnectObservers() {
-    this.appendObserver?.observe(this.element, { childList: true })
+    if (this.listElement) this.appendObserver?.observe(this.listElement, { childList: true })
     if (this.listElement) this.prependObserver?.observe(this.listElement, { childList: true })
+  }
+
+  get scroller() {
+    return this.hasScrollerTarget ? this.scrollerTarget : this.element
   }
 }

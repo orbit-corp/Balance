@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Stubby" %></title>
+    <title><%= content_for(:title) || "Balance" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Stubby">
+    <meta name="application-name" content="Balance">
     <meta name="mobile-web-app-capable" content="yes">
 
     <%= turbo_refreshes_with method: :morph, scroll: :preserve %>
@@ -13,30 +13,30 @@
     <%= csp_meta_tag %>
     <%= yield :head %>
 
-    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.png" type="image/png" sizes="512x512">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <link rel="apple-touch-icon" href="/icon.png" sizes="180x180">
+    <link rel="icon" href="/favicon.ico">
 
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" %>
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-white text-neutral-900">
+  <body class="bg-white text-neutral-950 antialiased">
     <div id="flash_messages"><%= render "shared/flash" %></div>
 
     <%= turbo_frame_tag "modal" %>
 
-    <div class="md:flex" data-controller="sidebar">
-      <div data-sidebar-target="backdrop" data-action="click->sidebar#toggle" class="fixed inset-0 z-20 hidden bg-neutral-950/40 md:hidden"></div>
-
-      <aside data-sidebar-target="panel" class="fixed inset-y-0 left-0 z-30 w-64 -translate-x-full border-r border-neutral-200 bg-neutral-50 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0">
+    <div class="flex" data-controller="sidebar">
+      <aside data-sidebar-target="panel" class="sticky top-0 z-30 h-screen w-64 flex-none overflow-hidden border-r border-neutral-200/80 bg-white transition-[width] duration-200 ease-out">
         <%= render "shared/sidebar/sidenav" %>
       </aside>
 
       <div class="flex min-w-0 flex-1 flex-col <%= content_for?(:full_bleed) ? "h-screen overflow-hidden" : "min-h-screen" %>">
         <%= render "shared/topbar" %>
 
-        <main class="<%= content_for?(:full_bleed) ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "mx-auto w-full max-w-7xl flex-1 px-4 pt-6 pb-6 md:px-6" %>">
+        <main class="<%= content_for?(:full_bleed) ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-8 md:px-8" %>">
           <%= yield %>
         </main>
       </div>

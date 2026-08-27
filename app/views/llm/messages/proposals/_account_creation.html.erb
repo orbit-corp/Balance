@@ -1,0 +1,58 @@
+<% errors ||= local_assigns[:errors] %>
+<% editable = proposal.pending? %>
+
+<div id="proposal_<%= proposal.id %>" data-message-role="proposal" class="w-full max-w-xl overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+  <div class="flex items-start gap-3 px-5 py-4">
+    <div class="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-[#e9f5f6] text-[#0f7082]">
+      <%= inline_svg_tag "icons/wallet.svg", class: "h-4.5 w-4.5" %>
+    </div>
+
+    <div class="min-w-0 flex-1">
+      <p class="text-xs font-semibold tracking-wide text-[#0f7082] uppercase">Account proposal</p>
+      <h3 class="mt-0.5 text-base font-semibold text-neutral-950">
+        <%= proposal.accounts.one? ? "Add an account to continue" : "Add #{proposal.accounts.size} accounts to continue" %>
+      </h3>
+      <p class="mt-1 text-sm leading-5 text-neutral-500"><%= proposal.data["reason"] %></p>
+    </div>
+  </div>
+
+  <% if errors.present? %>
+    <div class="border-t border-neutral-200 px-5 py-3">
+      <%= render "shared/form_errors", record: Array(errors) %>
+    </div>
+  <% end %>
+
+  <div class="border-y border-neutral-200">
+    <% proposal.accounts.each_with_index do |account, index| %>
+      <div class="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] <%= "border-t border-neutral-100" if index.positive? %>">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-neutral-950"><%= account["name"] %></p>
+          <p class="mt-1 truncate text-xs text-neutral-500"><%= account["account_type"] %> · <%= account["detail_type"] %></p>
+        </div>
+        <span class="h-fit w-fit rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600"><%= account["base_type"].to_s.titleize %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <% if editable %>
+    <%= form_with url: confirm_chat_proposal_path(proposal.llm_chat, proposal), method: :patch, class: "flex items-center justify-between gap-3 bg-neutral-50 px-5 py-3.5" do %>
+      <p class="text-xs text-neutral-500">Nothing is added until you approve.</p>
+      <div class="flex flex-none items-center gap-1.5">
+        <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not now</button>
+        <button type="submit" class="<%= primary_button_class(size: :sm) %>">
+          <%= proposal.accounts.one? ? "Create account" : "Create accounts" %>
+        </button>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="flex items-center gap-2 bg-neutral-50 px-5 py-3.5 text-sm font-medium <%= proposal.confirmed? ? "text-green-700" : "text-neutral-500" %>">
+      <% if proposal.confirmed? %>
+        <%= inline_svg_tag "icons/check-circle.svg", class: "h-4 w-4 flex-none" %>
+        <span>Created and ready to use</span>
+      <% else %>
+        <%= inline_svg_tag "icons/x.svg", class: "h-4 w-4 flex-none" %>
+        <span><%= proposal.status == "dismissed" ? "Declined — no account was created" : "Replaced by a newer proposal" %></span>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -21,42 +21,51 @@ default: &default
 
 
 development:
-  <<: *default
-  database: stubby_development
+  primary:
+    <<: *default
+    database: balance_development
+  queue:
+    <<: *default
+    database: balance_development_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: balance_development_cable
+    migrations_paths: db/cable_migrate
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
   # When left blank, PostgreSQL will use the default role. This is
   # the same name as the operating system user running Rails.
-  #username: stubby
+    #username: balance
 
   # The password associated with the PostgreSQL role (username).
-  #password:
+    #password:
 
   # Connect on a TCP socket. Omitted by default since the client uses a
   # domain socket that doesn't need configuration. Windows does not have
   # domain sockets, so uncomment these lines.
-  #host: localhost
+    #host: localhost
 
   # The TCP port the server listens on. Defaults to 5432.
   # If your server runs on a different port number, change accordingly.
-  #port: 5432
+    #port: 5432
 
   # Schema search path. The server defaults to $user,public
-  #schema_search_path: myapp,sharedapp,public
+    #schema_search_path: myapp,sharedapp,public
 
   # Minimum log levels, in increasing order:
   #   debug5, debug4, debug3, debug2, debug1,
   #   log, notice, warning, error, fatal, and panic
   # Defaults to warning.
-  #min_messages: notice
+    #min_messages: notice
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: stubby_test
+  database: balance_test
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -87,19 +96,19 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: stubby_production
+    database: balance_production
     host: <%= ENV["DB_HOST"] %>
-    username: stubby
-    password: <%= ENV["STUBBY_DATABASE_PASSWORD"] %>
+    username: balance
+    password: <%= ENV["BALANCE_DATABASE_PASSWORD"] %>
   cache:
     <<: *primary_production
-    database: stubby_production_cache
+    database: balance_production_cache
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: stubby_production_queue
+    database: balance_production_queue
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: stubby_production_cable
+    database: balance_production_cable
     migrations_paths: db/cable_migrate

@@ -3,6 +3,7 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "minitest/mock"
 require_relative "test_helpers/session_test_helper"
+require_relative "test_helpers/llm_chat_test_helper"
 
 module ActiveSupport
   class TestCase
@@ -14,6 +15,7 @@ module ActiveSupport
 
     def post_journal_entry!(workspace, debit_account:, credit_account:, amount_kobo:, entry_date: Date.current)
       workspace.journal_entries.create!(
+        description: "Test entry",
         entry_date: entry_date,
         journal_entry_lines_attributes: [
           { account_id: debit_account.id, debit_kobo: amount_kobo },

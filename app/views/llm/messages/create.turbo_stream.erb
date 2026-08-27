@@ -1,12 +1,10 @@
 <%= turbo_stream.remove "llm_chat_#{@llm_chat.id}_empty" %>
-<%= turbo_stream.remove "llm_chat_#{@llm_chat.id}_pending" %>
-
 <%= turbo_stream.append "llm_messages" do %>
   <%= render @llm_message %>
 <% end %>
 
 <%= turbo_stream.append "llm_messages" do %>
-  <%= render "llm/messages/pending", llm_chat: @llm_chat %>
+  <%= render "llm/messages/turn_status", turn: @llm_turn %>
 <% end %>
 
 <%= turbo_stream.replace "new_llm_message" do %>

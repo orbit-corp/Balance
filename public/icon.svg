@@ -1,3 +1,5 @@
-<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="256" cy="256" r="256" fill="red"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254" fill="none">
+  <path d="M313 233H798C882 233 950 301 950 387C950 433 934 474 905 506C875 474 838 453 797 452H313V233Z" fill="#016487"/>
+  <path d="M314 493H795C859 493 911 541 911 602C911 662 859 710 795 711H314V493Z" fill="#789868"/>
+  <path d="M313 755H802C843 753 881 733 909 695C935 725 950 765 950 809C950 897 883 968 797 968H313V755Z" fill="#E25F28"/>
 </svg>

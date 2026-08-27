@@ -6,7 +6,7 @@
 
 <%= render "shared/page_header",
     title: "Models",
-    description: "Every chat model Stubby can reach, with what each one costs to run.",
+    description: "Every chat model Balance can reach, with what each one costs to run.",
     action: button_to("Refresh list", refresh_models_path, method: :post, class: secondary_button_class) %>
 
 <% if @llm_models.any? %>
@@ -17,6 +17,6 @@
   <%= render "shared/empty_state",
       icon: "icons/message-circle.svg",
       title: "No models found",
-      description: "Stubby could not reach any provider. Check your API keys, then refresh the list.",
+      description: "Balance could not reach any provider. Check your API keys, then refresh the list.",
       action: button_to("Refresh list", refresh_models_path, method: :post, class: primary_button_class) %>
 <% end %>

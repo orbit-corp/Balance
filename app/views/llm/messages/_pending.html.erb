@@ -1,10 +1,10 @@
-<div id="llm_chat_<%= llm_chat.id %>_pending" class="flex justify-start">
+<div id="llm_chat_<%= llm_chat.id %>_pending" data-message-role="pending" class="flex justify-start">
   <div class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-2">
     <span class="flex items-center gap-1">
       <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:-0.3s]"></span>
       <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:-0.15s]"></span>
       <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400"></span>
     </span>
-    <span class="text-sm text-neutral-500">Thinking…</span>
+    <span class="text-sm text-neutral-500"><%= local_assigns.fetch(:label, "Thinking…") %></span>
   </div>
 </div>

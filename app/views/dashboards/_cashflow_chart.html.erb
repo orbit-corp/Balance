@@ -1,25 +1,25 @@
-<% series = summary.daily_series(days: 90).map { |day| { date: day[:date].iso8601, net_kobo: day[:net_kobo] } } %>
-<% ranges = [ [ "Last 3 months", 90 ], [ "Last 30 days", 30 ], [ "Last 7 days", 7 ] ] %>
-<% selected_days = 30 %>
-
-<%= tag.div class: "rounded-md border border-neutral-200 bg-white p-5", data: { controller: "chart", chart_series_value: series.to_json } do %>
-  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-    <div class="flex flex-col gap-y-1">
-      <h2 class="text-base font-medium text-neutral-900">Cash flow</h2>
-      <p class="text-sm text-neutral-500">Running balance over the selected period</p>
+<section aria-labelledby="performance-heading">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <h2 id="performance-heading" class="text-base font-medium text-neutral-900">Profit and loss trend</h2>
+      <p class="mt-0.5 text-sm text-neutral-500">Daily profit or loss for the last <%= days %> days.</p>
     </div>
-
-    <div class="inline-flex shrink-0 rounded-md border border-neutral-200 p-0.5">
-      <% ranges.each do |label, days| %>
-        <button type="button" data-chart-target="range" data-days="<%= days %>" data-action="chart#setRange"
-                class="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors <%= days == selected_days ? "bg-neutral-100 text-neutral-900" : "text-neutral-500 hover:text-neutral-900" %>">
-          <%= label %>
-        </button>
-      <% end %>
-    </div>
+    <span class="text-xs text-neutral-400">Amounts in NGN</span>
   </div>
 
-  <div class="mt-4">
-    <svg data-chart-target="svg" viewBox="0 0 720 220" class="h-[220px] w-full" role="img" aria-label="Cash flow chart"></svg>
+  <div class="mt-4 h-[260px] border-b border-neutral-200 pb-4">
+    <%= line_chart summary.performance_series(days: days),
+        height: "240px",
+        colors: [ "#171717" ],
+        points: false,
+        curve: false,
+        legend: "bottom",
+        prefix: "₦",
+        thousands: ",",
+        library: {
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, padding: 18 } } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: "#eeeeee" }, border: { display: false } } }
+        } %>
   </div>
-<% end %>
+</section>

@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { value: String, label: String, doneLabel: { type: String, default: "Copied" } }
+  static targets = ["defaultIcon", "doneIcon"]
+  static values = { value: String }
 
   async copy() {
     try {
@@ -10,9 +11,18 @@ export default class extends Controller {
       return
     }
 
-    const original = this.labelValue || this.element.textContent
-    this.element.textContent = this.doneLabelValue
+    this.defaultIconTarget.hidden = true
+    this.doneIconTarget.hidden = false
     clearTimeout(this.resetTimeout)
-    this.resetTimeout = setTimeout(() => { this.element.textContent = original }, 1600)
+    this.resetTimeout = setTimeout(() => this.reset(), 1600)
+  }
+
+  disconnect() {
+    clearTimeout(this.resetTimeout)
+  }
+
+  reset() {
+    this.defaultIconTarget.hidden = false
+    this.doneIconTarget.hidden = true
   }
 }

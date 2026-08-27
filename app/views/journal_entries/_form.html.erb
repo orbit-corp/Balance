@@ -1,48 +1,86 @@
-<%= form_with model: journal_entry, url: journal_entries_path, class: "space-y-5", data: { controller: "journal-entry-lines" } do |form| %>
-  <%= render "shared/form_errors", record: journal_entry %>
+<%= form_with model: journal_entry,
+    url: journal_entries_path,
+    class: "flex min-h-0 flex-1 flex-col",
+    data: { controller: "journal-entry-lines", action: "submit->journal-entry-lines#validate" } do |form| %>
+  <%= render "shared/modal/header",
+      title: "New journal entry",
+      subtitle: "Record one balanced transaction. The first two lines are required." %>
 
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-    <div>
-      <%= form.label :entry_date, "Date", class: field_label_class %>
-      <%= form.date_field :entry_date, value: journal_entry.entry_date || Date.current, required: true, class: field_class %>
+  <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+    <%= render "shared/form_errors", record: journal_entry %>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-[0.8fr_1.6fr]">
+      <div>
+        <%= form.label :entry_date, "Date", class: field_label_class %>
+        <%= form.text_field :entry_date,
+            value: journal_entry.entry_date || Date.current,
+            required: true,
+            autocomplete: "off",
+            class: "#{field_class} cursor-pointer",
+            data: { controller: "date-picker" } %>
+      </div>
+
+      <div>
+        <%= form.label :description, class: field_label_class %>
+        <%= form.text_field :description,
+            required: true,
+            placeholder: "What happened?",
+            autocomplete: "off",
+            class: field_class %>
+      </div>
     </div>
 
-    <div>
-      <%= form.label :description, class: field_label_class %>
-      <%= form.text_field :description, placeholder: "Optional", class: field_class %>
+    <div class="mt-6 overflow-x-auto">
+      <div class="grid min-w-[720px] grid-cols-[minmax(13rem,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_4.5rem] gap-2 border-b border-neutral-200 pb-2">
+        <span class="text-xs font-medium text-neutral-500">Account</span>
+        <span class="text-xs font-medium text-neutral-500">Debit</span>
+        <span class="text-xs font-medium text-neutral-500">Credit</span>
+        <span></span>
+      </div>
+
+      <div class="min-w-[720px]" data-journal-entry-lines-target="lines">
+        <%= form.fields_for :journal_entry_lines do |line_form| %>
+          <%= render "journal_entries/line_fields", form: line_form, protected: line_form.index.to_i < 2 %>
+        <% end %>
+      </div>
+
+      <template data-journal-entry-lines-target="template">
+        <%= form.fields_for :journal_entry_lines, JournalEntryLine.new, child_index: "__INDEX__" do |line_form| %>
+          <%= render "journal_entries/line_fields", form: line_form, protected: false %>
+        <% end %>
+      </template>
+
+      <button type="button" data-action="journal-entry-lines#addLine" class="mt-3 <%= secondary_button_class(size: :sm) %>">
+        <%= inline_svg_tag "icons/plus.svg", class: "h-3.5 w-3.5" %>Add line
+      </button>
+
+      <div class="mt-5 grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-3">
+        <div>
+          <p class="text-xs text-neutral-500">Total debits</p>
+          <p class="mt-0.5 font-semibold tabular-nums text-neutral-900" data-journal-entry-lines-target="debitTotal">0.00</p>
+        </div>
+        <div>
+          <p class="text-xs text-neutral-500">Total credits</p>
+          <p class="mt-0.5 font-semibold tabular-nums text-neutral-900" data-journal-entry-lines-target="creditTotal">0.00</p>
+        </div>
+        <div class="sm:text-right">
+          <p class="text-xs text-neutral-500">Difference</p>
+          <p class="mt-0.5 font-semibold tabular-nums text-neutral-900" data-journal-entry-lines-target="difference">0.00</p>
+        </div>
+      </div>
+
+      <p class="mt-3 text-xs text-neutral-500" data-journal-entry-lines-target="status">Choose an account and enter either a debit or credit on each required line.</p>
     </div>
   </div>
 
-  <div>
-    <div class="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 pb-1">
-      <span class="text-sm font-medium text-neutral-900">Account</span>
-      <span class="text-sm font-medium text-neutral-900">Debit</span>
-      <span class="text-sm font-medium text-neutral-900">Credit</span>
-      <span class="w-7"></span>
-    </div>
-
-    <div data-journal-entry-lines-target="lines">
-      <%= form.fields_for :journal_entry_lines do |line_form| %>
-        <%= render "journal_entries/line_fields", form: line_form %>
-      <% end %>
-    </div>
-
-    <template data-journal-entry-lines-target="template">
-      <%= form.fields_for :journal_entry_lines, JournalEntryLine.new, child_index: "__INDEX__" do |line_form| %>
-        <%= render "journal_entries/line_fields", form: line_form %>
-      <% end %>
-    </template>
-
-    <button type="button" data-action="journal-entry-lines#addLine" class="mt-3 <%= secondary_button_class %>">
-      <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>Add line
-    </button>
-
-    <div class="mt-4 flex flex-wrap justify-end gap-x-6 gap-y-1 border-t border-neutral-200 pt-3 text-sm text-neutral-500">
-      <span>Debits <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="debitTotal">0.00</span></span>
-      <span>Credits <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="creditTotal">0.00</span></span>
-      <span>Difference <span class="font-medium tabular-nums text-neutral-900" data-journal-entry-lines-target="difference">0.00</span></span>
+  <div class="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-200 bg-neutral-50/60 px-6 py-4">
+    <p class="hidden text-xs text-neutral-500 sm:block">Entries cannot be edited after recording.</p>
+    <div class="ml-auto flex gap-2">
+      <button type="button" data-action="modal#close" class="<%= secondary_button_class %>">Cancel</button>
+      <%= form.submit "Record entry",
+          disabled: true,
+          class: "#{primary_button_class} disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400",
+          data: { journal_entry_lines_target: "submit" } %>
     </div>
   </div>
-
-  <%= form.submit "Record entry", class: primary_button_class %>
 <% end %>

@@ -1,0 +1,113 @@
+- id: example-01-cash-sale
+  source_example: 1
+  entry_index: 1
+  workspace_type: business
+  prompt: Sold a shirt for ₦2,000 cash today.
+- id: example-02-credit-sale
+  source_example: 2
+  entry_index: 1
+  workspace_type: business
+  prompt: Sold a shirt for ₦2,000 today and the customer will pay later.
+- id: example-03-receivable-collected
+  source_example: 3
+  entry_index: 1
+  workspace_type: business
+  prompt: Received ₦2,000 cash today from a customer settling a prior credit sale.
+- id: example-04-inventory-on-credit
+  source_example: 4
+  entry_index: 1
+  workspace_type: business
+  prompt: Bought ₦20,000 of inventory on credit today; the supplier invoice remains unpaid.
+- id: example-05-cash-rent
+  source_example: 5
+  entry_index: 1
+  workspace_type: business
+  prompt: Paid ₦5,000 rent in cash today.
+- id: example-06-pay-supplier
+  source_example: 6
+  entry_index: 1
+  workspace_type: business
+  prompt: Paid ₦20,000 cash today to settle a prior supplier invoice.
+- id: example-07-owner-contribution
+  source_example: 7
+  entry_index: 1
+  workspace_type: business
+  prompt: The owner deposited ₦100,000 of personal cash into the business cash account today.
+- id: example-08-cash-gift
+  source_example: 8
+  entry_index: 1
+  workspace_type: personal
+  prior_messages:
+    - role: user
+      content: I gave Zoe 10000 today.
+    - role: assistant
+      content: Was the 10000 a gift to Zoe, or do you expect it to be repaid?
+    - role: user
+      content: It was a gift.
+    - role: assistant
+      content: How did you pay?
+  prompt: Cash.
+- id: example-09-personal-loan
+  source_example: 9
+  entry_index: 1
+  workspace_type: personal
+  prompt: Gave ₦10,000 cash today as a personal loan and expect it to be repaid.
+- id: example-10-pos-withdrawal
+  source_example: 10
+  entry_index: 1
+  workspace_type: personal
+  prompt: Withdrew ₦20,000 cash from my bank through a POS agent today; the ₦100 fee was also charged to the bank account.
+- id: example-11-salary-deductions
+  source_example: 11
+  entry_index: 1
+  workspace_type: personal
+  prompt: Earned ₦300,000 gross salary today; ₦250,000 reached my bank, ₦30,000 went to my pension account, and ₦20,000 was tax.
+- id: example-12-fuel-and-transport
+  source_example: 12
+  entry_index: 1
+  workspace_type: personal
+  prior_messages:
+    - role: user
+      content: Sold a shirt for ₦2,000 cash today.
+    - role: assistant
+      content: I can prepare the ₦2,000 shirt sale entry.
+    - role: user
+      content: Paid ₦15,000 cash for generator fuel and ₦5,000 cash for transport today.
+    - role: assistant
+      content: Do you want separate fuel and transport expense accounts, or one combined expense account?
+  prompt: Use separate expense accounts.
+- id: example-13-ajo-contribution
+  source_example: 13
+  entry_index: 1
+  workspace_type: personal
+  prompt: Paid ₦10,000 cash into a monthly ajo today and expect it back as a lump sum later.
+- id: example-14-ajo-payout
+  source_example: 14
+  entry_index: 1
+  workspace_type: personal
+  prompt: Received a ₦120,000 cash ajo payout today after contributing ₦100,000 in total; the ₦20,000 difference is a gain.
+- id: example-15-phone-installment
+  source_example: 15
+  entry_index: 1
+  workspace_type: personal
+  prompt: Bought a ₦200,000 phone today, paid ₦50,000 cash down, and still owe the store ₦150,000.
+- id: example-16-family-support
+  source_example: 16
+  entry_index: 1
+  workspace_type: personal
+  prompt: Withdrew ₦50,000 from my bank today; ₦30,000 was family support and ₦20,000 was personal upkeep.
+- id: example-17a-import-goods
+  source_example: 17
+  entry_index: 1
+  workspace_type: business
+  prompt: Received $1,000 of inventory from China on credit today at ₦1,500 per dollar; record the ₦1,500,000 supplier liability.
+- id: example-17b-import-freight
+  source_example: 17
+  entry_index: 2
+  workspace_type: business
+  prompt: Paid ₦80,000 cash for freight and customs today on imported inventory; capitalize it into inventory.
+- id: example-17c-settle-usd-payable
+  source_example: 17
+  entry_index: 3
+  workspace_type: business
+  prompt: Paid the $1,000 supplier today at ₦1,550 per dollar; clear the ₦1,500,000 payable and record the ₦50,000 FX loss.

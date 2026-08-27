@@ -1,26 +1,26 @@
 require "test_helper"
 
 class RegistrationsControllerTest < ActionDispatch::IntegrationTest
-  test "signup creates a workspace and logs in" do
-    assert_difference [ "Workspace.count", "User.count" ], 1 do
+  test "signup creates an identity and starts onboarding" do
+    assert_difference "User.count", 1 do
+      assert_no_difference "Workspace.count" do
       post registration_path, params: {
-        business_name: "Chidi's Fabrics",
+        full_name: "Chidi Okafor",
         email_address: "chidi@example.com",
         password: "supersecret123"
       }
+      end
     end
 
-    workspace = Workspace.order(:created_at).last
-    assert_equal "Chidi's Fabrics", workspace.name
-
-    assert_redirected_to dashboard_path
+    assert_equal "Chidi Okafor", User.order(:created_at).last.full_name
+    assert_redirected_to onboarding_step_path(:workspace_type)
     assert cookies[:session_id]
   end
 
   test "signup with invalid params re-renders the form" do
-    assert_no_difference [ "Workspace.count", "User.count" ] do
+    assert_no_difference "User.count" do
       post registration_path, params: {
-        business_name: "",
+        full_name: "",
         email_address: "chidi@example.com",
         password: "supersecret123"
       }

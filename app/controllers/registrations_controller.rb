@@ -2,25 +2,25 @@ class RegistrationsController < ApplicationController
   layout "auth"
 
   allow_unauthenticated_access
+  skip_before_action :require_current_workspace
 
   def new
     @user = User.new
   end
 
   def create
-    @user = User.new(email_address: params[:email_address], password: params[:password])
-
-    ActiveRecord::Base.transaction do
-      workspace = Workspace.create!(name: params[:business_name])
-      Account::SEED_ON_CREATE.each { |role| Account.for_role!(workspace, role) }
-      @user.workspace = workspace
-      @user.save!
-    end
+    @user = User.new(user_params)
+    @user.save!
 
     start_new_session_for @user
-    redirect_to dashboard_path
-  rescue ActiveRecord::RecordInvalid => invalid
-    invalid.record.errors.each { |error| @user.errors.add(error.attribute, error.message) unless invalid.record == @user }
+    redirect_to onboarding_step_path(:workspace_type)
+  rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_content
+  end
+
+  private
+
+  def user_params
+    params.permit(:full_name, :email_address, :password)
   end
 end

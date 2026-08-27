@@ -7,12 +7,12 @@
        aria-label="<%= title %>"
        tabindex="-1">
     <div data-drawer-target="backdrop"
-         class="fixed inset-0 bg-neutral-950/40 opacity-0 transition-opacity duration-200 ease-out motion-reduce:transition-none"></div>
+         class="fixed inset-0 bg-neutral-950/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-200 ease-out motion-reduce:transition-none"></div>
 
     <div data-drawer-target="panel"
-         class="relative z-10 flex h-full w-full max-w-sm translate-x-full flex-col border-l border-neutral-200 bg-white shadow-xl transition duration-200 ease-out motion-reduce:transition-none">
-      <div class="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
-        <h2 class="text-base font-medium text-neutral-900"><%= title %></h2>
+         class="relative z-10 flex h-full w-full max-w-md translate-x-full flex-col border-l border-neutral-200 bg-neutral-50 shadow-2xl transition duration-200 ease-out motion-reduce:transition-none">
+      <div class="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-neutral-200 bg-white px-5">
+        <h2 class="text-base font-semibold tracking-tight text-neutral-900"><%= title %></h2>
 
         <button type="button" data-action="drawer#close" class="-mr-1.5 <%= icon_button_class %>">
           <span class="sr-only">Close</span>
@@ -20,7 +20,7 @@
         </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto p-2">
+      <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <%= yield %>
       </div>
     </div>

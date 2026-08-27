@@ -1,7 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["lines", "template", "debit", "credit", "debitTotal", "creditTotal", "difference"]
+  static targets = ["lines", "template", "row", "account", "debit", "credit", "debitTotal", "creditTotal", "difference", "status", "submit"]
+
+  connect() {
+    this.recalculate()
+  }
 
   addLine() {
     const index = Date.now()
@@ -12,6 +16,8 @@ export default class extends Controller {
 
   removeLine(event) {
     const row = event.target.closest("[data-journal-entry-lines-target='row']")
+    if (row.dataset.protected === "true") return
+
     const destroyInput = row.querySelector("input[name*='_destroy']")
 
     if (destroyInput) {
@@ -24,14 +30,55 @@ export default class extends Controller {
     this.recalculate()
   }
 
+  amountChanged(event) {
+    const row = event.target.closest("[data-journal-entry-lines-target='row']")
+    const counterpart = event.target.matches("[data-journal-entry-lines-target='debit']")
+      ? row.querySelector("[data-journal-entry-lines-target='credit']")
+      : row.querySelector("[data-journal-entry-lines-target='debit']")
+
+    if (this.amount(event.target) > 0) counterpart.value = ""
+    this.recalculate()
+  }
+
   recalculate() {
-    const sum = (targets) => targets.reduce((total, input) => total + (parseFloat(input.value) || 0), 0)
+    const activeRows = this.rowTargets.filter((row) => !row.hidden)
+    const debitTotal = activeRows.reduce((total, row) => total + this.amount(row.querySelector("[data-journal-entry-lines-target='debit']")), 0)
+    const creditTotal = activeRows.reduce((total, row) => total + this.amount(row.querySelector("[data-journal-entry-lines-target='credit']")), 0)
+    const difference = debitTotal - creditTotal
+    const complete = activeRows.length >= 2 && activeRows.every((row) => this.rowComplete(row))
+    const balanced = debitTotal > 0 && Math.abs(difference) < 0.005
 
-    const debitTotal = sum(this.debitTargets.filter((input) => !input.closest("[hidden]")))
-    const creditTotal = sum(this.creditTargets.filter((input) => !input.closest("[hidden]")))
+    this.debitTotalTarget.textContent = this.format(debitTotal)
+    this.creditTotalTarget.textContent = this.format(creditTotal)
+    this.differenceTarget.textContent = this.format(Math.abs(difference))
+    this.differenceTarget.classList.toggle("text-red-600", Math.abs(difference) >= 0.005)
+    this.submitTarget.disabled = !(complete && balanced)
+    this.statusTarget.textContent = complete && balanced
+      ? "Balanced and ready to record."
+      : "Choose an account and enter either a debit or credit on every line; totals must balance."
+    this.statusTarget.classList.toggle("text-emerald-700", complete && balanced)
+  }
 
-    this.debitTotalTarget.textContent = debitTotal.toFixed(2)
-    this.creditTotalTarget.textContent = creditTotal.toFixed(2)
-    this.differenceTarget.textContent = (debitTotal - creditTotal).toFixed(2)
+  validate(event) {
+    this.recalculate()
+    if (!this.submitTarget.disabled) return
+
+    event.preventDefault()
+    this.statusTarget.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }
+
+  rowComplete(row) {
+    const account = row.querySelector("[data-journal-entry-lines-target='account']")
+    const debit = this.amount(row.querySelector("[data-journal-entry-lines-target='debit']"))
+    const credit = this.amount(row.querySelector("[data-journal-entry-lines-target='credit']"))
+    return account.value && ((debit > 0) !== (credit > 0))
+  }
+
+  amount(input) {
+    return parseFloat(input?.value.replaceAll(",", "")) || 0
+  }
+
+  format(value) {
+    return new Intl.NumberFormat("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
   }
 }

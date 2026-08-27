@@ -1,4 +1,4 @@
-# Local Docker orchestration for stubby. NOT the production deploy path — Kamal
+# Local Docker orchestration for balance. NOT the production deploy path — Kamal
 # owns that (config/deploy.yml). This collapses the manual `docker network create`
 # + multiple `docker run` dance into one command, and lets us run two rungs of
 # fidelity against a shared Postgres:
@@ -15,35 +15,35 @@
 # .env (see .env.example). The --profile flag on the CLI overrides that env var,
 # so the prod command above starts only postgres + web-prod, not the dev app.
 
-name: stubby
+name: balance
 
 services:
   # Shared Postgres for both rungs. POSTGRES_USER becomes a superuser, which lets
   # the prod image's entrypoint (bin/docker-entrypoint -> db:prepare) create the
-  # extra cache/queue/cable databases on first boot. Matches the `stubby` role
+  # extra cache/queue/cable databases on first boot. Matches the `balance` role
   # that config/database.yml connects as in production.
   postgres:
     image: postgres:16
     profiles: ["dev", "prod"]
     environment:
-      POSTGRES_USER: stubby
-      POSTGRES_PASSWORD: ${STUBBY_DATABASE_PASSWORD:-stubby_dev_password}
-      POSTGRES_DB: stubby_production
+      POSTGRES_USER: balance
+      POSTGRES_PASSWORD: ${BALANCE_DATABASE_PASSWORD:-balance_dev_password}
+      POSTGRES_DB: balance_production
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
       # -d targets an existing database; without it pg_isready probes a db named
-      # after the user ("stubby"), which doesn't exist and floods the log with
+      # after the user ("balance"), which doesn't exist and floods the log with
       # FATAL "database does not exist" every interval.
-      test: ["CMD-SHELL", "pg_isready -U stubby -d stubby_production"]
+      test: ["CMD-SHELL", "pg_isready -U balance -d balance_production"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   # Rung 1 — development convenience. Code is bind-mounted for live reload; the
-  # single stubby_development database is created before bin/dev starts (dev uses
+  # single balance_development database is created before bin/dev starts (dev uses
   # an in-memory cache store and the async queue/cable adapters, so no separate
   # cache/queue/cable databases are needed here — unlike production).
   web-dev:
@@ -54,7 +54,7 @@ services:
     environment:
       RAILS_ENV: development
       BINDING: "0.0.0.0"
-      DATABASE_URL: postgres://stubby:${STUBBY_DATABASE_PASSWORD:-stubby_dev_password}@postgres:5432/stubby_development
+      DATABASE_URL: postgres://balance:${BALANCE_DATABASE_PASSWORD:-balance_dev_password}@postgres:5432/balance_development
     command: bash -c "bin/rails db:prepare && bin/dev"
     ports:
       - "3000:3000"
@@ -78,7 +78,7 @@ services:
     environment:
       RAILS_ENV: production
       DB_HOST: postgres
-      STUBBY_DATABASE_PASSWORD: ${STUBBY_DATABASE_PASSWORD:-stubby_dev_password}
+      BALANCE_DATABASE_PASSWORD: ${BALANCE_DATABASE_PASSWORD:-balance_dev_password}
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?set RAILS_MASTER_KEY in .env to the contents of config/master.key}
     ports:
       - "8080:80"
