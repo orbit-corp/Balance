@@ -5,7 +5,8 @@
 <% status_label = editable ? "Draft" : (proposal.confirmed? ? "Recorded" : proposal.status.titleize) %>
 <% input = "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-neutral-900 transition-colors hover:border-neutral-200 focus:border-[#0f7082] focus:bg-white focus:outline-none" %>
 
-<div id="proposal_<%= proposal.id %>" data-message-role="proposal" class="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+<div id="proposal_<%= proposal.id %>" data-message-role="proposal" class="w-full max-w-lg">
+<div class="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
   <div class="flex items-start justify-between gap-3 px-4 py-3">
     <div class="min-w-0">
       <div class="flex items-center gap-2">
@@ -91,4 +92,19 @@
       </div>
     <% end %>
   <% end %>
+</div>
+
+  <div class="mt-1 flex items-center gap-1">
+    <button type="button" data-controller="copy" data-copy-value-value="<%= proposal_response_content(proposal) %>" data-action="copy#copy" class="<%= icon_button_class %> text-neutral-400">
+      <span data-copy-target="defaultIcon">
+        <span class="sr-only">Copy response</span>
+        <%= inline_svg_tag "icons/copy.svg", class: "h-3.5 w-3.5" %>
+      </span>
+      <span hidden data-copy-target="doneIcon" class="text-green-600">
+        <span class="sr-only">Copied</span>
+        <%= inline_svg_tag "icons/check.svg", class: "h-3.5 w-3.5" %>
+      </span>
+    </button>
+    <span class="text-xs text-neutral-400"><%= proposal.created_at&.strftime("%-l:%M %p") %></span>
+  </div>
 </div>

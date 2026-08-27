@@ -33,6 +33,32 @@ module Llm::MessagesHelper
   def tool_running_label(tool_name) = TOOL_LABELS[:running][tool_name] || tool_name.to_s.humanize
   def tool_completed_label(tool_name) = TOOL_LABELS[:completed][tool_name] || tool_name.to_s.humanize
 
+  def tool_detail_items(tool_name, output)
+    case tool_name
+    when "list_accounts"
+      Array(output&.dig(:existing_accounts)).filter_map { |account| account[:name] }
+    when "list_journal_entries"
+      Array(output).filter_map do |entry|
+        next unless entry.is_a?(Hash)
+
+        [ entry[:date], entry[:description] ].compact.join(" · ")
+      end
+    when "get_balance_summary"
+      output&.dig(:periods).to_h.map do |period, values|
+        "#{period}: income #{values[:income_naira]}, expenses #{values[:expense_naira]}, net #{values[:net_naira]}"
+      end
+    when "check_proposal_status"
+      Array(output).filter_map do |proposal|
+        next unless proposal.is_a?(Hash)
+
+        [ proposal[:description], proposal[:status] ].compact.join(" · ")
+      end
+    else
+      message = output[:error] || output[:message] if output.is_a?(Hash)
+      Array(message)
+    end
+  end
+
   def assistant_content(content)
     html = Commonmarker.to_html(
       content.to_s,
@@ -53,15 +79,32 @@ module Llm::MessagesHelper
     content.to_s.match?(/\b(undo|reverse|reversal|correct|mistake)\b/i)
   end
 
+  def proposal_response_content(proposal)
+    message_id = proposal.llm_message_id || Float::INFINITY
+    message = proposal.llm_chat.llm_messages
+      .where(role: "assistant")
+      .where("id < ?", message_id)
+      .where.not(content: [ nil, "" ])
+      .order(:id)
+      .last
+
+    message&.content.presence || proposal.description
+  end
+
   def render_timeline_item(item)
     case item[:type]
     when :message
-      render item[:record]
+      partial = item[:record].role == "user" ? "llm/messages/user" : "llm/messages/assistant"
+      render partial, item[:record].role.to_sym => item[:record]
+    when :activity
+      render "llm/messages/activity", activity: item[:record]
     when :tool_call
+      output = item[:record].display_output
       render "llm/messages/tool_execution",
         tool_call_id: item[:record].tool_call_id,
         tool_name: item[:record].name,
-        state: :completed
+        state: item[:record].trace_failed? ? :failed : :completed,
+        output: output
     when :proposal
       render_proposal(item[:record])
     end

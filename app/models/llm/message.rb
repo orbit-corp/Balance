@@ -15,10 +15,17 @@ class Llm::Message < ApplicationRecord
   def broadcast_append_if_visible
     return unless role == "assistant"
 
-    broadcast_append_to "llm_chat_#{llm_chat_id}", target: "llm_messages"
+    broadcast_append_to "llm_chat_#{llm_chat_id}",
+      target: "llm_messages",
+      partial: "llm/messages/assistant",
+      locals: { assistant: self }
   end
 
   def broadcast_replace_if_visible
-    broadcast_replace_to "llm_chat_#{llm_chat_id}" if role == "assistant" && content.present?
+    return unless role == "assistant" && content.present?
+
+    broadcast_replace_to "llm_chat_#{llm_chat_id}",
+      partial: "llm/messages/assistant",
+      locals: { assistant: self }
   end
 end

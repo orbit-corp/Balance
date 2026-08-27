@@ -20,6 +20,8 @@ gem "tailwindcss-rails"
 gem "inline_svg"
 # Render model responses as safe GitHub-flavored Markdown
 gem "commonmarker"
+# Render responsive accounting charts with Chart.js.
+gem "chartkick"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
 

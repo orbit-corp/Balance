@@ -20,15 +20,26 @@
       description: "Create an account for every place money sits or moves through — a bank, cash on hand, or a category for sales.",
       action: new_account %>
 <% else %>
-  <%= render layout: "shared/table", locals: { columns: [ { label: "Name" }, { label: "Base type" }, { label: "Type" }, { label: "Detail type" }, { label: "Description" } ] } do %>
-    <% @accounts.each do |account| %>
-      <tr id="<%= dom_id(account) %>" class="transition-colors hover:bg-neutral-50">
-        <td class="px-4 py-3 text-sm font-medium whitespace-nowrap text-neutral-900"><%= account.name %></td>
-        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.base_type.humanize %></td>
-        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.account_type.humanize %></td>
-        <td class="<%= table_cell_class %> whitespace-nowrap"><%= account.detail_type.humanize %></td>
-        <td class="<%= table_cell_class %> max-w-xs truncate"><%= account.description.presence || blank_cell %></td>
-      </tr>
-    <% end %>
-  <% end %>
+  <div class="mt-4 overflow-x-auto border-y border-neutral-200">
+    <table class="min-w-full">
+      <thead class="sticky top-0 z-10 bg-white">
+        <tr>
+          <% [ "Name", "Base type", "Type", "Detail type", "Description" ].each do |label| %>
+            <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500"><%= label %></th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody class="bg-white">
+        <% @accounts.each do |account| %>
+          <tr id="<%= dom_id(account) %>" class="border-t border-neutral-200 transition-colors hover:bg-neutral-50/80">
+            <td class="px-4 py-3 text-sm font-medium whitespace-nowrap text-neutral-900"><%= account.name %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= account.base_type.humanize %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= account.account_type.humanize %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= account.detail_type.humanize %></td>
+            <td class="max-w-xs truncate px-4 py-3 text-sm text-neutral-500"><%= account.description.presence || blank_cell %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 <% end %>

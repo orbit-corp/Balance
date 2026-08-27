@@ -44,7 +44,7 @@ class LedgerSummary
     end
   end
 
-  RECENT_LIMIT = 20
+  RECENT_LIMIT = 6
 
   def initialize(workspace)
     @workspace = workspace
@@ -68,6 +68,29 @@ class LedgerSummary
       Card.new(label: "This week", current: this_week, previous: profit_and_loss((Date.current.beginning_of_week - 7)..(Date.current - 7))),
       Card.new(label: "This month", current: this_month, previous: profit_and_loss((Date.current.beginning_of_month - 1.month)..(Date.current - 1.month)))
     ]
+  end
+
+  def period(days: 30)
+    profit_and_loss((Date.current - (days - 1))..Date.current)
+  end
+
+  def previous_period(days: 30)
+    end_date = Date.current - days
+    profit_and_loss((end_date - (days - 1))..end_date)
+  end
+
+  def liquid_balance_kobo(as_of: Date.current)
+    JournalEntryLine.joins(:journal_entry, :account)
+      .where(journal_entries: { workspace_id: workspace.id, entry_date: ..as_of })
+      .where(accounts: { account_type: liquid_account_types })
+      .where.not(accounts: { detail_type: "Suspense / Clearing" })
+      .sum("journal_entry_lines.debit_kobo - journal_entry_lines.credit_kobo")
+  end
+
+  def performance_series(days: 30)
+    daily_series(days: days).then do |series|
+      [ { name: "Profit / loss", data: series.to_h { |day| [ day[:date], day[:net_kobo] / 100.0 ] } } ]
+    end
   end
 
   def daily_series(days: 30)
@@ -148,6 +171,10 @@ class LedgerSummary
   private
 
   attr_reader :workspace
+
+  def liquid_account_types
+    workspace.personal? ? [ "Cash & Liquid Assets" ] : [ "Bank" ]
+  end
 
   def base_type_totals(as_of:)
     JournalEntryLine.joins(:journal_entry, :account)

@@ -5,9 +5,14 @@ class Llm::ChatBroadcaster
   end
 
   def append_assistant_chunk(content)
+    working unless @response_started
     @response_started = true
 
     @chat.llm_messages.last.broadcast_append_chunk(content)
+  end
+
+  def response_started?
+    @response_started
   end
 
   def remove_empty_assistant_messages
@@ -26,11 +31,25 @@ class Llm::ChatBroadcaster
       locals: { tool_call_id: tool_call.id, tool_name: tool_call.name, state: :running }
   end
 
+  def activity(activity)
+    Turbo::StreamsChannel.broadcast_append_to stream,
+      target: "llm_messages",
+      partial: "llm/messages/activity",
+      locals: { activity: activity }
+  end
+
   def tool_completed(tool_call, result)
     Turbo::StreamsChannel.broadcast_replace_to stream,
       target: "tool_call_#{tool_call.id}",
       partial: "llm/messages/tool_execution",
       locals: { tool_call_id: tool_call.id, tool_name: tool_call.name, state: :completed, output: result }
+  end
+
+  def tool_failed(tool_call, result)
+    Turbo::StreamsChannel.broadcast_replace_to stream,
+      target: "tool_call_#{tool_call.id}",
+      partial: "llm/messages/tool_execution",
+      locals: { tool_call_id: tool_call.id, tool_name: tool_call.name, state: :failed, output: result }
   end
 
   def tool_append_completed(tool_call, result)
@@ -70,6 +89,14 @@ class Llm::ChatBroadcaster
       target: "llm_chat_#{@chat.id}_pending",
       partial: "llm/messages/pending",
       locals: { llm_chat: @chat }
+  end
+
+  def working
+    remove_pending
+    Turbo::StreamsChannel.broadcast_append_to stream,
+      target: "llm_messages",
+      partial: "llm/messages/pending",
+      locals: { llm_chat: @chat, label: "Working…" }
   end
 
   def compacting

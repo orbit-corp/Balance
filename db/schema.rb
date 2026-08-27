@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_25_000300) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -64,6 +64,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000300) do
     t.index ["account_id"], name: "index_journal_entry_lines_on_account_id"
     t.index ["counterparty_type", "counterparty_id"], name: "index_journal_entry_lines_on_counterparty"
     t.index ["journal_entry_id"], name: "index_journal_entry_lines_on_journal_entry_id"
+  end
+
+  create_table "llm_activities", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.bigint "llm_chat_id", null: false
+    t.bigint "turn_user_message_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["llm_chat_id", "turn_user_message_id", "kind"], name: "index_llm_activities_on_turn_and_kind", unique: true
+    t.index ["llm_chat_id"], name: "index_llm_activities_on_llm_chat_id"
   end
 
   create_table "llm_chats", force: :cascade do |t|
@@ -128,6 +139,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000300) do
     t.string "name", null: false
     t.text "thought_signature"
     t.string "tool_call_id", null: false
+    t.jsonb "trace_output", default: {}, null: false
+    t.string "trace_status"
     t.datetime "updated_at", null: false
     t.index ["llm_message_id"], name: "index_llm_tool_calls_on_llm_message_id"
     t.index ["name"], name: "index_llm_tool_calls_on_name"
@@ -199,6 +212,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000300) do
   add_foreign_key "journal_entries", "workspaces"
   add_foreign_key "journal_entry_lines", "accounts"
   add_foreign_key "journal_entry_lines", "journal_entries"
+  add_foreign_key "llm_activities", "llm_chats"
   add_foreign_key "llm_chats", "llm_models"
   add_foreign_key "llm_chats", "workspaces"
   add_foreign_key "llm_messages", "llm_chats"

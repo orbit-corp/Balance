@@ -10,5 +10,5 @@
  */
 
 #llm_messages > [data-message-role="tool"] + [data-message-role="tool"] {
-  margin-top: -0.875rem;
+  margin-top: -1.125rem;
 }

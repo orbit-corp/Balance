@@ -4,7 +4,7 @@
   <%= render "shared/breadcrumb", data: [ { label: "Journal entries" } ] %>
 <% end %>
 
-<% new_entry = link_to(new_journal_entry_path, class: primary_button_class) do %>
+<% new_entry = link_to(new_journal_entry_path, class: primary_button_class, data: { turbo_frame: "modal" }) do %>
   <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>New entry
 <% end %>
 
@@ -12,6 +12,26 @@
     title: "Journal entries",
     description: "Every entry balances — total debits equal total credits.",
     action: new_entry %>
+
+<%= form_with url: journal_entries_path, method: :get, class: "mt-4 flex flex-col gap-2 sm:flex-row", data: { controller: "date-range" } do |form| %>
+  <div class="relative min-w-0 flex-1">
+    <%= form.search_field :q, value: params[:q], placeholder: "Search descriptions", class: field_class %>
+  </div>
+  <div class="relative sm:w-64">
+    <%= form.text_field :range,
+        value: [ params[:from], params[:to] ].compact_blank.join(" to "),
+        placeholder: "Select date range",
+        autocomplete: "off",
+        class: "#{field_class} cursor-pointer",
+        data: { date_range_target: "input" } %>
+    <%= form.hidden_field :from, value: params[:from], data: { date_range_target: "from" } %>
+    <%= form.hidden_field :to, value: params[:to], data: { date_range_target: "to" } %>
+  </div>
+  <%= form.submit "Filter", class: secondary_button_class %>
+  <% if params[:q].present? || params[:from].present? %>
+    <%= link_to "Clear", journal_entries_path, class: ghost_button_class %>
+  <% end %>
+<% end %>
 
 <% if @journal_entries.empty? %>
   <%= render "shared/empty_state",

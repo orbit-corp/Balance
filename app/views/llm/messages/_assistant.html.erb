@@ -3,7 +3,7 @@
 <div id="llm_message_<%= assistant.id %>" class="w-full" data-message-role="assistant">
   <div id="llm_message_<%= assistant.id %>_content" class="assistant-markdown text-neutral-900"><%= assistant_content(assistant.content) %></div>
 
-  <% if assistant.content.present? %>
+  <% if assistant.content.present? && assistant.llm_tool_calls.none? %>
     <div class="mt-1 flex items-center gap-1">
       <button type="button" data-controller="copy" data-copy-value-value="<%= assistant.content %>" data-action="copy#copy" class="<%= icon_button_class %> text-neutral-400">
         <span data-copy-target="defaultIcon">

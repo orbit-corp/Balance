@@ -62,6 +62,8 @@ class ProposeEntry < RubyLLM::Tool
   private
 
   def account_lookup_for_active_turn?
+    return true unless @chat.respond_to?(:persisted?) && @chat.persisted?
+
     last_user_id = @chat.llm_messages.where(role: "user").order(id: :desc).pick(:id)
 
     Llm::ToolCall.joins(:llm_message)

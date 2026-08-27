@@ -8,6 +8,7 @@ class Llm::Chat < ApplicationRecord
 
   belongs_to :workspace
   has_many :proposals, foreign_key: :llm_chat_id, dependent: :destroy
+  has_many :llm_activities, class_name: "Llm::Activity", foreign_key: :llm_chat_id, dependent: :destroy
 
   acts_as_chat messages: :llm_messages, message_class: "Llm::Message", messages_foreign_key: :llm_chat_id, model: :llm_model, model_class: "Llm::Model"
 
@@ -18,6 +19,7 @@ class Llm::Chat < ApplicationRecord
   def timeline
     items = []
     visible_messages.each { |message| items << { type: :message, record: message, at: message.created_at } }
+    llm_activities.each { |activity| items << { type: :activity, record: activity, at: activity.created_at } }
     persisted_tool_calls.each { |tool_call| items << { type: :tool_call, record: tool_call, at: tool_call.created_at } }
     proposals.each { |proposal| items << { type: :proposal, record: proposal, at: proposal.created_at } }
     items.sort_by { |item| item[:at] }
@@ -50,10 +52,7 @@ class Llm::Chat < ApplicationRecord
   end
 
   def start_turn(content)
-    first_turn = llm_messages.where(role: "user").none?
-
     llm_messages.create!(role: "user", content: content).tap do
-      LlmChatTitleJob.perform_later(id) if first_turn
       LlmChatResponseJob.perform_later(id)
     end
   end

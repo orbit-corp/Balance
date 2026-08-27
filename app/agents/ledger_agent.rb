@@ -15,7 +15,7 @@ class LedgerAgent < RubyLLM::Agent
     ]
   end
 
-  temperature 0.2
+  temperature 0.0
 
   thinking effort: :none
 
