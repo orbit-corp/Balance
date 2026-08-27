@@ -171,12 +171,15 @@ module Llm
 
       def implementation_fingerprint
         paths = SOURCE_PATHS + %w[
-          app/services/llm/harness/journal_examples_corpus.rb
+          lib/benchmark/harness/journal_examples_corpus.rb
           app/prompts/ledger_agent/instructions.txt.erb
           app/services/llm/chat_turn.rb
-          app/services/llm/harness/case_executor.rb
-          app/services/llm/harness/scorer.rb
-          app/services/llm/harness/transcript_recorder.rb
+          lib/benchmark/harness/case_executor.rb
+          lib/benchmark/harness/scorer.rb
+          lib/benchmark/harness/transcript_recorder.rb
+          lib/benchmark/harness/live_runner.rb
+          lib/benchmark/harness/report_builder.rb
+          lib/benchmark/harness/response_contract.rb
           app/tools/list_accounts.rb
           app/tools/propose_account.rb
           app/tools/propose_entry.rb

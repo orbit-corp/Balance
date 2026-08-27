@@ -34,6 +34,10 @@ class Llm::ActiveTransactionContext
     explicit_amounts.any? && user_text.match?(TRANSACTION_PATTERN)
   end
 
+  def primary_amount_kobo
+    explicit_amounts.first
+  end
+
   def clarification_question
     return unless transaction?
 

@@ -7,7 +7,7 @@
       <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
       New agent
     <% end %>
-    <%= render "llm/chats/chat_list", llm_chats: @llm_chats, current_chat_id: params[:current].to_i %>
+    <%= render "llm/chats/chat_list", llm_chats: @llm_chats, current_chat_uuid: params[:current] %>
   <% end %>
 <% else %>
   <%= content_for(:breadcrumb) do %>

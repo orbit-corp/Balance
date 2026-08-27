@@ -41,7 +41,7 @@ class Llm::ChatsController < ApplicationController
   private
 
   def set_llm_chat
-    @llm_chat = current_workspace.llm_chats.find(params[:id])
+    @llm_chat = current_workspace.llm_chats.find_by!(uuid: params[:uuid])
   end
 
   # Local providers (LM Studio) serve models unknown to RubyLLM's registry.

@@ -126,13 +126,14 @@ module Llm
 
       def deliver_prompt!
         @recorder.event("prompt_delivered", content: @test_case.fetch("prompt"))
-        @chat.llm_messages.create!(role: "user", content: @test_case.fetch("prompt"))
+        message = @chat.llm_messages.create!(role: "user", content: @test_case.fetch("prompt"))
+        @turn = @chat.llm_turns.create!(user_message: message)
       end
 
       def run_turn
         agent = LedgerAgent.new(chat: @chat)
         @recorder.attach(agent)
-        Llm::ChatTurn.new(chat: @chat, agent: agent).call
+        Llm::ChatTurn.new(chat: @chat, turn: @turn, agent: agent).call
       rescue StandardError => e
         @recorder.event(
           "crash",

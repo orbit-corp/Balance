@@ -1,4 +1,6 @@
 class Llm::ToolCall < ApplicationRecord
+  self.table_name = "llm_tool_calls"
+
   acts_as_tool_call message: :llm_message, message_class: "Llm::Message", result_foreign_key: :llm_tool_call_id
 
   def display_output

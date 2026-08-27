@@ -1,14 +1,15 @@
 class Llm::ChatBroadcaster
-  def initialize(chat)
+  def initialize(chat, turn: nil)
     @chat = chat
+    @turn = turn
     @response_started = false
   end
 
   def append_assistant_chunk(content)
-    working unless @response_started
+    remove_turn_status unless @response_started
     @response_started = true
 
-    @chat.llm_messages.last.broadcast_append_chunk(content)
+    assistant_message.broadcast_append_chunk(content)
   end
 
   def response_started?
@@ -83,6 +84,21 @@ class Llm::ChatBroadcaster
     @chat.broadcast_remove_to stream, target: "llm_chat_#{@chat.id}_pending"
   end
 
+  def turn_status(label)
+    return pending unless @turn
+
+    Turbo::StreamsChannel.broadcast_replace_to stream,
+      target: "llm_turn_#{@turn.id}_status",
+      partial: "llm/messages/turn_status",
+      locals: { turn: @turn, label: label }
+  end
+
+  def remove_turn_status
+    return remove_pending unless @turn
+
+    Turbo::StreamsChannel.broadcast_remove_to stream, target: "llm_turn_#{@turn.id}_status"
+  end
+
   def pending
     @response_started = false
     Turbo::StreamsChannel.broadcast_replace_to stream,
@@ -107,6 +123,12 @@ class Llm::ChatBroadcaster
   end
 
   private
+
+  def assistant_message
+    return @chat.llm_messages.last unless @turn
+
+    @turn.output_messages.where(role: "assistant").order(:id).last
+  end
 
   def stream
     "llm_chat_#{@chat.id}"

@@ -2,7 +2,7 @@ module ApplicationHelper
   def navigation_sections
     [
       { items: [
-        { path: dashboard_path, svg: "icons/home.svg", text: "Dashboard" },
+        { path: dashboard_path, svg: "icons/home.svg", text: "Overview" },
         { path: journal_entries_path, svg: "icons/list.svg", text: "Journal entries" },
         { path: accounts_path, svg: "icons/wallet.svg", text: "Accounts" },
         { path: chats_path, svg: "icons/bot.svg", text: "Agent" }

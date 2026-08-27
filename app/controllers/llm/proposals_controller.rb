@@ -33,7 +33,7 @@ class Llm::ProposalsController < ApplicationController
   private
 
   def set_llm_chat
-    @llm_chat = current_workspace.llm_chats.find(params[:chat_id])
+    @llm_chat = current_workspace.llm_chats.find_by!(uuid: params[:chat_uuid])
   end
 
   def set_proposal
@@ -56,12 +56,13 @@ class Llm::ProposalsController < ApplicationController
 
   def resume_after_account_creation
     created = @proposal.data.fetch("created_accounts").map { |account| "#{account.fetch("name")} (id #{account.fetch("id")})" }.join(", ")
-    @llm_chat.llm_messages.create!(
-      role: "system",
-      content: "ACCOUNT PROPOSAL APPROVED: Created #{created}. Continue the user's pending transaction now. " \
-               "Call list_accounts to refresh IDs, then call propose_entry. Do not ask for account approval again."
+    session = @proposal.llm_message&.response_turn&.llm_transaction_session
+    message = @llm_chat.resume_turn(
+      "ACCOUNT PROPOSAL APPROVED: Created #{created}. Continue the user's pending transaction now. " \
+      "Call list_accounts to refresh IDs, then call propose_entry. Do not ask for account approval again.",
+      transaction_session: session
     )
-    LlmChatResponseJob.perform_later(@llm_chat.id)
+    @resumed_turn = message.llm_turn
   end
 
   def respond_with_card(errors = nil)
@@ -69,11 +70,17 @@ class Llm::ProposalsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
-        render turbo_stream: turbo_stream.replace(
-          "proposal_#{@proposal.id}",
-          partial: partial,
+        streams = [ turbo_stream.replace(
+          "proposal_#{@proposal.id}", partial: partial,
           locals: { proposal: @proposal, errors: errors }
-        )
+        ) ]
+        if @resumed_turn
+          streams << turbo_stream.append(
+            "llm_messages", partial: "llm/messages/turn_status",
+            locals: { turn: @resumed_turn }
+          )
+        end
+        render turbo_stream: streams
       end
       format.html { redirect_to chat_path(@llm_chat) }
     end

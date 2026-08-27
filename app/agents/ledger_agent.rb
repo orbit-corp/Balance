@@ -15,9 +15,9 @@ class LedgerAgent < RubyLLM::Agent
     ]
   end
 
-  temperature 0.0
+  temperature 0.1
 
-  thinking effort: :none
+  thinking effort: :low
 
   params do
     { max_tokens: 2_000 }

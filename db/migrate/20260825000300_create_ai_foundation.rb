@@ -23,12 +23,14 @@ class CreateAiFoundation < ActiveRecord::Migration[8.1]
     add_index :llm_models, :capabilities, using: :gin
 
     create_table :llm_chats do |t|
+      t.uuid :uuid, null: false, default: -> { "gen_random_uuid()" }
       t.references :workspace, null: false, foreign_key: true
       t.references :llm_model, foreign_key: true
       t.string :title
 
       t.timestamps
     end
+    add_index :llm_chats, :uuid, unique: true
 
     create_table :llm_messages do |t|
       t.references :llm_chat, null: false, foreign_key: true

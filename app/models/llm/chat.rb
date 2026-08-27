@@ -1,4 +1,6 @@
 class Llm::Chat < ApplicationRecord
+  self.table_name = "llm_chats"
+
   CONTEXT_WINDOW_TOKENS = 200_000
   COMPACTION_THRESHOLD = 0.7
   TAIL_BUDGET_TOKENS = (CONTEXT_WINDOW_TOKENS * 0.6).to_i
@@ -9,8 +11,16 @@ class Llm::Chat < ApplicationRecord
   belongs_to :workspace
   has_many :proposals, foreign_key: :llm_chat_id, dependent: :destroy
   has_many :llm_activities, class_name: "Llm::Activity", foreign_key: :llm_chat_id, dependent: :destroy
+  has_many :llm_turns, class_name: "Llm::Turn", foreign_key: :llm_chat_id, dependent: :destroy
+  has_many :llm_transaction_sessions, class_name: "Llm::TransactionSession", foreign_key: :llm_chat_id, dependent: :destroy
+
+  attr_accessor :active_turn
 
   acts_as_chat messages: :llm_messages, message_class: "Llm::Message", messages_foreign_key: :llm_chat_id, model: :llm_model, model_class: "Llm::Model"
+
+  def to_param
+    uuid
+  end
 
   def self.estimated_tokens(text)
     (text.to_s.length.to_f / CHARS_PER_TOKEN).ceil + MESSAGE_OVERHEAD_TOKENS
@@ -22,6 +32,7 @@ class Llm::Chat < ApplicationRecord
     llm_activities.each { |activity| items << { type: :activity, record: activity, at: activity.created_at } }
     persisted_tool_calls.each { |tool_call| items << { type: :tool_call, record: tool_call, at: tool_call.created_at } }
     proposals.each { |proposal| items << { type: :proposal, record: proposal, at: proposal.created_at } }
+    llm_turns.unfinished.each { |turn| items << { type: :turn, record: turn, at: turn.created_at } }
     items.sort_by { |item| item[:at] }
   end
 
@@ -30,7 +41,7 @@ class Llm::Chat < ApplicationRecord
   end
 
   def awaiting_response?
-    visible_messages.last&.role == "user"
+    llm_turns.unfinished.exists?
   end
 
   def persisted_tool_calls
@@ -52,9 +63,29 @@ class Llm::Chat < ApplicationRecord
   end
 
   def start_turn(content)
-    llm_messages.create!(role: "user", content: content).tap do
-      LlmChatResponseJob.perform_later(id)
+    create_turn(role: "user", content: content)
+  end
+
+  def resume_turn(content, transaction_session:)
+    create_turn(role: "system", content: content, transaction_session: transaction_session)
+  end
+
+  def create_turn(role:, content:, transaction_session: nil)
+    transaction do
+      message = llm_messages.create!(role: role, content: content)
+      turn = llm_turns.create!(user_message: message, llm_transaction_session: transaction_session)
+      LlmChatResponseJob.perform_later(id, turn.id)
+      message
     end
+  end
+
+  def active_context_messages
+    return llm_messages.to_a unless active_turn
+
+    ids = active_turn.context_message_ids.map(&:to_i)
+    ids << active_turn.user_message_id
+    current_ids = active_turn.output_messages.pluck(:id)
+    llm_messages.where(id: (ids + current_ids).uniq).order(:created_at, :id).to_a
   end
 
   def derive_title_from(prompt)
@@ -92,10 +123,17 @@ class Llm::Chat < ApplicationRecord
   def order_messages_for_llm(messages)
     active = messages.reject(&:summarized_at)
     system_messages, dialogue = active.partition { |message| message.role.to_s == "system" }
-    dialogue = Llm::ActiveTransactionContext.new(
-      dialogue,
-      currency_code: workspace.currency_code
-    ).messages
+    if active_turn && system_messages.any?
+      base_system_id = system_messages.first.id
+      allowed_system_ids = active_turn.context_message_ids.map(&:to_i) + [ active_turn.user_message_id, base_system_id ]
+      system_messages.select! { |message| allowed_system_ids.include?(message.id) }
+    end
+    dialogue = if active_turn
+      allowed_ids = active_context_messages.map(&:id)
+      dialogue.select { |message| allowed_ids.include?(message.id) }
+    else
+      Llm::ActiveTransactionContext.new(dialogue, currency_code: workspace.currency_code).messages
+    end
     return dialogue if system_messages.empty?
 
     merged = system_messages.first.dup

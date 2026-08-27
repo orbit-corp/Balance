@@ -12,7 +12,7 @@
   <div class="flex items-center gap-1">
     <%= render "llm/chats/usage", llm_chat: @llm_chat %>
 
-    <%= link_to chats_path(current: @llm_chat.id), title: "All agents", data: { turbo_frame: "modal" }, class: icon_button_class do %>
+    <%= link_to chats_path(current: @llm_chat.uuid), title: "All agents", data: { turbo_frame: "modal" }, class: icon_button_class do %>
       <span class="sr-only">All agents</span>
       <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
     <% end %>
@@ -38,14 +38,11 @@
         </div>
       <% end %>
 
-      <div id="llm_messages" class="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-5 pb-8 md:px-6 md:py-7 md:pb-10">
+      <div id="llm_messages" class="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-5 pb-8 md:px-6 md:py-7 md:pb-10">
         <% timeline.each do |item| %>
           <%= render_timeline_item(item) %>
         <% end %>
 
-        <% if @llm_chat.awaiting_response? %>
-          <%= render "llm/messages/pending", llm_chat: @llm_chat %>
-        <% end %>
       </div>
     </div>
 

@@ -80,13 +80,11 @@ module Llm::MessagesHelper
   end
 
   def proposal_response_content(proposal)
-    message_id = proposal.llm_message_id || Float::INFINITY
-    message = proposal.llm_chat.llm_messages
+    messages = proposal.llm_chat.llm_messages
       .where(role: "assistant")
-      .where("id < ?", message_id)
       .where.not(content: [ nil, "" ])
-      .order(:id)
-      .last
+    messages = messages.where("id < ?", proposal.llm_message_id) if proposal.llm_message_id
+    message = messages.order(:id).last
 
     message&.content.presence || proposal.description
   end
@@ -107,6 +105,8 @@ module Llm::MessagesHelper
         output: output
     when :proposal
       render_proposal(item[:record])
+    when :turn
+      render "llm/messages/turn_status", turn: item[:record]
     end
   end
 
