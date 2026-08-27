@@ -78,7 +78,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     )
 
     assert_difference "Account.count", 1 do
-      assert_enqueued_with(job: LlmChatResponseJob, args: [ @chat.id ]) do
+      assert_enqueued_with(job: LlmChatResponseJob, args: ->(args) { args.first == @chat.id && args.second.is_a?(Integer) }) do
         patch confirm_chat_proposal_path(@chat, proposal), headers: { Accept: "text/vnd.turbo-stream.html" }
       end
     end
