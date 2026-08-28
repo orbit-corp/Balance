@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # check=error=true
 
 # Development image for balance, used by compose.yaml.

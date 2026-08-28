@@ -6,13 +6,13 @@ module Llm
     # sequential case execution against the real pipeline, artifact writing,
     # and aggregate reporting.
     #
-    #   bin/rails "harness_eval:run[cash-expense,fraud-refusal]"
+    #   bin/harness-benchmark
     #   HARNESS_EVAL_MODEL=qwen3-30b HARNESS_EVAL_BASE_URL=http://127.0.0.1:1234/v1 \
-    #     bin/rails harness_eval:run
+    #     bin/harness-benchmark
     class LiveRunner
       SOURCE_PATHS = %w[
-        docs/journal_entry_examples.md
-        config/ledger_harness/transactions.yml
+        lib/benchmark/harness/journal_entry_examples.md
+        lib/benchmark/harness/transactions.yml
       ].freeze
 
       def initialize(case_ids: [], model_id: nil, base_url: nil)
@@ -28,7 +28,7 @@ module Llm
         apply_config_overrides!
         @llm_model = resolve_llm_model!
         cases = load_cases
-        puts "harness_eval: validated #{cases.size} transactions from docs/journal_entry_examples.md"
+        puts "harness_eval: validated #{cases.size} transactions from lib/benchmark/harness/journal_entry_examples.md"
         output_dir = prepare_artifacts
 
         meta = build_meta(cases, @llm_model)
@@ -69,7 +69,7 @@ module Llm
 
       def prepare_artifacts
         dir = Rails.root.join(
-          "tmp/harness_eval/#{@run_label}-#{@requested_model.gsub(/[^a-z0-9.-]/i, '_')}"
+          "tmp/benchmark/harness/#{@run_label}-#{@requested_model.gsub(/[^a-z0-9.-]/i, '_')}"
         )
         FileUtils.mkdir_p([ dir.join("transcripts"), dir.join("results") ])
         dir

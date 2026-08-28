@@ -3,7 +3,7 @@
 # + multiple `docker run` dance into one command, and lets us run two rungs of
 # fidelity against a shared Postgres:
 #
-#   docker compose up                          -> dev stack on http://localhost:3000
+#   docker compose up                          -> dev stack on http://localhost:8080
 #                                                 (RAILS_ENV=development, code bind-mounted, live reload)
 #   docker compose --profile prod up --build   -> production image on http://localhost:8080
 #                                                 (the real top-level Dockerfile, RAILS_ENV=production)
@@ -22,20 +22,18 @@ services:
   # extra cache/queue/cable databases on first boot. Matches the `balance` role
   # that config/database.yml connects as in production.
   postgres:
-    image: postgres:16
+    image: postgres:17
     environment:
       POSTGRES_USER: balance
       POSTGRES_PASSWORD: ${BALANCE_DATABASE_PASSWORD:-balance_dev_password}
-      POSTGRES_DB: balance_production
+      POSTGRES_DB: balance_development
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       # -d targets an existing database; without it pg_isready probes a db named
       # after the user ("balance"), which doesn't exist and floods the log with
       # FATAL "database does not exist" every interval.
-      test: ["CMD-SHELL", "pg_isready -U balance -d balance_production"]
+      test: ["CMD-SHELL", "pg_isready -U balance -d balance_development"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -57,7 +55,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-qwen3.5-35b-a3b}
     command: bash -c "bin/rails db:prepare && bin/dev"
     ports:
-      - "3000:3000"
+      - "8080:3000"
     volumes:
       - .:/rails
     extra_hosts:

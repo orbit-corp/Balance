@@ -3,8 +3,8 @@ require "yaml"
 module Llm
   module Harness
     class JournalExamplesCorpus
-      DOCUMENT_PATH = "docs/journal_entry_examples.md"
-      TRANSACTIONS_PATH = "config/ledger_harness/transactions.yml"
+      DOCUMENT_PATH = "lib/benchmark/harness/journal_entry_examples.md"
+      TRANSACTIONS_PATH = "lib/benchmark/harness/transactions.yml"
 
       ACCOUNT_SPECS = {
         "business" => {

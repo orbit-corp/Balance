@@ -1,4 +1,4 @@
-require "test_helper"
+require_relative "../../../../test/test_helper"
 
 class Llm::Harness::ResponseContractTest < ActiveSupport::TestCase
   CONTRACT = {

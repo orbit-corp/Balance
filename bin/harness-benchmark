@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+# Run with: bin/harness-benchmark
+
+require_relative "../config/environment"
+
+Llm::Harness::LiveRunner.new(
+  model_id: ENV["HARNESS_EVAL_MODEL"],
+  base_url: ENV["HARNESS_EVAL_BASE_URL"]
+).run
