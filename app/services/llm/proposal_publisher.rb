@@ -8,6 +8,7 @@ class Llm::ProposalPublisher
     proposal, superseded = create_proposal!(tool_call: tool_call, result: result)
     superseded.each { |old_proposal| @broadcaster.remove_proposal(old_proposal) }
     @broadcaster.replace_tool_with_proposal(tool_call, proposal)
+    proposal
   end
 
   private

@@ -8,6 +8,7 @@ class Llm::Toolset
       when "get_balance_summary" then GetBalanceSummary.new(chat.workspace)
       when "list_journal_entries" then ListJournalEntries.new(chat.workspace)
       when "check_proposal_status" then CheckProposalStatus.new(chat.workspace)
+      when "confirm_proposal" then ConfirmProposal.new(chat)
       when "propose_reversal" then ProposeReversal.new(chat)
       else raise ArgumentError, "Unknown ledger tool: #{name}"
       end

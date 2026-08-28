@@ -14,7 +14,7 @@ class ProposeReversal < RubyLLM::Tool
   end
 
   def execute(entry_id:)
-    unless confirmed_by_user?
+    unless confirmed_by_user?(entry_id)
       return { error: "I need your confirmation before I prepare a reversal. " \
                       "Please confirm you want to reverse journal entry #{entry_id}." }
     end
@@ -49,15 +49,22 @@ class ProposeReversal < RubyLLM::Tool
 
   private
 
-  def confirmed_by_user?
+  def confirmed_by_user?(entry_id)
     messages = @chat.llm_messages.to_a
     question_index = messages.rindex do |message|
-      message.role.to_s == "assistant" && message.content.to_s.match?(REVERSAL_QUESTION_PATTERN)
+      message.role.to_s == "assistant" &&
+        message.content.to_s.match?(REVERSAL_QUESTION_PATTERN) &&
+        references_entry?(message.content, entry_id)
     end
     return false unless question_index
 
-    messages.drop(question_index + 1).any? do |message|
-      message.role.to_s == "user" && message.content.to_s.match?(AFFIRMATIVE_PATTERN)
-    end
+    reply = messages.drop(question_index + 1).select { |message| message.role.to_s == "user" }.last
+    reply&.content.to_s.match?(AFFIRMATIVE_PATTERN)
+  end
+
+  def references_entry?(content, entry_id)
+    content.to_s.match?(
+      /\b(?:journal\s+entry|JE)\b[^\d]{0,24}\b#{Regexp.escape(entry_id.to_s)}\b/i
+    )
   end
 end

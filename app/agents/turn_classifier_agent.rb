@@ -1,6 +1,7 @@
 class TurnClassifierAgent < RubyLLM::Agent
   INTENTS = %w[
-    conversation transaction balance journal_entries account_setup proposal_status reversal refusal
+    conversation transaction balance journal_entries account_setup proposal_status proposal_confirmation reversal
+    reversal_confirmation refusal
   ].freeze
 
   inputs :workspace_type, :currency_code, :today, :pending_transaction, :recent_transaction

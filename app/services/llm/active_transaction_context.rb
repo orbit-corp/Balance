@@ -1,5 +1,5 @@
 class Llm::ActiveTransactionContext
-  TRANSACTION_PATTERN = /\b(paid|pay|received|receive|sold|sell|bought|buy|gave|give|withdrew|withdraw|deposited|deposit|earned|charged|owe|owed|lent|borrowed)\b/i
+  TRANSACTION_PATTERN = /\b(paid|pay|received|receive|sold|sell|bought|buy|gave|give|withdrew|withdraw|deposited|deposit|earned|charged|owe|owed|lent|borrowed|put|puts|contributed|contribute|invested|invest)\b/i
   NAIRA_PATTERN = /(?:₦|\bNGN\s*)([\d,]+(?:\.\d+)?)([km])?/i
   SHORTHAND_PATTERN = /\b(\d+(?:\.\d+)?)\s*([km])\b/i
   DOLLAR_PATTERN = /\$\s*([\d,]+(?:\.\d+)?)/
@@ -38,17 +38,6 @@ class Llm::ActiveTransactionContext
     explicit_amounts.first
   end
 
-  def clarification_question
-    return unless transaction?
-
-    if generic_receipt? && !receipt_nature_known?
-      "What was the #{formatted_primary_amount} for—income, a gift, repayment, or something else?"
-    elsif generic_receipt? && !payment_source_known?
-      verb = user_text.match?(/\b(received|receive|sold|sell|earned)\b/i) ? "receive" : "pay"
-      "How did you #{verb} the #{formatted_primary_amount}—cash, bank transfer, card, or another way?"
-    end
-  end
-
   def text_grounded?(candidate)
     source = terms(user_text)
     proposed = terms(candidate)
@@ -76,24 +65,6 @@ class Llm::ActiveTransactionContext
   end
 
   private
-
-  def generic_receipt?
-    user_text.match?(/\b(received|receive)\b/i)
-  end
-
-  def receipt_nature_known?
-    user_text.match?(/\b(sold|sale|salary|wage|gift|loan|borrow|repay|refund|reimburse|income|interest|dividend|rent|invoice|customer|client|contribution)\w*\b/i)
-  end
-
-  def payment_source_known?
-    user_text.match?(/\b(cash|bank|transfer|card|wallet|credit|receivable|payable|cheque|checking|savings)\b/i)
-  end
-
-  def formatted_primary_amount
-    amount = BigDecimal(explicit_amounts.first.to_s) / 100
-    formatted = amount.frac.zero? ? amount.to_i.to_fs(:delimited) : format("%.2f", amount)
-    currency_code == "NGN" ? "₦#{formatted}" : "#{formatted} #{currency_code}"
-  end
 
   def active_messages(dialogue)
     anchor = dialogue.rindex do |message|

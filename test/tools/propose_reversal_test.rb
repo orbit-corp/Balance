@@ -44,6 +44,26 @@ class ProposeReversalTest < ActiveSupport::TestCase
     assert_equal @entry.id, @workspace.journal_entries.find(@entry.id).id
   end
 
+  test "accepts a clearly identified entry written as journal entry ID" do
+    @chat.llm_messages.create!(
+      role: "assistant",
+      content: "Found journal entry: ID #{@entry.id}. Reverse journal entry ID #{@entry.id}?"
+    )
+    @chat.llm_messages.create!(role: "user", content: "yes")
+
+    assert_instance_of RubyLLM::Tool::Halt, execute
+  end
+
+  test "accepts the natural confirmation question produced by the final responder" do
+    @chat.llm_messages.create!(
+      role: "assistant",
+      content: "The latest recorded journal entry is ID #{@entry.id} (Transport). Would you like to reverse this entry?"
+    )
+    @chat.llm_messages.create!(role: "user", content: "Yes, reverse it.")
+
+    assert_instance_of RubyLLM::Tool::Halt, execute
+  end
+
   test "rejects an entry from another workspace even after confirmation" do
     ask_for_confirmation
     other_workspace = workspaces(:bola_shop)
@@ -52,7 +72,10 @@ class ProposeReversalTest < ActiveSupport::TestCase
       llm_model: @chat.llm_model,
       title: "Test chat"
     )
-    other_chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
+    other_chat.llm_messages.create!(
+      role: "assistant",
+      content: "Do you want me to prepare a reversal for journal entry #{@entry.id}?"
+    )
     other_chat.llm_messages.create!(role: "user", content: "yes")
 
     result = ProposeReversal.new(other_chat).execute(entry_id: @entry.id)
@@ -70,10 +93,27 @@ class ProposeReversalTest < ActiveSupport::TestCase
     assert_nil result[:proposal]
   end
 
+  test "does not reuse confirmation for a different entry" do
+    ask_for_confirmation
+    other_entry = post_journal_entry!(
+      @workspace,
+      debit_account: @expense,
+      credit_account: @cash,
+      amount_kobo: 100_000
+    )
+
+    result = ProposeReversal.new(@chat).execute(entry_id: other_entry.id)
+
+    assert_match(/need your confirmation/, result[:error])
+  end
+
   private
 
   def ask_for_confirmation
-    @chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
+    @chat.llm_messages.create!(
+      role: "assistant",
+      content: "Do you want me to prepare a reversal for journal entry #{@entry.id}?"
+    )
     @chat.llm_messages.create!(role: "user", content: "yes")
     @chat.llm_messages.create!(role: "assistant", content: "Preparing that now.")
   end

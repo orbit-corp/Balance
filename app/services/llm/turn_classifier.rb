@@ -8,13 +8,16 @@ class Llm::TurnClassifier
     "journal_entries" => %w[list_journal_entries],
     "account_setup" => %w[list_accounts propose_account],
     "proposal_status" => %w[check_proposal_status],
-    "reversal" => %w[list_journal_entries propose_reversal],
+    "proposal_confirmation" => %w[confirm_proposal],
+    "reversal" => %w[list_journal_entries],
+    "reversal_confirmation" => %w[propose_reversal],
     "refusal" => []
   }.freeze
 
-  def initialize(chat:, turn:)
+  def initialize(chat:, turn:, agent: nil)
     @chat = chat
     @turn = turn
+    @agent = agent
   end
 
   def call
@@ -45,7 +48,7 @@ class Llm::TurnClassifier
   private
 
   def agent
-    TurnClassifierAgent.new(
+    @agent || TurnClassifierAgent.new(
       model: @chat.llm_model&.model_id || RubyLLM.config.default_model,
       workspace_type: @chat.workspace.workspace_type,
       currency_code: @chat.workspace.currency_code,
@@ -76,18 +79,22 @@ class Llm::TurnClassifier
     supplied = transaction.reject { |_key, value| value.blank? }
     normalized = @context_session&.facts.to_h.merge(supplied)
     normalized["date"] = Date.current.iso8601 if normalized["date"].blank?
-    normalized["summary"] = source_messages.first&.content.to_s.squish if normalized["summary"].blank?
-    normalized["amount"] = grounded_amount if normalized["amount"].blank? && grounded_amount
+    reported_missing = Array(normalized["missing_facts"])
+    if normalized["summary"].blank? && ((reported_missing & %w[event description]).empty? || grounded_transaction?)
+      normalized["summary"] = source_messages.first&.content.to_s.squish
+    end
+    normalized["amount"] = grounded_amount if grounded_amount
     normalized["payment_source"] = grounded_payment_source.to_s if supplied["payment_source"].blank? && grounded_payment_source
 
-    derived_facts = %w[date amount classification payment_source]
-    missing = Array(normalized["missing_facts"]).reject { |fact| derived_facts.include?(fact) }
+    missing = Array(normalized["missing_facts"]).select { |fact| %w[event description amount date].include?(fact) }
+    missing.delete("amount") if normalized["amount"].present?
+    missing.delete("date") if normalized["date"].present?
+    missing -= %w[event description] if normalized["summary"].present?
     missing << "amount" if normalized["amount"].blank?
-    missing << "classification" if normalized["classification"].blank?
-    missing << "payment_source" if normalized["payment_source"].blank?
+    missing << "description" if normalized["summary"].blank? && (missing & %w[event description]).empty?
     missing.uniq!
     normalized["missing_facts"] = missing.sort_by do |fact|
-      %w[classification payment_source amount counterparty].index(fact) || 99
+      %w[event description amount date].index(fact) || 99
     end
     normalized["ready"] = normalized["missing_facts"].empty?
     normalized
@@ -119,6 +126,14 @@ class Llm::TurnClassifier
       source = payment_source_in(message.content.to_s)
       return source if source
     end
+    nil
+  end
+
+  def grounded_transaction?
+    Llm::ActiveTransactionContext.new(
+      source_messages,
+      currency_code: @chat.workspace.currency_code
+    ).transaction?
   end
 
   def payment_source_in(text)
@@ -130,7 +145,7 @@ class Llm::TurnClassifier
     return "savings" if text.match?(/\bsavings\b/i)
     return "checking" if text.match?(/\bchecking\b/i)
     return "bank account" if text.match?(/\bbank(?:\s+account)?\b/i)
-    return "credit" if text.match?(/\bon\s+credit\b/i)
+    "credit" if text.match?(/\bon\s+credit\b/i)
   end
 
   def previous_assistant
@@ -156,7 +171,7 @@ class Llm::TurnClassifier
   def related_session(intent, relationship)
     return unless relationship == "continuation"
     return pending_session if pending_session
-    return recent_transaction_session if %w[transaction account_setup proposal_status conversation].include?(intent)
+    recent_transaction_session if %w[transaction account_setup proposal_status proposal_confirmation conversation].include?(intent)
   end
 
   def session_payload(session)

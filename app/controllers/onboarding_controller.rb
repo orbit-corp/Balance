@@ -36,12 +36,17 @@ class OnboardingController < ApplicationController
     name = params[:workspace_name].to_s.strip
     return render_error("Enter a name for your personal workspace.") if name.blank?
     onboarding_data["workspace_name"] = name
+    onboarding_data["opening_balance_naira"] = params[:opening_balance_naira].presence || "0"
+
+    opening_balance_kobo = parse_opening_balance(onboarding_data["opening_balance_naira"])
+    return render_error("Opening balance must be zero or more.") unless opening_balance_kobo
 
     workspace = Workspaces::Provisioner.call(
       user: Current.user,
       name: name,
       workspace_type: onboarding_data.fetch("workspace_type"),
-      currency_code: "NGN"
+      currency_code: "NGN",
+      opening_balance_kobo: opening_balance_kobo
     )
 
     Current.session.update!(workspace: workspace)
@@ -84,5 +89,14 @@ class OnboardingController < ApplicationController
     flash.now[:alert] = message
     prepare_view
     render :show, status: :unprocessable_content
+  end
+
+  def parse_opening_balance(value)
+    amount = BigDecimal(value.to_s)
+    return if amount.negative?
+
+    (amount * 100).round
+  rescue ArgumentError
+    nil
   end
 end

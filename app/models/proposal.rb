@@ -22,6 +22,10 @@ class Proposal < ApplicationRecord
     proposal_type == "account_creation"
   end
 
+  def reversal_proposal?
+    journal_entry_proposal? && data["reverses_journal_entry_id"].present?
+  end
+
   def pending?
     status == "proposed"
   end
