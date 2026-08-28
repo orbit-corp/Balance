@@ -21,6 +21,10 @@ class ProposeAccount < RubyLLM::Tool
   end
 
   def execute(reason:, accounts:)
+    unless account_lookup_for_active_turn?
+      return { error: "Inspect the active workspace accounts and recommendations before proposing an account." }
+    end
+
     draft = Llm::AccountCreationProposal.from_tool(workspace: @workspace, reason: reason, accounts: accounts)
     return { error: draft.errors.join(", ") } if draft.invalid?
 
@@ -38,5 +42,18 @@ class ProposeAccount < RubyLLM::Tool
       entry_data: draft.data,
       message: "Account proposal created for review."
     })
+  end
+
+  private
+
+  def account_lookup_for_active_turn?
+    return true unless @chat.respond_to?(:persisted?) && @chat.persisted?
+
+    active_turn = @chat.active_turn
+    return true unless active_turn
+
+    Llm::ToolCall.joins(:llm_message)
+      .where(name: "list_accounts", llm_messages: { llm_turn_id: active_turn.id })
+      .exists?
   end
 end

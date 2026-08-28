@@ -11,15 +11,14 @@ class LedgerAgent < RubyLLM::Agent
       GetBalanceSummary.new(chat.workspace),
       ListJournalEntries.new(chat.workspace),
       CheckProposalStatus.new(chat.workspace),
+      ConfirmProposal.new(chat),
       ProposeReversal.new(chat)
     ]
   end
 
-  temperature 0.1
+  temperature 0.2
 
-  thinking effort: :low
-
-  thinking effort: :none
+  thinking effort: :medium
 
   params do
     { max_tokens: 2_000 }

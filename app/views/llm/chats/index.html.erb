@@ -1,30 +1,30 @@
-<% content_for :title, "Agent" %>
+<% content_for :title, "Chat" %>
 <% content_for :full_bleed, "true" %>
 
 <% if turbo_frame_request? %>
-  <%= render "shared/drawer", title: "Agent history" do %>
+  <%= render "shared/drawer", title: "Chat history" do %>
     <%= link_to chats_path, data: { turbo_frame: "_top" }, class: "mb-4 flex items-center justify-center gap-2 rounded-lg bg-neutral-950 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800" do %>
       <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>
-      New agent
+      New chat
     <% end %>
     <%= render "llm/chats/chat_list", llm_chats: @llm_chats, current_chat_uuid: params[:current] %>
   <% end %>
 <% else %>
   <%= content_for(:breadcrumb) do %>
-    <%= render "shared/breadcrumb", data: [ { label: "Agent" } ] %>
+    <%= render "shared/breadcrumb", data: [ { label: "Chat" } ] %>
   <% end %>
 
   <%= content_for(:topbar_actions) do %>
-    <%= link_to chats_path, title: "All agent", data: { turbo_frame: "modal" }, class: icon_button_class do %>
-      <span class="sr-only">All agent</span>
+    <%= link_to chats_path, title: "All chats", data: { turbo_frame: "modal" }, class: icon_button_class do %>
+      <span class="sr-only">All chats</span>
       <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
     <% end %>
   <% end %>
 
-  <div class="flex min-h-0 flex-1 flex-col items-center justify-center bg-neutral-50 px-4">
+  <div class="flex min-h-0 flex-1 flex-col items-center justify-center bg-white px-4">
     <div class="w-full max-w-3xl">
       <div class="mb-5 flex flex-col gap-y-1 text-center">
-        <h1 class="text-xl font-semibold tracking-tight text-neutral-900">How can Balance help?</h1>
+        <h1 class="text-3xl font-medium tracking-tight text-neutral-950 sm:text-4xl">How can Balance help?</h1>
         <p class="text-sm text-neutral-500">Record a transaction, review your ledger, check balances, or prepare a reversal.</p>
       </div>
 
@@ -34,6 +34,12 @@
               field: :prompt,
               submit_label: "Start chat",
               value: @prompt,
+              rotating_prompts: [
+                "Ask Balance to record an expense",
+                "Ask Balance to check your cash balance",
+                "Ask Balance to review recent entries",
+                "Ask Balance to prepare a reversal"
+              ],
               leading: render("llm/chats/model_select", form: form, chat_models: @chat_models, selected_model: @selected_model) %>
       <% end %>
 

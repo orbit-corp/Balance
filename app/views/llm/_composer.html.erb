@@ -1,9 +1,15 @@
 <% composer_value = local_assigns.key?(:value) ? value : form.object&.public_send(field) %>
+<% rotating_prompts = local_assigns.fetch(:rotating_prompts, []) %>
+<% input_data = {
+  chat_message_form_target: "input",
+  action: "input->chat-message-form#resize input->chat-message-form#updateSubmitState keydown.enter->chat-message-form#submitOnEnter keydown.up->chat-message-form#previousPrompt keydown.down->chat-message-form#nextPrompt"
+} %>
+<% input_data[:rotating_placeholder_target] = "input" if rotating_prompts.any? %>
 
-<div class="relative rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all focus-within:border-neutral-300 focus-within:shadow-md">
+<div class="relative rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all focus-within:border-neutral-300 focus-within:shadow-md" <% if rotating_prompts.any? %>data-controller="rotating-placeholder" data-rotating-placeholder-prompts-value="<%= rotating_prompts.to_json %>"<% end %>>
   <%= form.label field, submit_label, class: "sr-only" %>
   <%= form.text_area field, rows: 1, placeholder: "Ask Balance…", autofocus: true, value: composer_value,
-        data: { chat_message_form_target: "input", action: "input->chat-message-form#resize input->chat-message-form#updateSubmitState keydown.enter->chat-message-form#submitOnEnter keydown.up->chat-message-form#previousPrompt keydown.down->chat-message-form#nextPrompt" },
+        data: input_data,
         class: "block min-h-12 max-h-40 w-full resize-none overflow-y-auto border-0 bg-transparent py-3 pr-14 pl-4 text-[15px] leading-6 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-0" %>
 
   <%= form.button type: "submit", disabled: composer_value.to_s.strip.blank?, data: { chat_message_form_target: "submitButton" }, class: "absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-neutral-950 text-white transition-all hover:scale-[1.03] hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400 disabled:hover:scale-100" do %>

@@ -37,7 +37,10 @@ class Llm::Chat < ApplicationRecord
   end
 
   def visible_messages
-    llm_messages.where(role: %w[user assistant]).where.not(content: [ nil, "" ]).order(:created_at, :id)
+    llm_messages.where(role: "user")
+      .or(llm_messages.where(role: "assistant", internal: false))
+      .where.not(content: [ nil, "" ])
+      .order(:created_at, :id)
   end
 
   def awaiting_response?
@@ -48,7 +51,7 @@ class Llm::Chat < ApplicationRecord
     scope = Llm::ToolCall.joins(:llm_message)
       .where(llm_messages: { llm_chat_id: id })
 
-    visible_tools = %w[list_accounts list_journal_entries get_balance_summary check_proposal_status]
+    visible_tools = %w[list_accounts list_journal_entries get_balance_summary check_proposal_status confirm_proposal]
     proposal_tools = scope.where(name: %w[propose_entry propose_account propose_reversal])
       .where(llm_message_id: proposals.where.not(llm_message_id: nil).select(:llm_message_id))
 
@@ -67,7 +70,25 @@ class Llm::Chat < ApplicationRecord
   end
 
   def resume_turn(content, transaction_session:)
-    create_turn(role: "system", content: content, transaction_session: transaction_session)
+    transaction do
+      message = llm_messages.create!(role: "system", content: content)
+      turn = llm_turns.create!(
+        user_message: message,
+        llm_transaction_session: transaction_session,
+        intent: "transaction",
+        relationship: "continuation",
+        allowed_tools: %w[list_accounts propose_entry],
+        classification: {
+          "intent" => "transaction",
+          "relationship" => "continuation",
+          "progress_message" => "",
+          "transaction" => transaction_session.facts.merge("missing_facts" => [], "ready" => true)
+        },
+        context_message_ids: resume_context_message_ids(transaction_session)
+      )
+      LlmChatResponseJob.perform_later(id, turn.id)
+      message
+    end
   end
 
   def create_turn(role:, content:, transaction_session: nil)
@@ -107,6 +128,13 @@ class Llm::Chat < ApplicationRecord
   end
 
   private
+
+  def resume_context_message_ids(transaction_session)
+    ids = transaction_session.source_message_ids.map(&:to_i)
+    account_proposal = proposals.by_type("account_creation").where(status: "confirmed").order(id: :desc).first
+    ids << account_proposal&.llm_message_id
+    ids.compact.uniq
+  end
 
   # RubyLLM replaces every system message with the new instructions on each
   # agent setup, which would destroy the compaction summary.

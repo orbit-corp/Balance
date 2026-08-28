@@ -1,7 +1,7 @@
 class ListAccounts < RubyLLM::Tool
-  description "List the ledger accounts that exist in this workspace (use their ids when proposing an entry), " \
-              "and the recommended accounts from the workspace's catalog that do not exist yet " \
-              "(use their taxonomy when proposing a missing account — never invent an id for them)."
+  description "Resolve accounts for a transaction. Prefer a suitable existing account. If none fits, prefer a " \
+              "recommended catalog account. If no recommendation fits, define a clear account name using the " \
+              "returned valid taxonomy. Never substitute an unrelated account or invent an account ID."
 
   def initialize(workspace)
     @workspace = workspace
@@ -9,12 +9,12 @@ class ListAccounts < RubyLLM::Tool
 
   def execute
     existing = @workspace.accounts.ordered.to_a
-    existing_names = existing.map { |account| account.name.downcase }
+    existing_taxonomy = existing.map { |account| [ account.base_type, account.account_type, account.detail_type ] }
 
     {
       existing_accounts: existing.map { |account| account_hash(account) },
       recommended_accounts: @workspace.catalog.recommended.values
-        .reject { |spec| existing_names.include?(spec[:name].downcase) }
+        .reject { |spec| existing_taxonomy.include?([ spec[:base], spec[:type], spec[:detail] ]) }
         .map { |spec| recommended_hash(spec) },
       account_taxonomy: taxonomy
     }
@@ -38,7 +38,7 @@ class ListAccounts < RubyLLM::Tool
       base_type: spec[:base],
       account_type: spec[:type],
       detail_type: spec[:detail],
-      parent: parent_name(spec)
+      description: spec[:description]
     }.compact
   end
 
@@ -49,14 +49,10 @@ class ListAccounts < RubyLLM::Tool
         account_types: category.fetch(:account_types).map do |account_type|
           {
             account_type: account_type.fetch(:account_type),
-            detail_types: account_type.fetch(:detail_types)
+            detail_types: @workspace.catalog.detail_types_for(account_type.fetch(:account_type))
           }
         end
       }
     end
-  end
-
-  def parent_name(spec)
-    @workspace.catalog.core[spec[:parent]]&.dig(:name)
   end
 end

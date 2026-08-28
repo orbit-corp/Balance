@@ -6,7 +6,7 @@ require "bigdecimal"
 
 require_relative "../../../lib/accounting/engine"
 
-# Locks lib/accounting to docs/journal_entry_examples.md.
+# Locks lib/accounting to lib/benchmark/harness/journal_entry_examples.md.
 #
 # Every documented example is expressed as the classified input the engine
 # receives ({account, base_type, side, amount}) together with the direction

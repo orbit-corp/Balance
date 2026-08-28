@@ -1,7 +1,6 @@
-# syntax=docker/dockerfile:1
 # check=error=true
 
-# Development image for balance, used by compose.yaml (profile: dev).
+# Development image for balance, used by compose.yaml.
 # This is NOT for production — the production image is the top-level Dockerfile,
 # which strips the development gem group and bakes the code in. This one keeps
 # the dev/test gems and expects the code to be bind-mounted at runtime so edits

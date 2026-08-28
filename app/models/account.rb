@@ -62,9 +62,7 @@ class Account < ApplicationRecord
   def detail_type_belongs_to_account_type
     return if base_type.blank? || account_type.blank? || detail_type.blank?
 
-    category = catalog_category
-    entry = category&.dig(:account_types)&.find { |candidate| candidate[:account_type] == account_type }
-    return if entry && entry[:detail_types].include?(detail_type)
+    return if catalog&.detail_types_for(account_type)&.include?(detail_type)
 
     errors.add(:detail_type, "is not valid for account type #{account_type}")
   end

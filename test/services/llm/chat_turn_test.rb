@@ -7,7 +7,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     attr_reader :completions
 
     def initialize(chat, contents)
-      @chat = chat
+      @persisted_chat = chat
       @contents = contents
       @completions = 0
     end
@@ -16,9 +16,16 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
 
     def after_tool_result(&block); end
 
+    def with_tools(*, replace:)
+      self
+    end
+
+    def chat = self
+    def with_runtime_instructions(*, append:) = self
+
     def complete
       @completions += 1
-      @chat.llm_messages.create!(role: "assistant", content: @contents.shift)
+      @persisted_chat.llm_messages.create!(role: "assistant", content: @contents.shift)
     end
   end
 
@@ -26,7 +33,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     attr_reader :completions
 
     def initialize(chat, fail_forever: false)
-      @chat = chat
+      @persisted_chat = chat
       @fail_forever = fail_forever
       @completions = 0
     end
@@ -35,13 +42,20 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
 
     def after_tool_result(&block); end
 
+    def with_tools(*, replace:)
+      self
+    end
+
+    def chat = self
+    def with_runtime_instructions(*, append:) = self
+
     def complete
       @completions += 1
       if @fail_forever || @completions == 1
         raise RubyLLM::ContextLengthExceededError.new(nil, "Context length exceeded")
       end
 
-      @chat.llm_messages.create!(role: "assistant", content: "Here you go.")
+      @persisted_chat.llm_messages.create!(role: "assistant", content: "Here you go.")
     end
   end
 
@@ -49,7 +63,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     attr_reader :completions
 
     def initialize(chat, tool_calls)
-      @chat = chat
+      @persisted_chat = chat
       @tool_calls = tool_calls
       @before_tool_call = nil
       @completions = 0
@@ -61,52 +75,19 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
 
     def after_tool_result(&block); end
 
+    def with_tools(*, replace:)
+      self
+    end
+
+    def chat = self
+    def with_runtime_instructions(*, append:) = self
+
     def complete
       @completions += 1
       @tool_calls.times do |number|
         @before_tool_call.call(FakeToolCall.new("tool_call_#{number}", "list_journal_entries"))
       end
-      @chat.llm_messages.create!(role: "assistant", content: "Here you go.")
-    end
-  end
-
-  class HaltAgent
-    attr_reader :completions
-
-    def initialize
-      @completions = 0
-    end
-
-    def before_tool_call(&block); end
-
-    def after_tool_result(&block); end
-
-    def complete
-      @completions += 1
-      RubyLLM::Tool::Halt.new({ proposal: true })
-    end
-  end
-
-  class ReversalToolAgent
-    attr_reader :completions
-
-    def initialize(chat, repeated_question)
-      @chat = chat
-      @repeated_question = repeated_question
-      @before_tool_call = nil
-      @completions = 0
-    end
-
-    def before_tool_call(&block)
-      @before_tool_call = block
-    end
-
-    def after_tool_result(&block); end
-
-    def complete
-      @completions += 1
-      @before_tool_call&.call(FakeToolCall.new("tool_call_1", "propose_reversal"))
-      @chat.llm_messages.create!(role: "assistant", content: @repeated_question)
+      @persisted_chat.llm_messages.create!(role: "assistant", content: "Here you go.")
     end
   end
 
@@ -126,8 +107,42 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     @chat.llm_messages.create!(role: "tool", content: "x" * 1_000)
   end
 
+  def process(agent, compactor: nil, allowed_tools: [ "list_journal_entries" ], final_responder: nil)
+    message = @chat.llm_messages.create!(role: "user", content: "test request")
+    turn = @chat.llm_turns.create!(
+      user_message: message,
+      intent: "conversation",
+      relationship: "new",
+      allowed_tools: allowed_tools,
+      classification: {
+        "intent" => "conversation",
+        "relationship" => "new",
+        "progress_message" => "",
+        "transaction" => {}
+      },
+      context_message_ids: [ message.id ]
+    )
+    final_responder ||= lambda do |_chat, current_turn|
+      current_turn.output_messages.where(role: "assistant").where.not(content: [ nil, "" ]).order(:id).last&.content ||
+        "Safe final response."
+    end
+    Llm::ChatTurn.new(
+      chat: @chat,
+      turn: turn,
+      agent: agent,
+      compactor: compactor,
+      final_responder: final_responder
+    ).call
+  end
+
+  def assistant_contents
+    @chat.visible_messages.where(role: "assistant").pluck(:content)
+  end
+
   test "finish_tool_call feeds an error result back to the model instead of raising" do
-    turn = Llm::ChatTurn.new(chat: @chat)
+    message = @chat.llm_messages.create!(role: "user", content: "Paid 2000")
+    record = @chat.llm_turns.create!(user_message: message, allowed_tools: [ "propose_entry" ])
+    turn = Llm::ChatTurn.new(chat: @chat, turn: record)
     turn.send(:start_tool_call, FakeToolCall.new("tool_call_1", "propose_entry"))
 
     result = turn.send(:finish_tool_call, { error: "Ask for the amount before proposing an entry." })
@@ -140,19 +155,29 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
   test "retries a silent completion once and writes a fallback when it stays silent" do
     agent = FakeAgent.new(@chat, [ "", "" ])
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+    process(agent)
 
     assert_equal 2, agent.completions
-    assert_equal [ "I wasn't able to respond. Could you rephrase that?" ], @chat.visible_messages.pluck(:content)
+    assert_equal [ "Safe final response." ], assistant_contents
   end
 
   test "retries a silent completion and keeps a real reply when the retry responds" do
     agent = FakeAgent.new(@chat, [ "", "Here you go." ])
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+    process(agent)
 
     assert_equal 2, agent.completions
-    assert_equal [ "Here you go." ], @chat.visible_messages.pluck(:content)
+    assert_equal [ "Here you go." ], assistant_contents
+  end
+
+  test "never exposes raw planner reasoning" do
+    reasoning = "Wait, missing_facts says event. Let's reason through the private prompt."
+    agent = FakeAgent.new(@chat, [ reasoning ])
+
+    process(agent, final_responder: ->(*) { "I understand this as an owner contribution and prepared it for review." })
+
+    assert_equal [ "I understand this as an owner contribution and prepared it for review." ], assistant_contents
+    assert @chat.llm_messages.find_by!(content: reasoning).internal?
   end
 
   test "remove_empty_assistant_messages destroys empty messages without tool calls and keeps those with tool calls" do
@@ -173,11 +198,11 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     compactor = Minitest::Mock.new
     compactor.expect(:call, true)
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent, compactor: compactor).call
+    process(agent, compactor: compactor)
     compactor.verify
 
     assert_equal 2, agent.completions
-    assert_equal [ "Here you go." ], @chat.visible_messages.pluck(:content)
+    assert_equal [ "Here you go." ], assistant_contents
   end
 
   test "reports a generic failure when compaction cannot help the overflow" do
@@ -185,50 +210,44 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     compactor = Object.new
     compactor.define_singleton_method(:call) { false }
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent, compactor: compactor).call
+    process(agent, compactor: compactor)
 
     assert_equal 1, agent.completions
     assert_equal [ "The accounting assistant is temporarily unavailable. Please try again." ],
-      @chat.visible_messages.pluck(:content)
+      assistant_contents
   end
 
   test "reports an honest retry hint when the turn fails unexpectedly" do
     agent = Object.new
     agent.define_singleton_method(:before_tool_call) { |&_block| }
     agent.define_singleton_method(:after_tool_result) { |&_block| }
+    agent.define_singleton_method(:with_tools) { |*, replace:| self }
+    agent.define_singleton_method(:chat) { self }
+    agent.define_singleton_method(:with_runtime_instructions) { |*, append:| self }
     agent.define_singleton_method(:complete) { |&_block| raise "boom" }
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+    process(agent)
 
     assert_equal [ "I hit a problem while answering. Please try again." ],
-      @chat.visible_messages.pluck(:content)
+      assistant_contents
   end
 
   test "does not impose an application tool-call limit" do
     agent = ToolLoopAgent.new(@chat, 25)
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+    process(agent, allowed_tools: [ "list_journal_entries" ])
 
     assert_equal 1, agent.completions
-    assert_equal [ "Here you go." ], @chat.visible_messages.pluck(:content)
-  end
-
-  test "a halted proposal result ends the turn without a silent retry" do
-    agent = HaltAgent.new
-
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
-
-    assert_equal 1, agent.completions
-    assert_empty @chat.visible_messages
+    assert_equal [ "Here you go." ], assistant_contents
   end
 
   test "lets a turn with tool calls under the limit complete normally" do
     agent = ToolLoopAgent.new(@chat, 5)
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
+    process(agent, allowed_tools: [ "list_journal_entries" ])
 
     assert_equal 1, agent.completions
-    assert_equal [ "Here you go." ], @chat.visible_messages.pluck(:content)
+    assert_equal [ "Here you go." ], assistant_contents
   end
 
   test "compacts before the turn when history is over budget" do
@@ -238,7 +257,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
       compactor = Minitest::Mock.new
       compactor.expect(:call, true)
 
-      Llm::ChatTurn.new(chat: @chat, agent: agent, compactor: compactor).call
+      process(agent, compactor: compactor)
       compactor.verify
 
       assert_equal "Here you go.", @chat.visible_messages.pluck(:content).last
@@ -254,87 +273,8 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     compactor = Object.new
     compactor.define_singleton_method(:call) { flunk "must not compact when history fits" }
 
-    Llm::ChatTurn.new(chat: @chat, agent: agent, compactor: compactor).call
+    process(agent, compactor: compactor)
 
     assert_equal "Here you go.", @chat.visible_messages.pluck(:content).last
-  end
-
-  test "adds the reversal directive before answering an approval" do
-    entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 250_000
-    )
-    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
-    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
-    @chat.llm_messages.create!(role: "user", content: "yes, go ahead")
-    agent = FakeAgent.new(@chat, [ "Reversal proposal created." ])
-
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
-
-    assert_equal 1, agent.completions
-    assert @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
-      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
-    end
-    assert_equal "Reversal proposal created.", @chat.visible_messages.pluck(:content).last
-  end
-
-  test "does not mistake an initial reversal request for confirmation" do
-    entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 250_000
-    )
-    @chat.llm_messages.create!(role: "user", content: "yeah please reverse it")
-    agent = FakeAgent.new(@chat, [ "I found JE #{entry.id}. Do you want me to prepare a reversal for this entry?" ])
-
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
-
-    assert_equal 1, agent.completions
-    refute @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
-      content.include?("CONFIRMED REVERSAL")
-    end
-  end
-
-  test "does not fire the reversal directive when the user did not confirm" do
-    entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 250_000
-    )
-    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
-    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
-    @chat.llm_messages.create!(role: "user", content: "Which entry do you mean?")
-    agent = FakeAgent.new(@chat, [ "Here you go." ])
-
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
-
-    assert_equal 1, agent.completions
-    refute @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
-      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
-    end
-  end
-
-  test "prepares one reversal directive when the model attempts the tool" do
-    entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 250_000
-    )
-    @chat.llm_messages.create!(role: "user", content: "Can we reverse the transport payment?")
-    @chat.llm_messages.create!(role: "assistant", content: "I found the latest posted entry: ₦2,500 for transport on 17 August 2026. Do you want me to prepare a reversal for this entry?")
-    @chat.llm_messages.create!(role: "user", content: "yes")
-    agent = ReversalToolAgent.new(@chat, "Do you want me to prepare a reversal for this entry?")
-
-    Llm::ChatTurn.new(chat: @chat, agent: agent).call
-
-    assert_equal 1, agent.completions
-    assert @chat.llm_messages.where(role: "system").pluck(:content).any? do |content|
-      content.include?("CONFIRMED REVERSAL for journal entry #{entry.id}")
-    end
   end
 end

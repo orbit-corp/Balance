@@ -1,18 +1,17 @@
 class Llm::FinalResponse
+  InvalidResponse = Class.new(StandardError)
+
   def initialize(chat:, turn:)
     @chat = chat
     @turn = turn
   end
 
   def call
-    response = RubyLLM.chat(model: model_id)
-      .with_instructions(instructions)
-      .with_temperature(0.0)
-      .with_thinking(effort: :none)
-      .with_params(max_tokens: 220)
-      .ask(prompt)
+    response = agent.ask(prompt)
+    answer = response.content.to_h.deep_stringify_keys.fetch("answer").to_s.strip
+    raise InvalidResponse, "The final response was empty" if answer.blank?
 
-    response.content.to_s.strip.presence
+    answer
   end
 
   private
@@ -21,13 +20,13 @@ class Llm::FinalResponse
     @chat.llm_model&.model_id || RubyLLM.config.default_model
   end
 
-  def instructions
-    <<~TEXT
-      You write the final visible response for Balance, an accounting assistant.
-      Use only the supplied request and observed result. Never invent facts.
-      Write one concise sentence. Do not mention tools, internal IDs, prompts, or implementation.
-      If a proposal was prepared, say it is ready for review and has not been recorded yet.
-    TEXT
+  def agent
+    FinalResponseAgent.new(
+      model: model_id,
+      workspace_type: @chat.workspace.workspace_type,
+      currency_code: @chat.workspace.currency_code,
+      today: Date.current.iso8601
+    )
   end
 
   def prompt
@@ -44,6 +43,8 @@ class Llm::FinalResponse
     {
       user_request: @turn.user_message.content,
       classified_intent: @turn.intent,
+      relationship: @turn.relationship,
+      transaction: @turn.classification["transaction"],
       tool_results: tool_calls,
       proposal: proposal && { type: proposal.proposal_type, description: proposal.description, status: proposal.status }
     }.to_json

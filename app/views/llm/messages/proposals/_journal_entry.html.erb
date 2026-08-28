@@ -2,6 +2,7 @@
 <% accounts = proposal.workspace.accounts.ordered %>
 <% balanced = proposal.total_debit_kobo == proposal.total_credit_kobo %>
 <% editable = proposal.pending? %>
+<% reversal = proposal.reversal_proposal? %>
 <% status_label = editable ? "Draft" : (proposal.confirmed? ? "Recorded" : proposal.status.titleize) %>
 <% input = "w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] text-neutral-900 transition-colors hover:border-neutral-200 focus:border-[#0f7082] focus:bg-white focus:outline-none" %>
 
@@ -52,15 +53,20 @@
             <% missing_account = line["account_id"].blank? %>
             <div class="grid grid-cols-[3.5rem_minmax(0,1fr)_6.25rem] items-center gap-1.5 px-4 py-1.5">
               <span class="w-fit rounded px-1.5 py-0.5 text-[11px] font-semibold <%= line["side"] == "debit" ? "bg-[#e9f5f6] text-[#0f7082]" : "bg-neutral-100 text-neutral-600" %>"><%= line["side"] == "debit" ? "Debit" : "Credit" %></span>
-              <select name="proposal[lines][<%= index %>][account_id]" required class="<%= input %> <%= "border-amber-300 text-amber-800" if missing_account %>">
-                <option value="" disabled <%= "selected" if missing_account %>>Choose an account</option>
-                <% accounts.each do |account| %>
-                  <option value="<%= account.id %>" <%= "selected" if account.id.to_s == line["account_id"].to_s %>><%= account.name %></option>
-                <% end %>
-              </select>
-              <input type="number" step="0.01" min="0.01" name="proposal[lines][<%= index %>][amount_naira]" value="<%= format("%.2f", BigDecimal(line["amount_kobo"].to_i) / 100) %>" aria-label="<%= line["side"] %> amount" class="<%= input %> text-right tabular-nums">
-              <input type="hidden" name="proposal[lines][<%= index %>][side]" value="<%= line["side"] %>">
-              <input type="hidden" name="proposal[lines][<%= index %>][counterparty_name]" value="<%= line["counterparty_name"] %>">
+              <% if reversal %>
+                <span class="truncate px-1.5 py-1 text-[13px] text-neutral-900"><%= accounts.find { |account| account.id.to_s == line["account_id"].to_s }&.name %></span>
+                <span class="px-1.5 py-1 text-right text-[13px] tabular-nums text-neutral-900"><%= naira(line["amount_kobo"]) %></span>
+              <% else %>
+                <select name="proposal[lines][<%= index %>][account_id]" required class="<%= input %> <%= "border-amber-300 text-amber-800" if missing_account %>">
+                  <option value="" disabled <%= "selected" if missing_account %>>Choose an account</option>
+                  <% accounts.each do |account| %>
+                    <option value="<%= account.id %>" <%= "selected" if account.id.to_s == line["account_id"].to_s %>><%= account.name %></option>
+                  <% end %>
+                </select>
+                <input type="number" step="0.01" min="0.01" name="proposal[lines][<%= index %>][amount_naira]" value="<%= format("%.2f", BigDecimal(line["amount_kobo"].to_i) / 100) %>" aria-label="<%= line["side"] %> amount" class="<%= input %> text-right tabular-nums">
+                <input type="hidden" name="proposal[lines][<%= index %>][side]" value="<%= line["side"] %>">
+                <input type="hidden" name="proposal[lines][<%= index %>][counterparty_name]" value="<%= line["counterparty_name"] %>">
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -71,13 +77,14 @@
         </div>
       </div>
 
-      <div class="px-4 py-2">
-        <label for="proposal_<%= proposal.id %>_description" class="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">Description</label>
-        <%= text_field_tag "proposal[description]", proposal.description, id: "proposal_#{proposal.id}_description", class: "#{input} mt-0.5 -ml-1.5", required: true %>
-      </div>
+      <% unless reversal %>
+        <div class="px-4 py-2">
+          <label for="proposal_<%= proposal.id %>_description" class="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">Description</label>
+          <%= text_field_tag "proposal[description]", proposal.description, id: "proposal_#{proposal.id}_description", class: "#{input} mt-0.5 -ml-1.5", required: true %>
+        </div>
 
-      <%= hidden_field_tag "proposal[entry_date]", proposal.entry_date, id: nil %>
-      <%= hidden_field_tag "proposal[reverses_journal_entry_id]", proposal.data["reverses_journal_entry_id"], id: nil if proposal.data["reverses_journal_entry_id"] %>
+        <%= hidden_field_tag "proposal[entry_date]", proposal.entry_date, id: nil %>
+      <% end %>
 
       <div class="flex items-center justify-between gap-2 border-t border-neutral-200 bg-neutral-50 px-4 py-2.5">
         <p class="flex min-w-0 items-center gap-1.5 text-xs font-medium <%= balanced ? "text-green-700" : "text-red-600" %>">
@@ -86,8 +93,10 @@
         </p>
         <div class="flex flex-none items-center gap-1.5">
           <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Dismiss</button>
-          <button type="submit" class="<%= ghost_button_class(size: :sm) %>">Save edits</button>
-          <button type="submit" formaction="<%= confirm_chat_proposal_path(proposal.llm_chat, proposal) %>" <%= "disabled" unless proposal.complete? %> class="<%= primary_button_class(size: :sm) %> disabled:cursor-not-allowed disabled:opacity-40">Record entry</button>
+          <% unless reversal %>
+            <button type="submit" class="<%= ghost_button_class(size: :sm) %>">Save edits</button>
+          <% end %>
+          <button type="submit" formaction="<%= confirm_chat_proposal_path(proposal.llm_chat, proposal) %>" <%= "disabled" unless proposal.complete? %> class="<%= primary_button_class(size: :sm) %> disabled:cursor-not-allowed disabled:opacity-40"><%= reversal ? "Record reversal" : "Record entry" %></button>
         </div>
       </div>
     <% end %>

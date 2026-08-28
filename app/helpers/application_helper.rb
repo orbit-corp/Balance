@@ -3,9 +3,9 @@ module ApplicationHelper
     [
       { items: [
         { path: dashboard_path, svg: "icons/home.svg", text: "Overview" },
+        { path: chats_path, svg: "icons/bot.svg", text: "Chat" },
         { path: journal_entries_path, svg: "icons/list.svg", text: "Journal entries" },
         { path: accounts_path, svg: "icons/wallet.svg", text: "Accounts" },
-        { path: chats_path, svg: "icons/bot.svg", text: "Agent" }
       ] },
       { label: "Records", items: [
         { path: customers_path, svg: "icons/users.svg", text: "Customers" }

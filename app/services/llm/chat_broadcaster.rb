@@ -6,10 +6,12 @@ class Llm::ChatBroadcaster
   end
 
   def append_assistant_chunk(content)
-    remove_turn_status unless @response_started
-    @response_started = true
+    # The ledger model is an internal planner. Its raw token stream can contain
+    # provider reasoning and must never be rendered in the user conversation.
+  end
 
-    assistant_message.broadcast_append_chunk(content)
+  def finalize_assistant_message
+    nil
   end
 
   def response_started?
@@ -74,6 +76,14 @@ class Llm::ChatBroadcaster
 
   def remove_proposal(proposal)
     Turbo::StreamsChannel.broadcast_remove_to stream, target: "proposal_#{proposal.id}"
+  end
+
+  def proposal_updated(proposal)
+    partial = Llm::MessagesHelper::PROPOSAL_PARTIALS.fetch(proposal.proposal_type)
+    Turbo::StreamsChannel.broadcast_replace_to stream,
+      target: "proposal_#{proposal.id}",
+      partial: partial,
+      locals: { proposal: proposal, errors: nil }
   end
 
   def title(text)

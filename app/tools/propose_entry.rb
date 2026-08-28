@@ -53,9 +53,6 @@ class ProposeEntry < RubyLLM::Tool
       entry_data: draft.data,
       message: "Journal-entry proposal created for review."
     })
-  rescue StandardError => e
-    Rails.logger.error("ProposeEntry failed: #{e.class}: #{e.message}\n#{e.backtrace&.first(10).to_a.join("\n")}")
-    { error: "I couldn't structure that entry from what you described. Please restate the transaction with explicit naira amounts." }
   end
 
 

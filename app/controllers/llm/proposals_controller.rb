@@ -5,6 +5,7 @@ class Llm::ProposalsController < ApplicationController
   def update
     return respond_with_card if @proposal.account_creation_proposal?
     return respond_with_card unless @proposal.pending?
+    return respond_with_card if @proposal.reversal_proposal?
 
     return respond_with_card(draft.errors) if draft.invalid?
 
@@ -45,7 +46,11 @@ class Llm::ProposalsController < ApplicationController
   end
 
   def journal_entry_draft
-    @journal_entry_draft ||= Llm::JournalEntryProposal.from_form(workspace: current_workspace, params: proposal_params)
+    @journal_entry_draft ||= if @proposal.reversal_proposal?
+      Llm::JournalEntryProposal.new(workspace: current_workspace, data: @proposal.data)
+    else
+      Llm::JournalEntryProposal.from_form(workspace: current_workspace, params: proposal_params)
+    end
   end
 
   alias_method :draft, :journal_entry_draft
@@ -57,6 +62,8 @@ class Llm::ProposalsController < ApplicationController
   def resume_after_account_creation
     created = @proposal.data.fetch("created_accounts").map { |account| "#{account.fetch("name")} (id #{account.fetch("id")})" }.join(", ")
     session = @proposal.llm_message&.response_turn&.llm_transaction_session
+    return unless session
+
     message = @llm_chat.resume_turn(
       "ACCOUNT PROPOSAL APPROVED: Created #{created}. Continue the user's pending transaction now. " \
       "Call list_accounts to refresh IDs, then call propose_entry. Do not ask for account approval again.",

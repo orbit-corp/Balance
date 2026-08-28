@@ -16,13 +16,15 @@ class LedgerAgentTest < ActiveSupport::TestCase
     assert_includes prompt, "Type: personal"
     assert_includes prompt, "Currency: NGN"
     assert_includes prompt, "Never ask whether a transaction is personal or business"
-    assert_includes prompt, "only that single question"
-    assert_includes prompt, "no preamble, numbered list, second question"
+    assert_includes prompt, "exactly one short question"
+    assert_includes prompt, "no preamble, list, second question"
     assert_includes prompt, "Treat facts the user has already resolved as settled"
-    assert_includes prompt, "Ask only for the missing payment source"
+    assert_includes prompt, "Never ask the user to classify a transaction"
+    assert_includes prompt, "existing account; otherwise use the closest recommendation"
+    assert_includes prompt, "immediately prepare the original journal-entry proposal"
   end
 
-  test "uses direct answer mode so visible tokens start without a reasoning delay" do
-    assert_equal :none, LedgerAgent.thinking[:effort]
+  test "uses medium reasoning effort for transaction interpretation" do
+    assert_equal :medium, LedgerAgent.thinking[:effort]
   end
 end

@@ -5,18 +5,18 @@ class Llm::ChatTurn
   class TurnTimeout < StandardError; end
   class InvalidToolCall < StandardError; end
 
-  def initialize(chat:, turn: nil, agent: nil, compactor: nil)
+  def initialize(chat:, turn: nil, agent: nil, compactor: nil, final_responder: nil)
     @chat = chat
     @turn = turn || chat.llm_turns.where(status: "queued").order(:id).first
     @agent = agent
     @compactor = compactor
+    @final_responder = final_responder
     @running_tool_calls = []
     @broadcaster = Llm::ChatBroadcaster.new(chat, turn: @turn)
     @publisher = Llm::ProposalPublisher.new(chat: chat, broadcaster: @broadcaster)
   end
 
   def call
-    return call_legacy if @turn.nil? && @agent
     return unless @turn
     return if @turn.status.in?(%w[completed failed])
 
@@ -40,7 +40,6 @@ class Llm::ChatTurn
   rescue RubyLLM::Error, Faraday::ConnectionFailed
     fail_turn("The accounting assistant is temporarily unavailable. Please try again.")
   rescue StandardError => e
-    p e.message
     Rails.logger.error("ChatTurn failed: #{e.class}: #{e.message}\n#{e.backtrace&.first(10).to_a.join("\n")}")
     fail_turn("I hit a problem while answering. Please try again.")
   ensure
@@ -51,74 +50,6 @@ class Llm::ChatTurn
   end
 
   private
-
-  def call_legacy
-    @turn_user_id = @chat.llm_messages.where(role: "user").order(:id).pick(:id) || 0
-    @broadcaster.pending
-
-    Timeout.timeout(TIMEOUT_SECONDS, TurnTimeout) do
-      prepare_legacy_reversal_directive
-      @agent.before_tool_call { |tool_call| start_tool_call(tool_call) }
-      @agent.after_tool_result { |result| finish_tool_call(result) }
-      compact_context
-      result = with_provider_retries { @agent.complete { |chunk| @broadcaster.append_assistant_chunk(chunk.content) if chunk.content.present? } }
-
-      unless result.is_a?(RubyLLM::Tool::Halt)
-        retry_legacy_silent_completion
-      end
-    end
-  rescue TurnTimeout
-    legacy_failure("I couldn't finish this request in time. Please try again.")
-  rescue RubyLLM::Error, Faraday::ConnectionFailed
-    legacy_failure("The accounting assistant is temporarily unavailable. Please try again.")
-  rescue StandardError => error
-    Rails.logger.error("Legacy ChatTurn failed: #{error.class}: #{error.message}")
-    legacy_failure("I hit a problem while answering. Please try again.")
-  ensure
-    @running_tool_calls.each { |tool_call| @broadcaster.remove_tool_call(tool_call) }
-    @broadcaster.remove_pending
-    @broadcaster.remove_empty_assistant_messages
-  end
-
-  def retry_legacy_silent_completion
-    return if legacy_last_assistant&.content.present?
-
-    with_provider_retries do
-      @agent.complete { |chunk| @broadcaster.append_assistant_chunk(chunk.content) if chunk.content.present? }
-    end
-    legacy_failure("I wasn't able to respond. Could you rephrase that?") if legacy_last_assistant&.content.blank?
-  end
-
-  def legacy_last_assistant
-    @chat.llm_messages.where(role: "assistant").where("id > ?", @turn_user_id).order(:id).last
-  end
-
-  def legacy_failure(content)
-    @chat.llm_messages.create!(role: "assistant", content: content, response_turn: @turn)
-  end
-
-  def prepare_legacy_reversal_directive
-    user = @chat.llm_messages.where(role: "user").order(:id).last
-    return unless user&.content.to_s.match?(ProposeReversal::AFFIRMATIVE_PATTERN)
-
-    question = @chat.llm_messages.where(role: "assistant")
-      .where("id < ?", user.id)
-      .where.not(content: [ nil, "" ])
-      .order(:id)
-      .last
-    return unless question&.content.to_s.match?(ProposeReversal::REVERSAL_QUESTION_PATTERN)
-
-    entry_id = question.content[/\bJE\s*(\d+)\b/i, 1]&.to_i
-    entry = (entry_id && @chat.workspace.journal_entries.find_by(id: entry_id)) ||
-      @chat.workspace.journal_entries.order(entry_date: :desc, id: :desc).first
-    return unless entry
-
-    content = "CONFIRMED REVERSAL for journal entry #{entry.id} after user message #{user.id}: " \
-      "the user approved its reversal. Call propose_reversal with entry_id #{entry.id} now; do not ask again."
-    return if @chat.llm_messages.where(role: "system", content: content).exists?
-
-    @chat.llm_messages.create!(role: "system", content: content)
-  end
 
   def with_provider_retries
     attempts = 0
@@ -139,6 +70,8 @@ class Llm::ChatTurn
   end
 
   def classify_turn
+    return if @turn.intent.present? && @turn.classification.present?
+
     Llm::TurnClassifier.new(chat: @chat, turn: @turn).call
     @chat.active_turn = @turn.reload
   end
@@ -162,6 +95,8 @@ class Llm::ChatTurn
 
   def run_model
     @turn.update!(status: "responding") unless @turn.status == "working"
+    return if @turn.allowed_tools.empty?
+
     agent = configured_agent
     agent.before_tool_call { |tool_call| start_tool_call(tool_call) }
     agent.after_tool_result { |result| finish_tool_call(result) }
@@ -174,7 +109,7 @@ class Llm::ChatTurn
     agent = @agent || LedgerAgent.new(chat: @chat)
     tools = Llm::Toolset.for(@chat, @turn.allowed_tools)
     agent.with_tools(*tools, replace: true)
-    @chat.with_runtime_instructions(route_instructions, append: true)
+    agent.chat.with_runtime_instructions(route_instructions, append: true)
     agent
   end
 
@@ -192,6 +127,10 @@ class Llm::ChatTurn
       The scoped messages and resolved transaction state are available conversation history. Use them and never claim that supplied earlier details are unavailable.
       Never call a tool outside the allowed list. If no tools are allowed, respond directly.
       For an incomplete transaction, ask exactly one short question about the first missing_facts item.
+      Never ask the user for accounting classification, account selection, debit/credit treatment, or payment-source terminology.
+      When the route is proposal_confirmation, confirm the current journal proposal immediately and do not restart transaction analysis.
+      For a new reversal route, emit no prose before inspecting entries because progress is already visible. Then ask one confirmation question in the form “Reverse journal entry ID?” using the exact returned ID. Do not claim an entry is unavailable before inspection and do not call the reversal tool yet.
+      When the route is reversal_confirmation, prepare the reversal proposal immediately and do not ask again.
       A model-written progress statement is already visible when tools are allowed; do not repeat it.
       Always produce visible prose after read-only work. Proposal workflows receive a separate final response after preparation.
     TEXT
@@ -201,11 +140,13 @@ class Llm::ChatTurn
     @broadcaster.turn_status(@turn.allowed_tools.any? ? "Working…" : "Thinking…")
     compact_context
 
-    with_provider_retries do
+    result = with_provider_retries do
       agent.complete do |chunk|
         @broadcaster.append_assistant_chunk(chunk.content) if chunk.content.present?
       end
     end
+    @broadcaster.finalize_assistant_message
+    result
   end
 
   def no_visible_response_or_tool?
@@ -213,16 +154,23 @@ class Llm::ChatTurn
   end
 
   def ensure_final_response
-    return unless turn_tool_calls.any?
+    return if visible_turn_assistant_messages.where.not(content: [ nil, "" ]).exists?
 
-    last_tool_message_id = turn_tool_calls.maximum(:llm_message_id)
-    final_exists = turn_assistant_messages.where("id > ?", last_tool_message_id).where.not(content: [ nil, "" ]).exists?
-    return if final_exists
-
-    content = with_provider_retries { Llm::FinalResponse.new(chat: @chat, turn: @turn).call }
+    content = with_provider_retries { final_response }
     raise RubyLLM::Error, "The model returned an empty final response" if content.blank?
 
-    @chat.llm_messages.create!(role: "assistant", content: content)
+    @chat.llm_messages.create!(
+      role: "assistant",
+      content: content,
+      response_turn: @turn,
+      visible_response: true
+    )
+  end
+
+  def final_response
+    return @final_responder.call(@chat, @turn) if @final_responder
+
+    Llm::FinalResponse.new(chat: @chat, turn: @turn).call
   end
 
   def start_tool_call(tool_call)
@@ -244,8 +192,7 @@ class Llm::ChatTurn
     persist_tool_result(@current_tool_call, payload, status: status)
 
     if proposal?(payload)
-      @publisher.publish(tool_call: @current_tool_call, result: payload)
-      @proposal_published = true
+      @published_proposal = @publisher.publish(tool_call: @current_tool_call, result: payload)
     elsif status == "failed"
       @broadcaster.tool_failed(@current_tool_call, payload)
     else
@@ -263,12 +210,17 @@ class Llm::ChatTurn
     session = @chat.llm_transaction_sessions.pending.order(:id).last
     return unless session
 
-    if @proposal_published
+    if @published_proposal&.journal_entry_proposal?
       session.update!(status: "completed", last_question_message_id: nil)
       return
     end
 
-    response = turn_assistant_messages.where.not(content: [ nil, "" ]).order(:id).last
+    if @published_proposal&.account_creation_proposal?
+      session.update!(status: "open", last_question_message_id: nil)
+      return
+    end
+
+    response = visible_turn_assistant_messages.where.not(content: [ nil, "" ]).order(:id).last
     session.update!(status: "open", last_question_message_id: response.id) if response&.content.to_s.strip.end_with?("?")
   end
 
@@ -280,6 +232,10 @@ class Llm::ChatTurn
 
   def turn_assistant_messages
     @turn.output_messages.where(role: "assistant")
+  end
+
+  def visible_turn_assistant_messages
+    turn_assistant_messages.where(internal: false)
   end
 
   def turn_tool_calls
@@ -307,7 +263,12 @@ class Llm::ChatTurn
     @turn.fail!(message) if @turn&.persisted? && !@turn.status.in?(%w[completed failed])
 
     unless turn_assistant_messages.where(content: message).exists?
-      @chat.llm_messages.create!(role: "assistant", content: message, response_turn: @turn)
+      @chat.llm_messages.create!(
+        role: "assistant",
+        content: message,
+        response_turn: @turn,
+        visible_response: true
+      )
     end
     @broadcaster.remove_turn_status
   end

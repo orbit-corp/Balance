@@ -11,7 +11,8 @@ module Llm::MessagesHelper
       "propose_account" => "Preparing an account proposal…",
       "list_journal_entries" => "Checking posted entries…",
       "propose_reversal" => "Preparing a reversal proposal…",
-      "propose_entry" => "Working out the entry…"
+      "propose_entry" => "Working out the entry…",
+      "confirm_proposal" => "Recording the approved entry…"
     },
     completed: {
       "get_balance_summary" => "Calculated your balance",
@@ -19,7 +20,8 @@ module Llm::MessagesHelper
       "propose_account" => "Prepared the account proposal",
       "list_journal_entries" => "Checked posted entries",
       "propose_reversal" => "Prepared the reversal proposal",
-      "propose_entry" => "Prepared the journal entry"
+      "propose_entry" => "Prepared the journal entry",
+      "confirm_proposal" => "Recorded the journal entry"
     }
   }.freeze
 

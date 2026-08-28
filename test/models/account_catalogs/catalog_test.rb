@@ -45,6 +45,17 @@ class AccountCatalogs::CatalogTest < ActiveSupport::TestCase
     assert_equal hash.keys, AccountCatalogs::Personal.account_types.map { |entry| entry[:account_type] }
   end
 
+  test "core and recommended account specs are derived from chart detail types" do
+    catalog = AccountCatalogs::Personal
+
+    assert_equal %i[checking savings cash wallet suspense credit_card opening_balance uncategorized_income uncategorized_expense].sort,
+                 catalog.core.keys.sort
+    assert_equal "Checking Account", catalog.account_spec(:checking)[:detail]
+    assert_includes catalog.recommended.values.pluck(:detail), "Earned Salary & Wages"
+    assert_includes catalog.recommended.values.pluck(:detail), "Housing & Utilities"
+    refute_includes catalog.recommended.values.pluck(:detail), "Checking Account"
+  end
+
   test "business catalog follows the same chart structure" do
     categories = AccountCatalogs::Business.categories
 
