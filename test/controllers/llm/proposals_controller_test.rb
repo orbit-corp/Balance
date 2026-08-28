@@ -65,10 +65,15 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     reversal = reversal_proposal
     original_data = reversal.data.deep_dup
 
-    patch chat_proposal_path(@chat, reversal), params: { proposal: form_params }
+    patch chat_proposal_path(@chat, reversal),
+      params: { proposal: form_params },
+      headers: { Accept: "text/vnd.turbo-stream.html" }
 
-    assert_redirected_to chat_path(@chat)
+    assert_response :success
     assert_equal original_data, reversal.reload.data
+    assert_no_match "Save edits", response.body
+    assert_no_match "proposal[lines]", response.body
+    assert_match "Record reversal", response.body
   end
 
   test "confirming a reversal ignores crafted form changes" do
