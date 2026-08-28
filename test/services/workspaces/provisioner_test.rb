@@ -8,14 +8,15 @@ class Workspaces::ProvisionerTest < ActiveSupport::TestCase
       user: user,
       name: "Ife's Finances",
       workspace_type: "personal",
-      currency_code: "NGN",
-      starter_account_roles: %w[checking credit_card]
+      currency_code: "NGN"
     )
 
     assert_equal user, workspace.memberships.owner.first.user
     assert_equal %w[asset equity expense income liability], workspace.accounts.distinct.order(:base_type).pluck(:base_type)
     assert_equal "asset", workspace.accounts.find_by!(role: "cash").base_type
     assert_equal "Opening Balance", workspace.accounts.find_by!(role: "opening_balance").detail_type
+    assert_equal AccountCatalogs::Personal.core.keys.sort,
+                 workspace.accounts.pluck(:role).map(&:to_sym).sort
   end
 
   test "does not provision business workspaces before they are supported" do
@@ -26,8 +27,7 @@ class Workspaces::ProvisionerTest < ActiveSupport::TestCase
         user: user,
         name: "Ife Limited",
         workspace_type: "business",
-        currency_code: "NGN",
-        starter_account_roles: []
+        currency_code: "NGN"
       )
     end
   end

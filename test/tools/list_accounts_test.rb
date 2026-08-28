@@ -15,12 +15,14 @@ class ListAccountsTest < ActiveSupport::TestCase
 
     recommended = result[:recommended_accounts]
     assert_includes recommended, {
-      name: "Salary & Wages", base_type: "income", account_type: "Personal Inflows",
-      detail_type: "Earned Salary & Wages", parent: "Uncategorized Income"
+      name: "Earned Salary & Wages", base_type: "income", account_type: "Personal Inflows",
+      detail_type: "Earned Salary & Wages",
+      description: "Money received from employment, personal activities, investments, or other sources."
     }
     assert_includes recommended, {
-      name: "Groceries & Food", base_type: "expense", account_type: "Personal Outflows",
-      detail_type: "Living & Daily Needs", parent: "Uncategorized Expense"
+      name: "Living & Daily Needs", base_type: "expense", account_type: "Personal Outflows",
+      detail_type: "Living & Daily Needs",
+      description: "Money spent on living costs, financial obligations, and personal activities."
     }
     refute_includes recommended.map { |account| account[:name] }, "Cash"
 
@@ -32,11 +34,16 @@ class ListAccountsTest < ActiveSupport::TestCase
   end
 
   test "drops recommended accounts that already exist" do
-    Account.for_role!(@workspace, :uncategorized_income).update!(name: "Salary & Wages")
+    @workspace.accounts.create!(
+      name: "Salary & Wages",
+      base_type: "income",
+      account_type: "Personal Inflows",
+      detail_type: "Earned Salary & Wages"
+    )
 
     result = ListAccounts.new(@workspace).execute
 
-    refute_includes result[:recommended_accounts].map { |account| account[:name] }, "Salary & Wages"
+    refute_includes result[:recommended_accounts].map { |account| account[:detail_type] }, "Earned Salary & Wages"
     assert_includes result[:existing_accounts].map { |account| account[:name] }, "Salary & Wages"
   end
 end

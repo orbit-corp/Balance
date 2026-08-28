@@ -3,8 +3,7 @@ class OnboardingController < ApplicationController
 
   skip_before_action :require_current_workspace
 
-  STEPS = %w[workspace_type details accounts].freeze
-  STARTER_ACCOUNT_ROLES = AccountCatalogs::Personal::STARTER_ACCOUNTS.keys.map(&:to_s).freeze
+  STEPS = %w[workspace_type details].freeze
 
   before_action :redirect_completed_user
   before_action :set_step
@@ -18,8 +17,7 @@ class OnboardingController < ApplicationController
   def update
     case @step
     when "workspace_type" then choose_workspace_type
-    when "details" then save_details
-    when "accounts" then provision_workspace
+    when "details" then provision_workspace
     end
   end
 
@@ -34,23 +32,16 @@ class OnboardingController < ApplicationController
     end
   end
 
-  def save_details
+  def provision_workspace
     name = params[:workspace_name].to_s.strip
     return render_error("Enter a name for your personal workspace.") if name.blank?
-
     onboarding_data["workspace_name"] = name
-    onboarding_data["currency_code"] = "NGN"
-    redirect_to onboarding_step_path(:accounts)
-  end
 
-  def provision_workspace
-    roles = Array(params[:starter_account_roles]) & STARTER_ACCOUNT_ROLES
     workspace = Workspaces::Provisioner.call(
       user: Current.user,
-      name: onboarding_data.fetch("workspace_name"),
+      name: name,
       workspace_type: onboarding_data.fetch("workspace_type"),
-      currency_code: "NGN",
-      starter_account_roles: roles
+      currency_code: "NGN"
     )
 
     Current.session.update!(workspace: workspace)
@@ -76,9 +67,8 @@ class OnboardingController < ApplicationController
 
   def step_available?
     return true if @step == "workspace_type"
-    return onboarding_data["workspace_type"].present? if @step == "details"
 
-    onboarding_data["workspace_name"].present?
+    onboarding_data["workspace_type"].present?
   end
 
   def redirect_to_required_step

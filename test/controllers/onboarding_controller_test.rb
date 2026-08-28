@@ -6,16 +6,13 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
   end
 
-  test "provisions a personal NGN workspace with core and selected accounts" do
+  test "provisions a personal NGN workspace with every core account" do
     patch onboarding_step_path(:workspace_type), params: { workspace_type: "personal" }
     assert_redirected_to onboarding_step_path(:details)
 
-    patch onboarding_step_path(:details), params: { workspace_name: "Nneka's Money" }
-    assert_redirected_to onboarding_step_path(:accounts)
-
     assert_difference [ "Workspace.count", "Membership.count" ], 1 do
-      assert_difference "Account.count", 7 do
-        patch onboarding_step_path(:accounts), params: { starter_account_roles: %w[checking savings] }
+      assert_difference "Account.count", AccountCatalogs::Personal.core.size do
+        patch onboarding_step_path(:details), params: { workspace_name: "Nneka's Money" }
       end
     end
 
@@ -23,7 +20,8 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     assert_equal "personal", workspace.workspace_type
     assert_equal "NGN", workspace.currency_code
     assert workspace.onboarding_completed_at?
-    assert_equal %w[cash checking opening_balance savings suspense uncategorized_expense uncategorized_income], workspace.accounts.order(:role).pluck(:role)
+    assert_equal AccountCatalogs::Personal.core.keys.map(&:to_s).sort,
+                 workspace.accounts.order(:role).pluck(:role)
     assert_redirected_to dashboard_path
   end
 

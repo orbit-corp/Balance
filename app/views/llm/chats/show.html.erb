@@ -3,7 +3,7 @@
 
 <%= content_for(:breadcrumb) do %>
   <%= render "shared/breadcrumb", data: [
-        { label: "Agent", path: chats_path },
+        { label: "Chat", path: chats_path },
         { label: @llm_chat.title.presence || "New chat", id: "llm_chat_#{@llm_chat.id}_title" }
       ] %>
 <% end %>
@@ -12,8 +12,8 @@
   <div class="flex items-center gap-1">
     <%= render "llm/chats/usage", llm_chat: @llm_chat %>
 
-    <%= link_to chats_path(current: @llm_chat.uuid), title: "All agents", data: { turbo_frame: "modal" }, class: icon_button_class do %>
-      <span class="sr-only">All agents</span>
+    <%= link_to chats_path(current: @llm_chat.uuid), title: "All chats", data: { turbo_frame: "modal" }, class: icon_button_class do %>
+      <span class="sr-only">All chats</span>
       <%= inline_svg_tag "icons/list.svg", class: "h-4 w-4" %>
     <% end %>
 

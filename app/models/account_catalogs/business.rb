@@ -116,9 +116,5 @@ module AccountCatalogs
         ]
       }
     ].freeze
-
-    CORE = {}.freeze
-    STARTER_ACCOUNTS = {}.freeze
-    RECOMMENDED = {}.freeze
   end
 end
