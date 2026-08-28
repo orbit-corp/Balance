@@ -1,8 +1,9 @@
 RubyLLM.configure do |config|
-  # Local model served by LM Studio, not OpenAI's API.
-  config.openai_api_base = "http://127.0.0.1:1234/v1"
-  config.openai_api_key = "lm-studio"
-  config.default_model = "qwen3.5-35b-a3b"
+  # Local model served by LM Studio by default. Docker overrides the endpoint
+  # so the container can reach the host machine.
+  config.openai_api_base = ENV.fetch("OPENAI_API_BASE", "http://127.0.0.1:1234/v1")
+  config.openai_api_key = ENV.fetch("OPENAI_API_KEY", "lm-studio")
+  config.default_model = ENV.fetch("OPENAI_MODEL", "qwen3.5-35b-a3b")
 
   # Use the association-based acts_as API (recommended)
   config.use_new_acts_as = true

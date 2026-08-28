@@ -11,9 +11,8 @@
 # "Staging" is not a separate service: locally it would be this same prod image
 # with a different .env and port, so it is intentionally omitted.
 #
-# `docker compose up` with no --profile flag relies on COMPOSE_PROFILES=dev in
-# .env (see .env.example). The --profile flag on the CLI overrides that env var,
-# so the prod command above starts only postgres + web-prod, not the dev app.
+# `docker compose up --build` starts the development stack without requiring an
+# environment file. The production image remains opt-in through its profile.
 
 name: balance
 
@@ -24,7 +23,6 @@ services:
   # that config/database.yml connects as in production.
   postgres:
     image: postgres:16
-    profiles: ["dev", "prod"]
     environment:
       POSTGRES_USER: balance
       POSTGRES_PASSWORD: ${BALANCE_DATABASE_PASSWORD:-balance_dev_password}
@@ -42,12 +40,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # Rung 1 — development convenience. Code is bind-mounted for live reload; the
-  # single balance_development database is created before bin/dev starts (dev uses
-  # an in-memory cache store and the async queue/cable adapters, so no separate
-  # cache/queue/cable databases are needed here — unlike production).
+  # Rung 1 — development convenience. Code is bind-mounted for live reload and
+  # Rails prepares its primary, queue, and cable databases before bin/dev starts.
   web-dev:
-    profiles: ["dev"]
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -55,14 +50,27 @@ services:
       RAILS_ENV: development
       BINDING: "0.0.0.0"
       DATABASE_URL: postgres://balance:${BALANCE_DATABASE_PASSWORD:-balance_dev_password}@postgres:5432/balance_development
+      QUEUE_DATABASE_URL: postgres://balance:${BALANCE_DATABASE_PASSWORD:-balance_dev_password}@postgres:5432/balance_development_queue
+      CABLE_DATABASE_URL: postgres://balance:${BALANCE_DATABASE_PASSWORD:-balance_dev_password}@postgres:5432/balance_development_cable
+      OPENAI_API_BASE: ${OPENAI_API_BASE:-http://host.docker.internal:1234/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-lm-studio}
+      OPENAI_MODEL: ${OPENAI_MODEL:-qwen3.5-35b-a3b}
     command: bash -c "bin/rails db:prepare && bin/dev"
     ports:
       - "3000:3000"
     volumes:
       - .:/rails
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   # Rung 2 — run the real production image locally to catch prod-only bugs
   # (missing deps, asset precompile failures, env-var wiring) without deploying.
