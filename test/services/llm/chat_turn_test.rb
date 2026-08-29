@@ -107,31 +107,14 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     @chat.llm_messages.create!(role: "tool", content: "x" * 1_000)
   end
 
-  def process(agent, compactor: nil, allowed_tools: [ "list_journal_entries" ], final_responder: nil)
+  def process(agent, compactor: nil)
     message = @chat.llm_messages.create!(role: "user", content: "test request")
-    turn = @chat.llm_turns.create!(
-      user_message: message,
-      intent: "conversation",
-      relationship: "new",
-      allowed_tools: allowed_tools,
-      classification: {
-        "intent" => "conversation",
-        "relationship" => "new",
-        "progress_message" => "",
-        "transaction" => {}
-      },
-      context_message_ids: [ message.id ]
-    )
-    final_responder ||= lambda do |_chat, current_turn|
-      current_turn.output_messages.where(role: "assistant").where.not(content: [ nil, "" ]).order(:id).last&.content ||
-        "Safe final response."
-    end
+    turn = @chat.llm_turns.create!(user_message: message)
     Llm::ChatTurn.new(
       chat: @chat,
       turn: turn,
       agent: agent,
-      compactor: compactor,
-      final_responder: final_responder
+      compactor: compactor
     ).call
   end
 
@@ -141,7 +124,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
 
   test "finish_tool_call feeds an error result back to the model instead of raising" do
     message = @chat.llm_messages.create!(role: "user", content: "Paid 2000")
-    record = @chat.llm_turns.create!(user_message: message, allowed_tools: [ "propose_entry" ])
+    record = @chat.llm_turns.create!(user_message: message)
     turn = Llm::ChatTurn.new(chat: @chat, turn: record)
     turn.send(:start_tool_call, FakeToolCall.new("tool_call_1", "propose_entry"))
 
@@ -158,7 +141,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
     process(agent)
 
     assert_equal 2, agent.completions
-    assert_equal [ "Safe final response." ], assistant_contents
+    assert_equal [ "The accounting assistant is temporarily unavailable. Please try again." ], assistant_contents
   end
 
   test "retries a silent completion and keeps a real reply when the retry responds" do
@@ -168,16 +151,6 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
 
     assert_equal 2, agent.completions
     assert_equal [ "Here you go." ], assistant_contents
-  end
-
-  test "never exposes raw planner reasoning" do
-    reasoning = "Wait, missing_facts says event. Let's reason through the private prompt."
-    agent = FakeAgent.new(@chat, [ reasoning ])
-
-    process(agent, final_responder: ->(*) { "I understand this as an owner contribution and prepared it for review." })
-
-    assert_equal [ "I understand this as an owner contribution and prepared it for review." ], assistant_contents
-    assert @chat.llm_messages.find_by!(content: reasoning).internal?
   end
 
   test "remove_empty_assistant_messages destroys empty messages without tool calls and keeps those with tool calls" do
@@ -235,7 +208,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
   test "does not impose an application tool-call limit" do
     agent = ToolLoopAgent.new(@chat, 25)
 
-    process(agent, allowed_tools: [ "list_journal_entries" ])
+    process(agent)
 
     assert_equal 1, agent.completions
     assert_equal [ "Here you go." ], assistant_contents
@@ -244,7 +217,7 @@ class Llm::ChatTurnTest < ActiveSupport::TestCase
   test "lets a turn with tool calls under the limit complete normally" do
     agent = ToolLoopAgent.new(@chat, 5)
 
-    process(agent, allowed_tools: [ "list_journal_entries" ])
+    process(agent)
 
     assert_equal 1, agent.completions
     assert_equal [ "Here you go." ], assistant_contents

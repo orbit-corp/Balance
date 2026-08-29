@@ -92,19 +92,8 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "confirming an account proposal creates the account and resumes the transaction" do
     user_message = @chat.llm_messages.create!(role: "user", content: "I paid 2000 rent in cash")
-    session = @chat.llm_transaction_sessions.create!(
-      facts: {
-        "summary" => "Paid rent in cash",
-        "amount" => "2000 NGN",
-        "date" => Date.current.iso8601,
-        "missing_facts" => [],
-        "ready" => true
-      },
-      source_message_ids: [ user_message.id ]
-    )
     source_turn = @chat.llm_turns.create!(
       user_message: user_message,
-      llm_transaction_session: session,
       status: "completed",
       completed_at: Time.current
     )
@@ -135,16 +124,12 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Created and ready to use", response.body
     assert_equal "confirmed", proposal.reload.status
     assert_equal "Rent & Housing", proposal.data.dig("created_accounts", 0, "name")
-    assert_match "ACCOUNT PROPOSAL APPROVED", @chat.llm_messages.where(role: "system").last.content
+    assert_match "approved the account proposal", @chat.llm_messages.where(role: "system").last.content
 
     resumed_turn = @chat.llm_turns.order(:id).last
-    assert_equal "transaction", resumed_turn.intent
-    assert_equal "continuation", resumed_turn.relationship
-    assert_equal %w[list_accounts propose_entry], resumed_turn.allowed_tools
-    assert resumed_turn.classification.dig("transaction", "ready")
-    assert_empty resumed_turn.classification.dig("transaction", "missing_facts")
-    assert_includes resumed_turn.context_message_ids, user_message.id
-    assert_includes resumed_turn.context_message_ids, proposal_message.id
+    assert_equal "queued", resumed_turn.status
+    assert_equal "system", resumed_turn.user_message.role
+    assert_match "Continue the pending transaction", resumed_turn.user_message.content
   end
 
   test "confirming a standalone account proposal does not start a transaction turn" do

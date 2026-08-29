@@ -1,4 +1,4 @@
-<div id="llm_activity_<%= activity.id %>" data-message-role="activity" class="flex items-start gap-2 py-0.5 text-neutral-600">
-  <%= inline_svg_tag "icons/bot.svg", class: "mt-0.5 h-3.5 w-3.5 flex-none text-neutral-500" %>
+<div id="llm_activity_<%= activity.id %>" data-message-role="activity" class="-my-1 grid grid-cols-[0.875rem_minmax(0,1fr)] items-start gap-2 py-0.5 text-neutral-600">
+  <%= inline_svg_tag "icons/bot.svg", class: "mt-0.5 h-3.5 w-3.5 text-neutral-500" %>
   <p class="max-w-2xl text-xs leading-5"><%= activity.content %></p>
 </div>

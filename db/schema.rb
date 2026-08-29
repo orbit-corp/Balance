@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_000300) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -153,36 +153,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000300) do
     t.index ["tool_call_id"], name: "index_llm_tool_calls_on_tool_call_id", unique: true
   end
 
-  create_table "llm_transaction_sessions", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.jsonb "facts", default: {}, null: false
-    t.bigint "last_question_message_id"
-    t.bigint "llm_chat_id", null: false
-    t.jsonb "source_message_ids", default: [], null: false
-    t.string "status", default: "open", null: false
-    t.datetime "updated_at", null: false
-    t.index ["llm_chat_id", "status"], name: "index_llm_transaction_sessions_on_llm_chat_id_and_status"
-    t.index ["llm_chat_id"], name: "index_llm_transaction_sessions_on_llm_chat_id"
-  end
-
   create_table "llm_turns", force: :cascade do |t|
-    t.jsonb "allowed_tools", default: [], null: false
-    t.jsonb "classification", default: {}, null: false
     t.datetime "completed_at"
-    t.jsonb "context_message_ids", default: [], null: false
     t.datetime "created_at", null: false
     t.text "error"
-    t.string "intent"
     t.bigint "llm_chat_id", null: false
-    t.bigint "llm_transaction_session_id"
-    t.string "relationship"
     t.datetime "started_at"
     t.string "status", default: "queued", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_message_id", null: false
     t.index ["llm_chat_id", "status"], name: "index_llm_turns_on_llm_chat_id_and_status"
     t.index ["llm_chat_id"], name: "index_llm_turns_on_llm_chat_id"
-    t.index ["llm_transaction_session_id"], name: "index_llm_turns_on_llm_transaction_session_id"
     t.index ["user_message_id"], name: "index_llm_turns_on_user_message_id", unique: true
   end
 
@@ -259,11 +240,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000300) do
   add_foreign_key "llm_messages", "llm_tool_calls"
   add_foreign_key "llm_messages", "llm_turns"
   add_foreign_key "llm_tool_calls", "llm_messages"
-  add_foreign_key "llm_transaction_sessions", "llm_chats"
-  add_foreign_key "llm_transaction_sessions", "llm_messages", column: "last_question_message_id"
   add_foreign_key "llm_turns", "llm_chats"
   add_foreign_key "llm_turns", "llm_messages", column: "user_message_id"
-  add_foreign_key "llm_turns", "llm_transaction_sessions"
   add_foreign_key "memberships", "users"
   add_foreign_key "memberships", "workspaces"
   add_foreign_key "proposals", "journal_entries"

@@ -61,13 +61,10 @@ class Llm::ProposalsController < ApplicationController
 
   def resume_after_account_creation
     created = @proposal.data.fetch("created_accounts").map { |account| "#{account.fetch("name")} (id #{account.fetch("id")})" }.join(", ")
-    session = @proposal.llm_message&.response_turn&.llm_transaction_session
-    return unless session
+    return unless @proposal.llm_message&.response_turn
 
     message = @llm_chat.resume_turn(
-      "ACCOUNT PROPOSAL APPROVED: Created #{created}. Continue the user's pending transaction now. " \
-      "Call list_accounts to refresh IDs, then call propose_entry. Do not ask for account approval again.",
-      transaction_session: session
+      "The user approved the account proposal. Created #{created}. Continue the pending transaction using these account IDs without asking for approval again."
     )
     @resumed_turn = message.llm_turn
   end

@@ -6,12 +6,13 @@ class Llm::ChatBroadcaster
   end
 
   def append_assistant_chunk(content)
-    # The ledger model is an internal planner. Its raw token stream can contain
-    # provider reasoning and must never be rendered in the user conversation.
+    remove_turn_status unless @response_started
+    @response_started = true
+    assistant_message&.broadcast_append_chunk(content)
   end
 
   def finalize_assistant_message
-    nil
+    @response_started = false
   end
 
   def response_started?
@@ -39,6 +40,29 @@ class Llm::ChatBroadcaster
       target: "llm_messages",
       partial: "llm/messages/activity",
       locals: { activity: activity }
+  end
+
+  def action(tool_call)
+    tool_name = tool_call.name
+    content = {
+      "list_accounts" => "Reviewing your request and the accounts needed for it.",
+      "get_balance_summary" => "Reviewing your posted balances.",
+      "list_journal_entries" => "Reviewing your posted entries.",
+      "check_proposal_status" => "Checking the status of your proposal.",
+      "confirm_proposal" => "Recording the proposal you approved.",
+      "propose_reversal" => "Preparing the confirmed entry for reversal."
+    }[tool_name]
+    return if content.blank? || @turn.blank?
+
+    persisted_call = Llm::ToolCall.find_by(tool_call_id: tool_call.id)
+    record = @chat.llm_activities.find_or_create_by!(
+      turn_user_message_id: @turn.user_message_id,
+      kind: "action"
+    ) do |activity|
+      activity.content = content
+      activity.created_at = persisted_call.created_at - 0.000001 if persisted_call
+    end
+    activity(record)
   end
 
   def tool_completed(tool_call, result)

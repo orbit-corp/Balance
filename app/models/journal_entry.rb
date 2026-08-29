@@ -10,6 +10,8 @@ class JournalEntry < ApplicationRecord
   validate :complies_with_accounting_principles
   validate :cannot_reverse_a_reversal
   validate :reversal_stays_in_workspace
+  validate :reversal_is_unique
+  validate :reversal_is_exact_mirror
   validate :entry_date_not_in_the_future
   validate :entry_date_not_too_far_in_the_past
 
@@ -51,6 +53,22 @@ class JournalEntry < ApplicationRecord
     return if reverses_journal_entry.workspace_id == workspace_id
 
     errors.add(:reverses_journal_entry, "must belong to the same workspace as the entry")
+  end
+
+  def reversal_is_unique
+    return if reverses_journal_entry.blank? || workspace.blank?
+    return unless workspace.journal_entries.where(reverses_journal_entry_id: reverses_journal_entry_id).where.not(id: id).exists?
+
+    errors.add(:reverses_journal_entry, "has already been reversed")
+  end
+
+  def reversal_is_exact_mirror
+    return if reverses_journal_entry.blank?
+
+    Accounting::Engine.reversal_errors(
+      original_lines: reverses_journal_entry.journal_entry_lines,
+      reversal_lines: journal_entry_lines
+    ).each { |message| errors.add(:base, message) }
   end
 
   def complies_with_accounting_principles
