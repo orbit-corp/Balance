@@ -27,6 +27,23 @@ module Accounting
       new(lines, rules: rules).check
     end
 
+    def self.reversal_errors(original_lines:, reversal_lines:)
+      original = reversal_signatures(original_lines, mirror: true)
+      reversal = reversal_signatures(reversal_lines, mirror: false)
+      original == reversal ? [] : [ "A reversal must exactly mirror every line of the original entry" ]
+    end
+
+    def self.reversal_signatures(lines, mirror:)
+      Array(lines).map do |line|
+        debit = line.debit_kobo.to_i
+        credit = line.credit_kobo.to_i
+        side = debit.positive? ? :debit : :credit
+        side = side == :debit ? :credit : :debit if mirror
+        [ line.account_id, side, debit.positive? ? debit : credit, line.counterparty_type.to_s, line.counterparty_id.to_i ]
+      end.sort
+    end
+    private_class_method :reversal_signatures
+
     def initialize(lines, rules: Rules)
       @raw_lines = Array(lines)
       @rules = rules

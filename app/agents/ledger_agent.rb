@@ -21,6 +21,6 @@ class LedgerAgent < RubyLLM::Agent
   thinking effort: :medium
 
   params do
-    { max_tokens: 2_000 }
+    { max_tokens: 2_000, seed: 42 }
   end
 end

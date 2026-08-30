@@ -79,6 +79,9 @@ class Llm::JournalEntryProposal
         entry_date: parse_date(data["entry_date"]),
         reverses_journal_entry_id: data["reverses_journal_entry_id"]
       )
+      original_lines = if data["reverses_journal_entry_id"].present?
+        @workspace.journal_entries.find_by(id: data["reverses_journal_entry_id"])&.journal_entry_lines
+      end
 
       data["lines"].each do |line|
         attributes = {}
@@ -92,6 +95,9 @@ class Llm::JournalEntryProposal
 
         if line["account_id"].present?
           attributes[:account] = @workspace.accounts.find_by(id: line["account_id"])
+        end
+        if original_lines
+          attributes[:counterparty] = original_lines.find { |original| original.id == line["source_line_id"] }&.counterparty
         end
 
         built.journal_entry_lines.build(attributes)

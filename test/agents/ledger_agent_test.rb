@@ -16,12 +16,12 @@ class LedgerAgentTest < ActiveSupport::TestCase
     assert_includes prompt, "Type: personal"
     assert_includes prompt, "Currency: NGN"
     assert_includes prompt, "Never ask whether a transaction is personal or business"
-    assert_includes prompt, "exactly one short question"
-    assert_includes prompt, "no preamble, list, second question"
-    assert_includes prompt, "Treat facts the user has already resolved as settled"
-    assert_includes prompt, "Never ask the user to classify a transaction"
-    assert_includes prompt, "existing account; otherwise use the closest recommendation"
-    assert_includes prompt, "immediately prepare the original journal-entry proposal"
+    assert_includes prompt, "exactly one short, natural question"
+    assert_includes prompt, "not a list of separate questions or a preamble"
+    assert_includes prompt, "Treat any facts the user has already confirmed in this conversation as settled"
+    assert_includes prompt, "Never ask the user to classify the transaction"
+    assert_includes prompt, "Call only the minimum tools needed"
+    assert_includes prompt, "Post only when the user explicitly approves the currently visible journal-entry proposal"
   end
 
   test "uses medium reasoning effort for transaction interpretation" do

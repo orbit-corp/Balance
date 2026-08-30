@@ -1,9 +1,9 @@
 <% details = tool_detail_items(tool_name, local_assigns[:output]) %>
 <% expandable = state != :running && details.any? %>
 
-<div id="tool_call_<%= tool_call_id %>" data-message-role="tool" data-controller="<%= "row-expand" if expandable %>">
+<div id="tool_call_<%= tool_call_id %>" data-message-role="tool" data-controller="<%= "row-expand" if expandable %>" class="-my-1">
   <% if state == :running %>
-    <div class="inline-flex items-center gap-2 py-0.5 text-neutral-500">
+    <div class="grid grid-cols-[0.875rem_minmax(0,1fr)] items-center gap-2 py-0.5 text-neutral-500">
       <span class="h-3 w-3 flex-none animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-600"></span>
       <span class="text-xs"><%= tool_running_label(tool_name) %></span>
     </div>
@@ -13,7 +13,7 @@
               <%= "disabled" unless expandable %>
               data-action="row-expand#toggle"
               aria-expanded="false"
-              class="inline-flex max-w-full items-center gap-2 py-0.5 text-left <%= state == :failed ? "text-amber-700" : "text-neutral-500" %> <%= "cursor-pointer hover:text-neutral-800" if expandable %>">
+              class="grid max-w-full grid-cols-[0.875rem_minmax(0,1fr)_auto] items-center gap-2 py-0.5 text-left <%= state == :failed ? "text-amber-700" : "text-neutral-500" %> <%= "cursor-pointer hover:text-neutral-800" if expandable %>">
         <%= inline_svg_tag "icons/tool.svg", class: "h-3.5 w-3.5 flex-none" %>
         <span class="truncate text-xs"><%= state == :failed ? "#{tool_name.to_s.humanize} needs attention" : tool_completed_label(tool_name) %></span>
 

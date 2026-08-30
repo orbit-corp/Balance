@@ -1,5 +1,5 @@
 class Proposal < ApplicationRecord
-  TYPES = %w[account_creation journal_entry].freeze
+  TYPES = %w[account_creation journal_entry reversal_confirmation].freeze
   STATUSES = %w[proposed confirming confirmed dismissed superseded].freeze
 
   belongs_to :workspace
@@ -24,6 +24,10 @@ class Proposal < ApplicationRecord
 
   def reversal_proposal?
     journal_entry_proposal? && data["reverses_journal_entry_id"].present?
+  end
+
+  def reversal_confirmation?
+    proposal_type == "reversal_confirmation"
   end
 
   def pending?
@@ -59,6 +63,7 @@ class Proposal < ApplicationRecord
 
   def confirm!(draft:)
     with_lock do
+      return [ "Confirm the selected entry before reviewing its reversal proposal." ] unless journal_entry_proposal?
       return [] unless pending?
       return draft.errors if draft.invalid?
       return [] unless transition_to_confirming?

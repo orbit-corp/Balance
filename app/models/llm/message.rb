@@ -30,7 +30,7 @@ class Llm::Message < ApplicationRecord
   def assign_visibility
     return unless role == "assistant" && Llm::Current.turn
 
-    self.internal = !visible_response
+    self.internal = !(visible_response || Llm::Current.visible_response)
   end
 
   def broadcast_append_if_visible

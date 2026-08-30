@@ -12,7 +12,6 @@ class Llm::Chat < ApplicationRecord
   has_many :proposals, foreign_key: :llm_chat_id, dependent: :destroy
   has_many :llm_activities, class_name: "Llm::Activity", foreign_key: :llm_chat_id, dependent: :destroy
   has_many :llm_turns, class_name: "Llm::Turn", foreign_key: :llm_chat_id, dependent: :destroy
-  has_many :llm_transaction_sessions, class_name: "Llm::TransactionSession", foreign_key: :llm_chat_id, dependent: :destroy
 
   attr_accessor :active_turn
 
@@ -69,44 +68,21 @@ class Llm::Chat < ApplicationRecord
     create_turn(role: "user", content: content)
   end
 
-  def resume_turn(content, transaction_session:)
-    transaction do
-      message = llm_messages.create!(role: "system", content: content)
-      turn = llm_turns.create!(
-        user_message: message,
-        llm_transaction_session: transaction_session,
-        intent: "transaction",
-        relationship: "continuation",
-        allowed_tools: %w[list_accounts propose_entry],
-        classification: {
-          "intent" => "transaction",
-          "relationship" => "continuation",
-          "progress_message" => "",
-          "transaction" => transaction_session.facts.merge("missing_facts" => [], "ready" => true)
-        },
-        context_message_ids: resume_context_message_ids(transaction_session)
-      )
-      LlmChatResponseJob.perform_later(id, turn.id)
-      message
-    end
+  def resume_turn(content)
+    create_turn(role: "system", content: content)
   end
 
-  def create_turn(role:, content:, transaction_session: nil)
+  def create_turn(role:, content:)
     transaction do
       message = llm_messages.create!(role: role, content: content)
-      turn = llm_turns.create!(user_message: message, llm_transaction_session: transaction_session)
+      turn = llm_turns.create!(user_message: message)
       LlmChatResponseJob.perform_later(id, turn.id)
       message
     end
   end
 
   def active_context_messages
-    return llm_messages.to_a unless active_turn
-
-    ids = active_turn.context_message_ids.map(&:to_i)
-    ids << active_turn.user_message_id
-    current_ids = active_turn.output_messages.pluck(:id)
-    llm_messages.where(id: (ids + current_ids).uniq).order(:created_at, :id).to_a
+    llm_messages.order(:created_at, :id).to_a
   end
 
   def derive_title_from(prompt)
@@ -129,13 +105,6 @@ class Llm::Chat < ApplicationRecord
 
   private
 
-  def resume_context_message_ids(transaction_session)
-    ids = transaction_session.source_message_ids.map(&:to_i)
-    account_proposal = proposals.by_type("account_creation").where(status: "confirmed").order(id: :desc).first
-    ids << account_proposal&.llm_message_id
-    ids.compact.uniq
-  end
-
   # RubyLLM replaces every system message with the new instructions on each
   # agent setup, which would destroy the compaction summary.
   def replace_persisted_system_instructions(instructions)
@@ -150,23 +119,46 @@ class Llm::Chat < ApplicationRecord
 
   def order_messages_for_llm(messages)
     active = messages.reject(&:summarized_at)
+    active = emphasize_current_request(active)
     system_messages, dialogue = active.partition { |message| message.role.to_s == "system" }
-    if active_turn && system_messages.any?
-      base_system_id = system_messages.first.id
-      allowed_system_ids = active_turn.context_message_ids.map(&:to_i) + [ active_turn.user_message_id, base_system_id ]
-      system_messages.select! { |message| allowed_system_ids.include?(message.id) }
-    end
-    dialogue = if active_turn
-      allowed_ids = active_context_messages.map(&:id)
-      dialogue.select { |message| allowed_ids.include?(message.id) }
-    else
-      Llm::ActiveTransactionContext.new(dialogue, currency_code: workspace.currency_code).messages
-    end
     return dialogue if system_messages.empty?
 
     merged = system_messages.first.dup
     merged.content = system_messages.map(&:content).join("\n\n")
     [ merged ] + dialogue
+  end
+
+  def emphasize_current_request(messages)
+    current_message_id = active_turn&.user_message_id
+    return messages unless current_message_id
+
+    current_index = messages.index { |message| message.id == current_message_id }
+    preceding_assistant_index = messages.first(current_index || 0).rindex do |message|
+      message.role.to_s == "assistant" && message.content.present?
+    end
+    preceding_assistant = messages[preceding_assistant_index] if preceding_assistant_index
+    preceding_user = messages.first(preceding_assistant_index || 0).reverse.find do |message|
+      message.role.to_s == "user" && message.content.present?
+    end
+
+    messages.map do |message|
+      next message unless message.id == current_message_id
+
+      emphasized = message.dup
+      emphasized.content = if message.role.to_s == "user" && preceding_assistant && preceding_user
+        "[CURRENT EXCHANGE — RESPOND TO THIS]\n" \
+          "User: #{preceding_user.content}\n" \
+          "Assistant: #{preceding_assistant.content}\n" \
+          "User: #{message.content}"
+      elsif message.role.to_s == "user" && preceding_assistant
+        "[CURRENT EXCHANGE — RESPOND TO THIS]\n" \
+          "Assistant: #{preceding_assistant.content}\n" \
+          "User: #{message.content}"
+      else
+        "[CURRENT REQUEST — RESPOND TO THIS]\n#{message.content}"
+      end
+      emphasized
+    end
   end
 
   def unsummarized

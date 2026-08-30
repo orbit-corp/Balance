@@ -74,6 +74,37 @@ class JournalEntryTest < ActiveSupport::TestCase
     assert_includes re_reversal.errors[:reverses_journal_entry], "cannot reverse an entry that is itself a reversal"
   end
 
+  test "rejects a reversal that is not an exact mirror" do
+    reversal = @workspace.journal_entries.build(
+      entry_date: Date.current,
+      description: "Incorrect reversal",
+      reverses_journal_entry: @entry,
+      journal_entry_lines_attributes: [
+        { account_id: @cash.id, debit_kobo: 200_000 },
+        { account_id: @expense.id, credit_kobo: 200_000 }
+      ]
+    )
+
+    assert_not reversal.valid?
+    assert_includes reversal.errors[:base], "A reversal must exactly mirror every line of the original entry"
+  end
+
+  test "an entry can only be reversed once" do
+    @entry.reverse!
+    duplicate = @workspace.journal_entries.build(
+      entry_date: Date.current,
+      description: "Duplicate reversal",
+      reverses_journal_entry: @entry,
+      journal_entry_lines_attributes: [
+        { account_id: @cash.id, debit_kobo: 250_000 },
+        { account_id: @expense.id, credit_kobo: 250_000 }
+      ]
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:reverses_journal_entry], "has already been reversed"
+  end
+
   test "cannot reference an entry from another workspace as its reversal" do
     other_workspace = workspaces(:bola_shop)
     other_cash = create_account("Cash", "asset", "Cash & Liquid Assets", "Checking Account", workspace: other_workspace)

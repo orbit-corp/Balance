@@ -26,6 +26,7 @@ class ConfirmProposalTest < ActiveSupport::TestCase
   end
 
   test "records the pending journal proposal exactly once" do
+    @chat.llm_messages.create!(role: "user", content: "Approve it")
     tool = ConfirmProposal.new(@chat)
 
     assert_difference "JournalEntry.count", 1 do
@@ -41,6 +42,41 @@ class ConfirmProposalTest < ActiveSupport::TestCase
     end
   end
 
+  test "refuses to post without explicit approval" do
+    @chat.llm_messages.create!(role: "user", content: "Can you explain this proposal?")
+
+    assert_no_difference "JournalEntry.count" do
+      result = ConfirmProposal.new(@chat).execute
+      assert_includes result[:error], "not been explicitly approved"
+    end
+  end
+
+  test "does not mistake a polite edit request for approval" do
+    @chat.llm_messages.create!(role: "user", content: "Please change the amount to ₦3,000")
+
+    assert_no_difference "JournalEntry.count" do
+      result = ConfirmProposal.new(@chat).execute
+      assert_includes result[:error], "not been explicitly approved"
+    end
+  end
+
+  test "does not post when an affirmative reply also requests a correction" do
+    @chat.llm_messages.create!(role: "user", content: "Yes, but change the account first")
+
+    assert_no_difference "JournalEntry.count" do
+      result = ConfirmProposal.new(@chat).execute
+      assert_includes result[:error], "not been explicitly approved"
+    end
+  end
+
+  test "accepts a concise natural approval" do
+    @chat.llm_messages.create!(role: "user", content: "Yes, please record it.")
+
+    assert_difference "JournalEntry.count", 1 do
+      assert_equal "confirmed", ConfirmProposal.new(@chat).execute[:status]
+    end
+  end
+
   test "does not confirm an account proposal" do
     @proposal.destroy!
     @chat.proposals.create!(
@@ -53,5 +89,28 @@ class ConfirmProposalTest < ActiveSupport::TestCase
     result = ConfirmProposal.new(@chat).execute
 
     assert_includes result[:error], "no journal-entry proposal"
+  end
+
+  test "never posts a reversal proposal through chat confirmation" do
+    @proposal.update!(data: @proposal.data.merge("reverses_journal_entry_id" => 125))
+    @chat.llm_messages.create!(role: "user", content: "Yes, approve it")
+
+    assert_no_difference "JournalEntry.count" do
+      result = ConfirmProposal.new(@chat).execute
+      assert_includes result[:error], "cannot be posted through chat"
+    end
+
+    assert_equal "proposed", @proposal.reload.status
+  end
+
+  test "a reversal selection cannot approve an older journal proposal" do
+    @chat.proposals.create!(workspace: @workspace, proposal_type: "reversal_confirmation", data: { "source_entry_id" => 125 })
+    @chat.llm_messages.create!(role: "user", content: "yes")
+
+    assert_no_difference "JournalEntry.count" do
+      result = ConfirmProposal.new(@chat).execute
+      assert_includes result[:error], "confirmation card"
+    end
+    assert_equal "proposed", @proposal.reload.status
   end
 end

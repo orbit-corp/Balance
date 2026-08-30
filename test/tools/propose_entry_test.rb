@@ -48,6 +48,50 @@ class ProposeEntryTest < ActiveSupport::TestCase
     assert_includes result[:error], "Total debits (2500.00) must equal total credits (2000.00)"
   end
 
+  test "requires every account created for the resumed transaction" do
+    model = Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model")
+    chat = Llm::Chat.create!(workspace: @workspace, llm_model: model, title: "Resumed transaction")
+    tax = @workspace.accounts.create!(
+      name: "Tax Expense",
+      base_type: "expense",
+      account_type: "Personal Outflows",
+      detail_type: "Living & Daily Needs"
+    )
+    chat.proposals.create!(
+      workspace: @workspace,
+      proposal_type: "account_creation",
+      status: "confirmed",
+      data: {
+        "reason" => "Track tax separately",
+        "accounts" => [],
+        "created_accounts" => [ { "id" => tax.id, "name" => tax.name } ]
+      }
+    )
+    message = chat.llm_messages.create!(role: "system", content: "Continue the pending transaction")
+    chat.active_turn = chat.llm_turns.create!(user_message: message)
+
+    result = ProposeEntry.new(chat).execute(
+      description: "Salary with tax",
+      lines: [
+        { account_id: @expense.id, side: "debit", amount_naira: "2500" },
+        { account_id: @cash.id, side: "credit", amount_naira: "2500" }
+      ]
+    )
+
+    assert_includes result[:error], "Tax Expense (id #{tax.id})"
+
+    corrected = ProposeEntry.new(chat).execute(
+      description: "Salary with tax",
+      lines: [
+        { "account_id" => @expense.id, "side" => "debit", "amount_naira" => "2000" },
+        { "account_id" => tax.id, "side" => "debit", "amount_naira" => "500" },
+        { "account_id" => @cash.id, "side" => "credit", "amount_naira" => "2500" }
+      ]
+    )
+
+    assert_instance_of RubyLLM::Tool::Halt, corrected
+  end
+
   private
 
   def execute_tool(lines: nil)

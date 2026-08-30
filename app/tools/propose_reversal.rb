@@ -1,70 +1,30 @@
 class ProposeReversal < RubyLLM::Tool
-  REVERSAL_QUESTION_PATTERN = /\brevers\w*\b.*\?\s*\z/i
-  AFFIRMATIVE_PATTERN = /\A\s*(y(es|eah|ep|up)|ok(ay)?|sure|alright|go ahead|please|do it|proceed|correct|confirmed?)\b/i
-
-  description "Create a reviewable reversing journal-entry proposal for a posted entry in this workspace. It never deletes or changes the original entry."
+  description "Show an entry-bound confirmation card for a posted entry selected for reversal. " \
+              "Call as soon as the target entry is known; do not ask a separate text confirmation. " \
+              "The user confirms the exact entry on the card, then reviews a separate immutable reversal proposal. " \
+              "This tool never posts or changes an entry."
 
   params do
     integer :entry_id, description: "posted journal entry ID returned by list_journal_entries"
+    boolean :use_original_date, required: false,
+                                description: "true only when the user explicitly requests the original entry date"
   end
 
   def initialize(chat)
-    @chat = chat
     @workspace = chat.workspace
   end
 
-  def execute(entry_id:)
-    unless confirmed_by_user?(entry_id)
-      return { error: "I need your confirmation before I prepare a reversal. " \
-                      "Please confirm you want to reverse journal entry #{entry_id}." }
-    end
-
-    entry = @workspace.journal_entries
-      .includes(journal_entry_lines: :account)
-      .find_by(id: entry_id)
-
+  def execute(entry_id:, use_original_date: false)
+    entry = @workspace.journal_entries.includes(journal_entry_lines: :account).find_by(id: entry_id)
     return { error: "That journal entry does not exist in this workspace." } unless entry
-    return { error: "That journal entry has already been reversed." } if @workspace.journal_entries.where(reverses_journal_entry_id: entry.id).exists?
+    return { error: "That journal entry has already been reversed." } if @workspace.journal_entries.exists?(reverses_journal_entry_id: entry.id)
+    return { error: "That entry is itself a reversal." } if entry.reverses_journal_entry_id.present?
 
     halt({
       proposal: true,
-      proposed_action: "journal_entry",
-      entry_data: {
-        "description" => "Reversal of journal entry #{entry.id}: #{entry.description}",
-        "entry_date" => Date.current.to_s,
-        "amount_source" => "existing_posted_entry",
-        "reverses_journal_entry_id" => entry.id,
-        "lines" => entry.journal_entry_lines.map do |line|
-          {
-            "account_id" => line.account_id,
-            "side" => line.debit_kobo.to_i.positive? ? "credit" : "debit",
-            "amount_kobo" => line.debit_kobo.to_i.positive? ? line.debit_kobo : line.credit_kobo,
-            "counterparty_name" => line.counterparty&.name
-          }
-        end
-      },
-      message: "Reversal proposal created for review."
+      proposed_action: "reversal_confirmation",
+      entry_data: Llm::ReversalConfirmation.entry_data(entry, use_original_date: use_original_date),
+      message: "Confirm the selected entry on the card. Nothing has been reversed or posted."
     })
-  end
-
-  private
-
-  def confirmed_by_user?(entry_id)
-    messages = @chat.llm_messages.to_a
-    question_index = messages.rindex do |message|
-      message.role.to_s == "assistant" &&
-        message.content.to_s.match?(REVERSAL_QUESTION_PATTERN) &&
-        references_entry?(message.content, entry_id)
-    end
-    return false unless question_index
-
-    reply = messages.drop(question_index + 1).select { |message| message.role.to_s == "user" }.last
-    reply&.content.to_s.match?(AFFIRMATIVE_PATTERN)
-  end
-
-  def references_entry?(content, entry_id)
-    content.to_s.match?(
-      /\b(?:journal\s+entry|JE)\b[^\d]{0,24}\b#{Regexp.escape(entry_id.to_s)}\b/i
-    )
   end
 end

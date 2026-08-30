@@ -1,3 +1,3 @@
 class Llm::Current < ActiveSupport::CurrentAttributes
-  attribute :turn
+  attribute :turn, :visible_response
 end

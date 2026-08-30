@@ -90,21 +90,65 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 5_000, recorded.journal_entry_lines.find_by!(account: @expense).credit_kobo
   end
 
+  test "confirming a selected entry creates a reversal proposal but requires a second approval to post" do
+    confirmation = reversal_confirmation
+
+    assert_no_difference "JournalEntry.count" do
+      assert_difference "Proposal.count", 1 do
+        patch confirm_chat_proposal_path(@chat, confirmation),
+          params: { proposal: form_params.merge(source_entry_id: -1) },
+          headers: { Accept: "text/vnd.turbo-stream.html" }
+      end
+    end
+
+    assert_response :success
+    assert_match "Entry confirmed", response.body
+    assert_match "Record reversal", response.body
+    assert_no_match "Save edits", response.body
+    assert_no_match "proposal\[lines\]", response.body
+    reversal = @chat.proposals.find(confirmation.reload.data.fetch("reversal_proposal_id"))
+    assert reversal.reversal_proposal?
+    assert_equal @source_entry.id, reversal.data.fetch("reverses_journal_entry_id")
+    assert_equal "superseded", @proposal.reload.status
+
+    assert_no_difference [ "Proposal.count", "JournalEntry.count" ] do
+      patch confirm_chat_proposal_path(@chat, confirmation)
+    end
+
+    assert_difference "JournalEntry.count", 1 do
+      patch confirm_chat_proposal_path(@chat, reversal)
+    end
+    assert_equal @source_entry.id, reversal.reload.journal_entry.reverses_journal_entry_id
+  end
+
+  test "selection confirmation fields cannot be edited" do
+    confirmation = reversal_confirmation
+    original_data = confirmation.data.deep_dup
+
+    patch chat_proposal_path(@chat, confirmation),
+      params: { proposal: form_params.merge(source_entry_id: -1) },
+      headers: { Accept: "text/vnd.turbo-stream.html" }
+
+    assert_equal original_data, confirmation.reload.data
+    assert_match "Confirm this entry", response.body
+    assert_match "Journal entry ##{@source_entry.id}", response.body
+    assert_no_match "Save edits", response.body
+  end
+
+  test "a dismissed selection cannot create a reversal proposal" do
+    confirmation = reversal_confirmation
+    patch dismiss_chat_proposal_path(@chat, confirmation)
+
+    assert_no_difference [ "Proposal.count", "JournalEntry.count" ] do
+      patch confirm_chat_proposal_path(@chat, confirmation)
+    end
+    assert_equal "dismissed", confirmation.reload.status
+  end
+
   test "confirming an account proposal creates the account and resumes the transaction" do
     user_message = @chat.llm_messages.create!(role: "user", content: "I paid 2000 rent in cash")
-    session = @chat.llm_transaction_sessions.create!(
-      facts: {
-        "summary" => "Paid rent in cash",
-        "amount" => "2000 NGN",
-        "date" => Date.current.iso8601,
-        "missing_facts" => [],
-        "ready" => true
-      },
-      source_message_ids: [ user_message.id ]
-    )
     source_turn = @chat.llm_turns.create!(
       user_message: user_message,
-      llm_transaction_session: session,
       status: "completed",
       completed_at: Time.current
     )
@@ -135,16 +179,12 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Created and ready to use", response.body
     assert_equal "confirmed", proposal.reload.status
     assert_equal "Rent & Housing", proposal.data.dig("created_accounts", 0, "name")
-    assert_match "ACCOUNT PROPOSAL APPROVED", @chat.llm_messages.where(role: "system").last.content
+    assert_match "approved the account proposal", @chat.llm_messages.where(role: "system").last.content
 
     resumed_turn = @chat.llm_turns.order(:id).last
-    assert_equal "transaction", resumed_turn.intent
-    assert_equal "continuation", resumed_turn.relationship
-    assert_equal %w[list_accounts propose_entry], resumed_turn.allowed_tools
-    assert resumed_turn.classification.dig("transaction", "ready")
-    assert_empty resumed_turn.classification.dig("transaction", "missing_facts")
-    assert_includes resumed_turn.context_message_ids, user_message.id
-    assert_includes resumed_turn.context_message_ids, proposal_message.id
+    assert_equal "queued", resumed_turn.status
+    assert_equal "system", resumed_turn.user_message.role
+    assert_match "Continue the pending transaction", resumed_turn.user_message.content
   end
 
   test "confirming a standalone account proposal does not start a transaction turn" do
@@ -194,6 +234,17 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def reversal_confirmation
+    @source_entry = post_journal_entry!(
+      @workspace, debit_account: @expense, credit_account: @cash, amount_kobo: 5_000
+    )
+    @chat.proposals.create!(
+      workspace: @workspace,
+      proposal_type: "reversal_confirmation",
+      data: Llm::ReversalConfirmation.entry_data(@source_entry)
+    )
+  end
 
   def reversal_proposal
     @source_entry = @workspace.journal_entries.create!(

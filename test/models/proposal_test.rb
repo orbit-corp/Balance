@@ -99,6 +99,15 @@ class ProposalTest < ActiveSupport::TestCase
     end
   end
 
+  test "a selection confirmation cannot be posted as a journal proposal" do
+    draft = build_draft
+    @proposal.update!(proposal_type: "reversal_confirmation")
+
+    assert_no_difference "JournalEntry.count" do
+      assert_includes @proposal.confirm!(draft: draft), "Confirm the selected entry before reviewing its reversal proposal."
+    end
+  end
+
   private
 
   def build_draft(lines: nil)

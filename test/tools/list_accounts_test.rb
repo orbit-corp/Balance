@@ -7,7 +7,11 @@ class ListAccountsTest < ActiveSupport::TestCase
   end
 
   test "returns existing accounts with ids and recommended accounts that do not exist yet" do
-    result = ListAccounts.new(@workspace).execute
+    result = ListAccounts.new(@workspace).execute(purpose: "Receive salary")
+
+    assert_equal "Receive salary", result[:purpose]
+    assert_includes result[:selection_guidance], "final economic substance"
+    assert_includes result[:selection_guidance], "transferred amount plus the fee"
 
     existing = result[:existing_accounts]
     assert_includes existing.map { |account| account[:id] }, @cash.id
@@ -16,13 +20,11 @@ class ListAccountsTest < ActiveSupport::TestCase
     recommended = result[:recommended_accounts]
     assert_includes recommended, {
       name: "Earned Salary & Wages", base_type: "income", account_type: "Personal Inflows",
-      detail_type: "Earned Salary & Wages",
-      description: "Money received from employment, personal activities, investments, or other sources."
+      detail_type: "Earned Salary & Wages"
     }
     assert_includes recommended, {
       name: "Living & Daily Needs", base_type: "expense", account_type: "Personal Outflows",
-      detail_type: "Living & Daily Needs",
-      description: "Money spent on living costs, financial obligations, and personal activities."
+      detail_type: "Living & Daily Needs"
     }
     refute_includes recommended.map { |account| account[:name] }, "Cash"
 
@@ -41,7 +43,7 @@ class ListAccountsTest < ActiveSupport::TestCase
       detail_type: "Earned Salary & Wages"
     )
 
-    result = ListAccounts.new(@workspace).execute
+    result = ListAccounts.new(@workspace).execute(purpose: "Receive salary")
 
     refute_includes result[:recommended_accounts].map { |account| account[:detail_type] }, "Earned Salary & Wages"
     assert_includes result[:existing_accounts].map { |account| account[:name] }, "Salary & Wages"
