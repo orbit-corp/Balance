@@ -39,7 +39,7 @@ module Accounting
         credit = line.credit_kobo.to_i
         side = debit.positive? ? :debit : :credit
         side = side == :debit ? :credit : :debit if mirror
-        [ line.account_id, side, debit.positive? ? debit : credit ]
+        [ line.account_id, side, debit.positive? ? debit : credit, line.counterparty_type.to_s, line.counterparty_id.to_i ]
       end.sort
     end
     private_class_method :reversal_signatures

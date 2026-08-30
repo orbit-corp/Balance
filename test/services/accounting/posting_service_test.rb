@@ -31,6 +31,26 @@ class Accounting::PostingServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "locks the original entry before posting its reversal" do
+    original = Accounting::PostingService.call(entry: build_entry(debit_kobo: 25_000, credit_kobo: 25_000)).entry
+    reversal = @workspace.journal_entries.build(
+      description: "Reverse posting test",
+      entry_date: Date.current,
+      reverses_journal_entry: original,
+      journal_entry_lines_attributes: [
+        { account: @cash, debit_kobo: 25_000 },
+        { account: @expense, credit_kobo: 25_000 }
+      ]
+    )
+    locked = false
+
+    original.stub(:lock!, -> { locked = true; original }) do
+      assert Accounting::PostingService.call(entry: reversal).success?
+    end
+
+    assert locked
+  end
+
   private
 
   def create_account(name, base_type, account_type, detail_type)

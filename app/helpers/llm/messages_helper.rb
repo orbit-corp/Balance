@@ -1,6 +1,7 @@
 module Llm::MessagesHelper
   PROPOSAL_PARTIALS = {
     "account_creation" => "llm/messages/proposals/account_creation",
+    "reversal_confirmation" => "llm/messages/proposals/reversal_confirmation",
     "journal_entry" => "llm/messages/proposals/journal_entry"
   }.freeze
 
@@ -10,7 +11,7 @@ module Llm::MessagesHelper
       "list_accounts" => "Checking your accounts…",
       "propose_account" => "Preparing an account proposal…",
       "list_journal_entries" => "Checking posted entries…",
-      "propose_reversal" => "Preparing a reversal proposal…",
+      "propose_reversal" => "Preparing the entry confirmation…",
       "propose_entry" => "Working out the entry…",
       "confirm_proposal" => "Recording the approved entry…"
     },
@@ -19,7 +20,7 @@ module Llm::MessagesHelper
       "list_accounts" => "Checked your accounts",
       "propose_account" => "Prepared the account proposal",
       "list_journal_entries" => "Checked posted entries",
-      "propose_reversal" => "Prepared the reversal proposal",
+      "propose_reversal" => "Selected the entry for confirmation",
       "propose_entry" => "Prepared the journal entry",
       "confirm_proposal" => "Recorded the journal entry"
     }

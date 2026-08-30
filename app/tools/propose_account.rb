@@ -1,7 +1,8 @@
 class ProposeAccount < RubyLLM::Tool
   description "Propose one or more missing ledger accounts for the user to review. This never creates an account. " \
-              "Call it only after the transaction is fully understood, list_accounts shows the accounts are missing, " \
-              "and the proposed taxonomy is valid for the workspace."
+              "Use it only when list_accounts results from the current request prove that a required account is " \
+              "missing and supply the valid workspace taxonomy. Never call it before list_accounts. A request to " \
+              "use separate accounts does not itself mean new accounts are missing."
 
   params do
     string :reason, description: "plain-language reason these accounts are needed for the transaction"

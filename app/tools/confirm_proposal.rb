@@ -8,12 +8,24 @@ class ConfirmProposal < RubyLLM::Tool
   end
 
   def execute
+    if @chat.proposals.proposed.by_type("reversal_confirmation").exists?
+      return { error: "Confirm the selected entry on its reversal confirmation card. Nothing has been posted." }
+    end
+
     proposal = current_proposal
     unless proposal
       recorded = last_recorded_proposal
       return recorded_result(recorded, already_recorded: true) if recorded
 
       return { error: "There is no journal-entry proposal awaiting approval." }
+    end
+
+    if proposal.reversal_proposal?
+      return { error: "Reversal proposals cannot be posted through chat. Review and approve the proposal explicitly." }
+    end
+
+    unless explicitly_approved?(proposal)
+      return { error: "The current journal-entry proposal has not been explicitly approved by the user." }
     end
 
     draft = Llm::JournalEntryProposal.new(workspace: @chat.workspace, data: proposal.data)
@@ -30,6 +42,13 @@ class ConfirmProposal < RubyLLM::Tool
 
   private
 
+  def explicitly_approved?(proposal)
+    user_message = @chat.llm_messages.where(role: "user").order(:id).last
+    return false unless Llm::ExplicitApproval.call(user_message&.content)
+
+    proposal.created_at <= user_message.created_at
+  end
+
   def recorded_result(proposal, already_recorded: false)
     {
       message: "Journal entry recorded.",
@@ -43,15 +62,7 @@ class ConfirmProposal < RubyLLM::Tool
   end
 
   def current_proposal
-    scoped = @chat.proposals.proposed.by_type("journal_entry")
-    session = @chat.active_turn&.llm_transaction_session
-    if session
-      scoped = scoped.joins(:llm_message)
-        .where(llm_messages: { llm_turn_id: session.llm_turns.select(:id) })
-    end
-
-    scoped.order(version: :desc, id: :desc).first ||
-      @chat.proposals.proposed.by_type("journal_entry").order(version: :desc, id: :desc).first
+    @chat.proposals.proposed.by_type("journal_entry").order(version: :desc, id: :desc).first
   end
 
   def last_recorded_proposal

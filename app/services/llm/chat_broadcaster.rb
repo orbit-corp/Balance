@@ -50,7 +50,7 @@ class Llm::ChatBroadcaster
       "list_journal_entries" => "Reviewing your posted entries.",
       "check_proposal_status" => "Checking the status of your proposal.",
       "confirm_proposal" => "Recording the proposal you approved.",
-      "propose_reversal" => "Preparing the confirmed entry for reversal."
+      "propose_reversal" => "Showing the selected entry for your confirmation."
     }[tool_name]
     return if content.blank? || @turn.blank?
 

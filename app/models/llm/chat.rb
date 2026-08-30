@@ -119,12 +119,46 @@ class Llm::Chat < ApplicationRecord
 
   def order_messages_for_llm(messages)
     active = messages.reject(&:summarized_at)
+    active = emphasize_current_request(active)
     system_messages, dialogue = active.partition { |message| message.role.to_s == "system" }
     return dialogue if system_messages.empty?
 
     merged = system_messages.first.dup
     merged.content = system_messages.map(&:content).join("\n\n")
     [ merged ] + dialogue
+  end
+
+  def emphasize_current_request(messages)
+    current_message_id = active_turn&.user_message_id
+    return messages unless current_message_id
+
+    current_index = messages.index { |message| message.id == current_message_id }
+    preceding_assistant_index = messages.first(current_index || 0).rindex do |message|
+      message.role.to_s == "assistant" && message.content.present?
+    end
+    preceding_assistant = messages[preceding_assistant_index] if preceding_assistant_index
+    preceding_user = messages.first(preceding_assistant_index || 0).reverse.find do |message|
+      message.role.to_s == "user" && message.content.present?
+    end
+
+    messages.map do |message|
+      next message unless message.id == current_message_id
+
+      emphasized = message.dup
+      emphasized.content = if message.role.to_s == "user" && preceding_assistant && preceding_user
+        "[CURRENT EXCHANGE — RESPOND TO THIS]\n" \
+          "User: #{preceding_user.content}\n" \
+          "Assistant: #{preceding_assistant.content}\n" \
+          "User: #{message.content}"
+      elsif message.role.to_s == "user" && preceding_assistant
+        "[CURRENT EXCHANGE — RESPOND TO THIS]\n" \
+          "Assistant: #{preceding_assistant.content}\n" \
+          "User: #{message.content}"
+      else
+        "[CURRENT REQUEST — RESPOND TO THIS]\n#{message.content}"
+      end
+      emphasized
+    end
   end
 
   def unsummarized

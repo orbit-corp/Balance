@@ -1,0 +1,41 @@
+<% errors ||= local_assigns[:errors] %>
+
+<div id="proposal_<%= proposal.id %>" data-message-role="proposal" class="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+  <div class="flex items-start justify-between gap-3 px-4 py-3">
+    <div class="min-w-0">
+      <p class="text-[11px] font-semibold tracking-wide text-[#0f7082] uppercase">Confirm entry for reversal</p>
+      <h3 class="mt-0.5 text-sm font-semibold text-neutral-950"><%= proposal.description %></h3>
+      <p class="mt-0.5 text-xs text-neutral-500">Journal entry #<%= proposal.data.fetch("source_entry_id") %> · <%= proposal.entry_date.to_date.strftime("%B %-d, %Y") %></p>
+    </div>
+    <p class="flex-none text-lg font-semibold tracking-tight tabular-nums text-neutral-950"><%= naira(proposal.total_debit_kobo) %></p>
+  </div>
+
+  <% if errors.present? %>
+    <div class="border-t border-neutral-200 px-4 py-3"><%= render "shared/form_errors", record: Array(errors) %></div>
+  <% end %>
+
+  <div class="divide-y divide-neutral-100 border-y border-neutral-200">
+    <% proposal.lines.each do |line| %>
+      <div class="grid grid-cols-[3.5rem_minmax(0,1fr)_6.25rem] items-center gap-1.5 px-4 py-2 text-[13px]">
+        <span class="text-xs font-medium text-neutral-500"><%= line.fetch("side").titleize %></span>
+        <span class="text-neutral-900"><%= line.fetch("account_name") %></span>
+        <span class="text-right tabular-nums text-neutral-900"><%= naira(line.fetch("amount_kobo")) %></span>
+      </div>
+    <% end %>
+  </div>
+
+  <% if proposal.pending? %>
+    <div class="px-4 py-3 text-xs leading-5 text-neutral-500">
+      <p>Is this the entry you want to reverse?</p>
+      <p>Confirmation prepares an exact reversal dated <%= proposal.data["use_original_date"] ? "the original entry date" : "today" %>. Nothing is posted until you approve that proposal.</p>
+    </div>
+    <%= form_with url: confirm_chat_proposal_path(proposal.llm_chat, proposal), method: :patch, class: "flex justify-end gap-1.5 border-t border-neutral-200 bg-neutral-50 px-4 py-2.5" do %>
+      <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not this entry</button>
+      <button type="submit" class="<%= primary_button_class(size: :sm) %>">Confirm this entry</button>
+    <% end %>
+  <% else %>
+    <p class="bg-neutral-50 px-4 py-3 text-xs <%= proposal.confirmed? ? "text-green-700" : "text-neutral-500" %>">
+      <%= proposal.confirmed? ? "Entry confirmed — review the reversal proposal below." : "Cancelled — nothing was reversed." %>
+    </p>
+  <% end %>
+</div>

@@ -5,12 +5,7 @@ class ProposeReversalTest < ActiveSupport::TestCase
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
     @expense = Account.for_role!(@workspace, :uncategorized_expense)
-    @entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 250_000
-    )
+    @entry = post_journal_entry!(@workspace, debit_account: @expense, credit_account: @cash, amount_kobo: 250_000)
     @chat = Llm::Chat.create!(
       workspace: @workspace,
       llm_model: Llm::Model.create!(provider: "test", model_id: RubyLLM.config.default_model, name: "Test model"),
@@ -18,107 +13,57 @@ class ProposeReversalTest < ActiveSupport::TestCase
     )
   end
 
-  test "refuses without a prior confirmation question" do
-    result = execute
+  test "returns an exact entry confirmation without preparing or posting a reversal" do
+    assert_no_difference [ "JournalEntry.count", "Proposal.count" ] do
+      result = ProposeReversal.new(@chat).execute(entry_id: @entry.id).content
 
-    assert_equal "I need your confirmation before I prepare a reversal. Please confirm you want to reverse journal entry #{@entry.id}.", result[:error]
+      assert result[:proposal]
+      assert_equal "reversal_confirmation", result[:proposed_action]
+      assert_equal @entry.id, result.dig(:entry_data, "source_entry_id")
+      assert_equal @entry.description, result.dig(:entry_data, "description")
+      assert_equal @entry.entry_date.iso8601, result.dig(:entry_data, "entry_date")
+      assert_equal %w[debit credit], result.dig(:entry_data, "lines").pluck("side")
+      assert_equal [ @expense.name, @cash.name ], result.dig(:entry_data, "lines").pluck("account_name")
+      refute result[:entry_data].key?("reverses_journal_entry_id")
+    end
   end
 
-  test "refuses when the assistant asked but the user did not confirm" do
-    @chat.llm_messages.create!(role: "assistant", content: "Do you want me to prepare a reversal for this entry?")
-
-    result = execute
-
-    assert_match(/need your confirmation/, result[:error])
-  end
-
-  test "proposes opposite lines once the assistant asked for confirmation" do
-    ask_for_confirmation
-
-    result = execute
-    result = result.content
-
-    assert result[:proposal]
-    assert_equal @entry.id, result.dig(:entry_data, "reverses_journal_entry_id")
-    assert_equal %w[credit debit], result.dig(:entry_data, "lines").map { |line| line["side"] }
-    assert_equal @entry.id, @workspace.journal_entries.find(@entry.id).id
-  end
-
-  test "accepts a clearly identified entry written as journal entry ID" do
-    @chat.llm_messages.create!(
-      role: "assistant",
-      content: "Found journal entry: ID #{@entry.id}. Reverse journal entry ID #{@entry.id}?"
-    )
+  test "prose and earlier approvals do not bypass the confirmation card" do
+    @chat.llm_messages.create!(role: "assistant", content: "Entry ID #{@entry.id}. Please confirm yes if correct.")
     @chat.llm_messages.create!(role: "user", content: "yes")
 
-    assert_instance_of RubyLLM::Tool::Halt, execute
+    result = ProposeReversal.new(@chat).execute(entry_id: @entry.id).content
+
+    assert_equal "reversal_confirmation", result[:proposed_action]
   end
 
-  test "accepts the natural confirmation question produced by the final responder" do
-    @chat.llm_messages.create!(
-      role: "assistant",
-      content: "The latest recorded journal entry is ID #{@entry.id} (Transport). Would you like to reverse this entry?"
-    )
-    @chat.llm_messages.create!(role: "user", content: "Yes, reverse it.")
+  test "keeps an explicit original-date choice for the confirmation" do
+    result = ProposeReversal.new(@chat).execute(entry_id: @entry.id, use_original_date: true).content
 
-    assert_instance_of RubyLLM::Tool::Halt, execute
+    assert result.dig(:entry_data, "use_original_date")
   end
 
-  test "rejects an entry from another workspace even after confirmation" do
-    ask_for_confirmation
-    other_workspace = workspaces(:bola_shop)
-    other_chat = Llm::Chat.create!(
-      workspace: other_workspace,
-      llm_model: @chat.llm_model,
-      title: "Test chat"
-    )
-    other_chat.llm_messages.create!(
-      role: "assistant",
-      content: "Do you want me to prepare a reversal for journal entry #{@entry.id}?"
-    )
-    other_chat.llm_messages.create!(role: "user", content: "yes")
+  test "rejects another workspace entry" do
+    other_chat = Llm::Chat.create!(workspace: workspaces(:bola_shop), llm_model: @chat.llm_model, title: "Other")
 
     result = ProposeReversal.new(other_chat).execute(entry_id: @entry.id)
 
     assert_equal "That journal entry does not exist in this workspace.", result[:error]
   end
 
-  test "rejects an entry that already has a reversal" do
+  test "rejects an already reversed entry" do
     @entry.reverse!
-    ask_for_confirmation
 
-    result = execute
+    result = ProposeReversal.new(@chat).execute(entry_id: @entry.id)
 
     assert_equal "That journal entry has already been reversed.", result[:error]
-    assert_nil result[:proposal]
   end
 
-  test "does not reuse confirmation for a different entry" do
-    ask_for_confirmation
-    other_entry = post_journal_entry!(
-      @workspace,
-      debit_account: @expense,
-      credit_account: @cash,
-      amount_kobo: 100_000
-    )
+  test "rejects an entry that is itself a reversal" do
+    reversal = @entry.reverse!
 
-    result = ProposeReversal.new(@chat).execute(entry_id: other_entry.id)
+    result = ProposeReversal.new(@chat).execute(entry_id: reversal.id)
 
-    assert_match(/need your confirmation/, result[:error])
-  end
-
-  private
-
-  def ask_for_confirmation
-    @chat.llm_messages.create!(
-      role: "assistant",
-      content: "Do you want me to prepare a reversal for journal entry #{@entry.id}?"
-    )
-    @chat.llm_messages.create!(role: "user", content: "yes")
-    @chat.llm_messages.create!(role: "assistant", content: "Preparing that now.")
-  end
-
-  def execute
-    ProposeReversal.new(@chat).execute(entry_id: @entry.id)
+    assert_equal "That entry is itself a reversal.", result[:error]
   end
 end

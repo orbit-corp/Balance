@@ -3,7 +3,7 @@ class Llm::ProposalsController < ApplicationController
   before_action :set_proposal
 
   def update
-    return respond_with_card if @proposal.account_creation_proposal?
+    return respond_with_card unless @proposal.journal_entry_proposal?
     return respond_with_card unless @proposal.pending?
     return respond_with_card if @proposal.reversal_proposal?
 
@@ -14,7 +14,12 @@ class Llm::ProposalsController < ApplicationController
   end
 
   def confirm
-    errors = if @proposal.account_creation_proposal?
+    errors = if @proposal.reversal_confirmation?
+      confirmation = Llm::ReversalConfirmation.new(@proposal).confirm
+      @generated_proposal = confirmation.proposal
+      @superseded_proposals = confirmation.superseded
+      confirmation.errors
+    elsif @proposal.account_creation_proposal?
       @proposal.confirm_accounts!(draft: account_draft)
     else
       @proposal.confirm!(draft: journal_entry_draft)
@@ -78,6 +83,13 @@ class Llm::ProposalsController < ApplicationController
           "proposal_#{@proposal.id}", partial: partial,
           locals: { proposal: @proposal, errors: errors }
         ) ]
+        Array(@superseded_proposals).each { |proposal| streams << turbo_stream.remove("proposal_#{proposal.id}") }
+        if @generated_proposal
+          streams << turbo_stream.append(
+            "llm_messages", partial: "llm/messages/proposals/journal_entry",
+            locals: { proposal: @generated_proposal }
+          )
+        end
         if @resumed_turn
           streams << turbo_stream.append(
             "llm_messages", partial: "llm/messages/turn_status",

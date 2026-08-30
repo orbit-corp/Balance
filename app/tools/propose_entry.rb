@@ -2,7 +2,8 @@ class ProposeEntry < RubyLLM::Tool
   description "Propose a balanced double-entry journal entry using account IDs returned by list_accounts. " \
               "Every required account must already exist. This creates a reviewable proposal only; " \
               "it never posts an entry. Amounts are in naira. For ordinary transactions, debit expenses " \
-              "and assets received, and credit income, liabilities incurred, equity increases, and assets paid out."
+              "and assets received, and credit income, liabilities incurred, equity increases, and assets paid out. " \
+              "Before calling, sum the proposed line amounts and verify that total debits exactly equal total credits."
 
   params do
     string :description, description: "short, clear description of the transaction"

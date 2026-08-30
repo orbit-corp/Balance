@@ -16,6 +16,8 @@ class Accounting::PostingService
     engine_result = nil
 
     JournalEntry.transaction do
+      # Serialize approvals that target the same original entry.
+      entry.reverses_journal_entry&.lock!
       engine_result = engine.check(entry.journal_entry_lines)
       unless engine_result.ok?
         entry.valid?

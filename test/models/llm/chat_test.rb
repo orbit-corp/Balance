@@ -33,6 +33,22 @@ class Llm::ChatTest < ActiveSupport::TestCase
     assert_equal "assistant 4", result.last
   end
 
+  test "marks the active turn as the current request without changing stored content" do
+    build_turn(1)
+    message = @chat.llm_messages.create!(role: "user", content: "Use separate expense accounts.")
+    @chat.active_turn = @chat.llm_turns.create!(user_message: message)
+
+    result = payload
+
+    assert_equal <<~TEXT.chomp, result.last
+      [CURRENT EXCHANGE — RESPOND TO THIS]
+      User: user 1
+      Assistant: assistant 1
+      User: Use separate expense accounts.
+    TEXT
+    assert_equal "Use separate expense accounts.", message.reload.content
+  end
+
   test "skips messages already folded into a summary" do
     3.times { |number| build_turn(number + 1) }
     @chat.llm_messages.where(id: @chat.llm_messages.first(2).map(&:id)).update_all(summarized_at: Time.current)
