@@ -92,11 +92,11 @@
           <span><%= balanced ? "Balanced" : "Off by #{naira((proposal.total_debit_kobo - proposal.total_credit_kobo).abs)}" %></span>
         </p>
         <div class="flex flex-none items-center gap-1.5">
-          <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Dismiss</button>
+          <button type="submit" formaction="<%= chat_proposal_dismissal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Dismiss</button>
           <% unless reversal %>
             <button type="submit" class="<%= ghost_button_class(size: :sm) %>">Save edits</button>
           <% end %>
-          <button type="submit" formaction="<%= confirm_chat_proposal_path(proposal.llm_chat, proposal) %>" <%= "disabled" unless proposal.complete? %> class="<%= primary_button_class(size: :sm) %> disabled:cursor-not-allowed disabled:opacity-40"><%= reversal ? "Record reversal" : "Record entry" %></button>
+          <button type="submit" formaction="<%= chat_proposal_confirmation_path(proposal.llm_chat, proposal) %>" <%= "disabled" unless proposal.complete? %> class="<%= primary_button_class(size: :sm) %> disabled:cursor-not-allowed disabled:opacity-40"><%= reversal ? "Record reversal" : "Record entry" %></button>
         </div>
       </div>
     <% end %>

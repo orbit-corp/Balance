@@ -9,9 +9,4 @@ class Llm::ModelsController < ApplicationController
   def show
     @llm_model = Llm::Model.find(params[:id])
   end
-
-  def refresh
-    Llm::Model.refresh!
-    redirect_to models_path, notice: "Model list refreshed."
-  end
 end

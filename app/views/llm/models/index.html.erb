@@ -7,7 +7,7 @@
 <%= render "shared/page_header",
     title: "Models",
     description: "Every chat model Balance can reach, with what each one costs to run.",
-    action: button_to("Refresh list", refresh_models_path, method: :post, class: secondary_button_class) %>
+    action: button_to("Refresh list", model_catalog_path, method: :patch, class: secondary_button_class) %>
 
 <% if @llm_models.any? %>
   <%= render layout: "shared/table", locals: { columns: [ { label: "Provider" }, { label: "Model" }, { label: "Context window" }, { label: "Per 1M tokens (in / out)" }, { label: "", class: "w-24" } ] } do %>
@@ -18,5 +18,5 @@
       icon: "icons/message-circle.svg",
       title: "No models found",
       description: "Balance could not reach any provider. Check your API keys, then refresh the list.",
-      action: button_to("Refresh list", refresh_models_path, method: :post, class: primary_button_class) %>
+      action: button_to("Refresh list", model_catalog_path, method: :patch, class: primary_button_class) %>
 <% end %>

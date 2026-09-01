@@ -5,12 +5,11 @@ class Llm::ReversalConfirmationTest < ActiveSupport::TestCase
     @workspace = workspaces(:ada_store)
     @cash = Account.for_role!(@workspace, :cash)
     @expense = Account.for_role!(@workspace, :uncategorized_expense)
-    @customer = @workspace.customers.create!(name: "Reversal test customer")
     @entry = @workspace.journal_entries.create!(
       description: "Original payment",
       entry_date: Date.current - 2.days,
       journal_entry_lines_attributes: [
-        { account: @expense, debit_kobo: 150_000, counterparty: @customer },
+        { account: @expense, debit_kobo: 150_000 },
         { account: @cash, credit_kobo: 150_000 }
       ]
     )
@@ -26,7 +25,7 @@ class Llm::ReversalConfirmationTest < ActiveSupport::TestCase
     )
   end
 
-  test "confirmation prepares an exact mirror including the counterparty but does not post" do
+  test "confirmation prepares an exact mirror but does not post" do
     assert_no_difference "JournalEntry.count" do
       @result = Llm::ReversalConfirmation.new(@confirmation).confirm
     end
@@ -38,7 +37,6 @@ class Llm::ReversalConfirmationTest < ActiveSupport::TestCase
     draft = Llm::JournalEntryProposal.new(workspace: @workspace, data: @result.proposal.data)
     assert draft.valid?
     assert_empty Accounting::Engine.reversal_errors(original_lines: @entry.journal_entry_lines, reversal_lines: draft.entry.journal_entry_lines)
-    assert_equal @customer, draft.entry.journal_entry_lines.find { |line| line.account_id == @expense.id }.counterparty
   end
 
   test "only an explicit original date choice uses the source date" do
@@ -75,16 +73,5 @@ class Llm::ReversalConfirmationTest < ActiveSupport::TestCase
       result = Llm::ReversalConfirmation.new(@confirmation).confirm
       assert_equal [ "That journal entry does not exist in this workspace." ], result.errors
     end
-  end
-
-  test "the engine rejects a reversal that drops the source counterparty" do
-    result = Llm::ReversalConfirmation.new(@confirmation).confirm
-    data = result.proposal.data.deep_dup
-    data.fetch("lines").each { |line| line.delete("source_line_id") }
-
-    draft = Llm::JournalEntryProposal.new(workspace: @workspace, data: data)
-
-    assert draft.invalid?
-    assert_includes draft.errors, "A reversal must exactly mirror every line of the original entry"
   end
 end

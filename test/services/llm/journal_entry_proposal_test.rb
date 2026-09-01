@@ -25,7 +25,7 @@ class LlmJournalEntryProposalTest < ActiveSupport::TestCase
       ]
     )
 
-    assert_includes draft.errors, "Account(s) used on both sides: #{@cash.id.to_s}"
+    assert_includes draft.errors, "Account(s) used on both sides: #{@cash.id}"
   end
 
   test "rejects duplicate identical lines" do

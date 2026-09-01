@@ -1,6 +1,20 @@
 # Omakase Ruby styling for Rails
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
+AllCops:
+  Exclude:
+    - "db/migrate/**/*"
+    - "db/schema*.rb"
+
+Layout/IndentationConsistency:
+  EnforcedStyle: indented_internal_methods
+
+Style/NegatedIf:
+  Enabled: true
+
+Style/NegatedUnless:
+  Enabled: true
+
 # Overwrite or add rules to create your own house style
 #
 # # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`

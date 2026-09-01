@@ -29,8 +29,8 @@
       <p>Is this the entry you want to reverse?</p>
       <p>Confirmation prepares an exact reversal dated <%= proposal.data["use_original_date"] ? "the original entry date" : "today" %>. Nothing is posted until you approve that proposal.</p>
     </div>
-    <%= form_with url: confirm_chat_proposal_path(proposal.llm_chat, proposal), method: :patch, class: "flex justify-end gap-1.5 border-t border-neutral-200 bg-neutral-50 px-4 py-2.5" do %>
-      <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not this entry</button>
+    <%= form_with url: chat_proposal_confirmation_path(proposal.llm_chat, proposal), method: :patch, class: "flex justify-end gap-1.5 border-t border-neutral-200 bg-neutral-50 px-4 py-2.5" do %>
+      <button type="submit" formaction="<%= chat_proposal_dismissal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not this entry</button>
       <button type="submit" class="<%= primary_button_class(size: :sm) %>">Confirm this entry</button>
     <% end %>
   <% else %>
