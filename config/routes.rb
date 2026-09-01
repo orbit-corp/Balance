@@ -19,7 +19,7 @@ Rails.application.routes.draw do
 
   resource :dashboard, only: [ :show ]
   resources :journal_entries, only: %i[index new create]
-  resources :accounts, only: %i[index new create update]
+  resources :accounts, only: %i[index new create edit update destroy]
 
   root "dashboards#show"
   get "up" => "rails/health#show", as: :rails_health_check

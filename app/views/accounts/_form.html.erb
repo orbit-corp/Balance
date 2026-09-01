@@ -1,10 +1,12 @@
-<%= form_with model: account, url: accounts_path, data: {
+<%= form_with model: account, data: {
       controller: "account-taxonomy",
       account_taxonomy_taxonomy_value: current_workspace.catalog.as_hash,
       account_taxonomy_account_type_value: account.account_type,
       account_taxonomy_detail_type_value: account.detail_type
     } do |form| %>
-  <%= render "shared/modal/header", title: "New account", subtitle: "Pick a type and subtype, name it, and it's ready to use." %>
+  <%= render "shared/modal/header",
+      title: account.persisted? ? "Edit account" : "New account",
+      subtitle: account.persisted? ? "Update this account's name, type, or description." : "Pick a type and subtype, name it, and it's ready to use." %>
 
   <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
     <%= render "shared/form_errors", record: account %>
@@ -18,18 +20,19 @@
 
     <div>
       <%= form.label :account_type, "Account type", class: field_label_class %>
-      <%= form.select :account_type,
-            catalog_grouped_options_for_select(current_workspace.catalog),
-            { prompt: "Select account type" },
-            required: true, class: field_class,
-            data: { account_taxonomy_target: "accountType", action: "change->account-taxonomy#accountTypeChanged" } %>
+      <%= render "shared/select_menu", form: form, attribute: :account_type,
+          options: catalog_grouped_options_for_select(current_workspace.catalog, account.account_type),
+          prompt: "Select account type",
+          select_data: { account_taxonomy_target: "accountType", action: "change->account-taxonomy#accountTypeChanged" },
+          searchable: true, search_placeholder: "Search account types…", empty_message: "No account types found" %>
     </div>
 
     <div>
       <%= form.label :detail_type, "Detail type", class: field_label_class %>
-      <%= form.select :detail_type, [], { prompt: "Select detail type" },
-            required: true, class: field_class,
-            data: { account_taxonomy_target: "detailType" } %>
+      <%= render "shared/select_menu", form: form, attribute: :detail_type,
+          options: [], prompt: "Select detail type",
+          select_data: { account_taxonomy_target: "detailType" },
+          searchable: true, search_placeholder: "Search detail types…", empty_message: "No detail types found" %>
     </div>
 
     <div>
@@ -38,5 +41,5 @@
     </div>
   </div>
 
-  <%= render "shared/modal/footer", form: form, submit_label: "Create account" %>
+  <%= render "shared/modal/footer", form: form, submit_label: account.persisted? ? "Save changes" : "Create account" %>
 <% end %>

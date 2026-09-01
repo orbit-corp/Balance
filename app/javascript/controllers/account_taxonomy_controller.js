@@ -31,5 +31,6 @@ export default class extends Controller {
     }
 
     select.innerHTML = options.join("")
+    select.dispatchEvent(new CustomEvent("select-menu:refresh", { bubbles: true }))
   }
 }
