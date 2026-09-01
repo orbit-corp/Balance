@@ -16,14 +16,6 @@ class CreateAccountingFoundation < ActiveRecord::Migration[8.1]
     add_index :accounts, [ :workspace_id, :name ], unique: true
     add_index :accounts, [ :workspace_id, :role ], unique: true, where: "role IS NOT NULL"
 
-    create_table :customers do |t|
-      t.references :workspace, null: false, foreign_key: true
-      t.string :name, null: false
-      t.string :phone
-
-      t.timestamps
-    end
-
     create_table :journal_entries do |t|
       t.references :workspace, null: false, foreign_key: true
       t.references :reverses_journal_entry, foreign_key: { to_table: :journal_entries }

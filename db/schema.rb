@@ -31,15 +31,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
     t.index ["workspace_id"], name: "index_accounts_on_workspace_id"
   end
 
-  create_table "customers", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.string "phone"
-    t.datetime "updated_at", null: false
-    t.bigint "workspace_id", null: false
-    t.index ["workspace_id"], name: "index_customers_on_workspace_id"
-  end
-
   create_table "journal_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description", null: false
@@ -227,7 +218,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
   end
 
   add_foreign_key "accounts", "workspaces"
-  add_foreign_key "customers", "workspaces"
   add_foreign_key "journal_entries", "journal_entries", column: "reverses_journal_entry_id"
   add_foreign_key "journal_entries", "workspaces"
   add_foreign_key "journal_entry_lines", "accounts"

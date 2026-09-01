@@ -7,9 +7,6 @@ module ApplicationHelper
         { path: journal_entries_path, svg: "icons/list.svg", text: "Journal entries" },
         { path: accounts_path, svg: "icons/wallet.svg", text: "Accounts" },
       ] },
-      { label: "Records", items: [
-        { path: customers_path, svg: "icons/users.svg", text: "Customers" }
-      ] }
     ]
   end
 
