@@ -5,8 +5,8 @@ module ApplicationHelper
         { path: dashboard_path, svg: "icons/home.svg", text: "Overview" },
         { path: chats_path, svg: "icons/bot.svg", text: "Chat" },
         { path: journal_entries_path, svg: "icons/list.svg", text: "Journal entries" },
-        { path: accounts_path, svg: "icons/wallet.svg", text: "Accounts" },
-      ] },
+        { path: accounts_path, svg: "icons/wallet.svg", text: "Accounts" }
+      ] }
     ]
   end
 

@@ -35,10 +35,10 @@
   </div>
 
   <% if editable %>
-    <%= form_with url: confirm_chat_proposal_path(proposal.llm_chat, proposal), method: :patch, class: "flex items-center justify-between gap-3 bg-neutral-50 px-5 py-3.5" do %>
+    <%= form_with url: chat_proposal_confirmation_path(proposal.llm_chat, proposal), method: :patch, class: "flex items-center justify-between gap-3 bg-neutral-50 px-5 py-3.5" do %>
       <p class="text-xs text-neutral-500">Nothing is added until you approve.</p>
       <div class="flex flex-none items-center gap-1.5">
-        <button type="submit" formaction="<%= dismiss_chat_proposal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not now</button>
+        <button type="submit" formaction="<%= chat_proposal_dismissal_path(proposal.llm_chat, proposal) %>" class="<%= ghost_button_class(size: :sm) %>">Not now</button>
         <button type="submit" class="<%= primary_button_class(size: :sm) %>">
           <%= proposal.accounts.one? ? "Create account" : "Create accounts" %>
         </button>

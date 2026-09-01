@@ -37,7 +37,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "confirm posts the entry when two lines are submitted" do
     assert_difference "JournalEntry.count", 1 do
-      patch confirm_chat_proposal_path(@chat, @proposal), params: { proposal: form_params }
+      patch chat_proposal_confirmation_path(@chat, @proposal), params: { proposal: form_params }
     end
 
     assert_redirected_to chat_path(@chat)
@@ -51,7 +51,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     params[:lines].delete("1")
 
     assert_no_difference "JournalEntry.count" do
-      patch confirm_chat_proposal_path(@chat, @proposal),
+      patch chat_proposal_confirmation_path(@chat, @proposal),
             params: { proposal: params },
             headers: { Accept: "text/vnd.turbo-stream.html" }
     end
@@ -80,7 +80,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     reversal = reversal_proposal
 
     assert_difference "JournalEntry.count", 1 do
-      patch confirm_chat_proposal_path(@chat, reversal), params: { proposal: form_params }
+      patch chat_proposal_confirmation_path(@chat, reversal), params: { proposal: form_params }
     end
 
     recorded = reversal.reload.journal_entry
@@ -95,7 +95,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "JournalEntry.count" do
       assert_difference "Proposal.count", 1 do
-        patch confirm_chat_proposal_path(@chat, confirmation),
+        patch chat_proposal_confirmation_path(@chat, confirmation),
           params: { proposal: form_params.merge(source_entry_id: -1) },
           headers: { Accept: "text/vnd.turbo-stream.html" }
       end
@@ -112,11 +112,11 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "superseded", @proposal.reload.status
 
     assert_no_difference [ "Proposal.count", "JournalEntry.count" ] do
-      patch confirm_chat_proposal_path(@chat, confirmation)
+      patch chat_proposal_confirmation_path(@chat, confirmation)
     end
 
     assert_difference "JournalEntry.count", 1 do
-      patch confirm_chat_proposal_path(@chat, reversal)
+      patch chat_proposal_confirmation_path(@chat, reversal)
     end
     assert_equal @source_entry.id, reversal.reload.journal_entry.reverses_journal_entry_id
   end
@@ -137,10 +137,10 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "a dismissed selection cannot create a reversal proposal" do
     confirmation = reversal_confirmation
-    patch dismiss_chat_proposal_path(@chat, confirmation)
+    patch chat_proposal_dismissal_path(@chat, confirmation)
 
     assert_no_difference [ "Proposal.count", "JournalEntry.count" ] do
-      patch confirm_chat_proposal_path(@chat, confirmation)
+      patch chat_proposal_confirmation_path(@chat, confirmation)
     end
     assert_equal "dismissed", confirmation.reload.status
   end
@@ -171,7 +171,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference "Account.count", 1 do
       assert_enqueued_with(job: LlmChatResponseJob, args: ->(args) { args.first == @chat.id && args.second.is_a?(Integer) }) do
-        patch confirm_chat_proposal_path(@chat, proposal), headers: { Accept: "text/vnd.turbo-stream.html" }
+        patch chat_proposal_confirmation_path(@chat, proposal), headers: { Accept: "text/vnd.turbo-stream.html" }
       end
     end
 
@@ -204,7 +204,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference "Llm::Turn.count" do
-      patch confirm_chat_proposal_path(@chat, proposal)
+      patch chat_proposal_confirmation_path(@chat, proposal)
     end
 
     assert_equal "confirmed", proposal.reload.status
@@ -227,7 +227,7 @@ class Llm::ProposalsControllerTest < ActionDispatch::IntegrationTest
     )
 
     assert_no_difference "Account.count" do
-      patch dismiss_chat_proposal_path(@chat, proposal)
+      patch chat_proposal_dismissal_path(@chat, proposal)
     end
 
     assert_equal "dismissed", proposal.reload.status

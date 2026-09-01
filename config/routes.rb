@@ -1,39 +1,26 @@
 Rails.application.routes.draw do
-  resources :models, only: [ :index, :show ], controller: "llm/models" do
-    collection do
-      post :refresh
-    end
-  end
-  resources :chats, param: :uuid, controller: "llm/chats", except: [ :new ] do
+  resources :models, only: [ :index, :show ], controller: "llm/models"
+  resource :model_catalog, only: [ :update ], controller: "llm/model_catalogs"
+
+  resources :chats, param: :uuid, controller: "llm/chats", only: [ :index, :create, :show, :destroy ] do
     resources :messages, only: [ :create ], controller: "llm/messages"
     resources :turns, only: [ :show ], controller: "llm/turns"
     resources :proposals, only: [ :update ], controller: "llm/proposals" do
-      member do
-        patch :confirm
-        patch :dismiss
-      end
+      resource :confirmation, only: [ :update ], controller: "llm/proposal_confirmations"
+      resource :dismissal, only: [ :update ], controller: "llm/proposal_dismissals"
     end
   end
 
-  resource :session
+  resource :session, only: [ :new, :create, :destroy ]
   resource :registration, only: %i[new create]
   get "onboarding/:step", to: "onboarding#show", as: :onboarding_step
   patch "onboarding/:step", to: "onboarding#update"
-  resources :passwords, param: :token
+  resources :passwords, param: :token, only: [ :new, :create, :edit, :update ]
 
   resource :dashboard, only: [ :show ]
   resources :journal_entries, only: %i[index new create]
   resources :accounts, only: %i[index new create update]
 
   root "dashboards#show"
-
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 end
