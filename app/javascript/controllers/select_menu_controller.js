@@ -58,6 +58,9 @@ export default class extends Controller {
 
     this.optionsContainer = document.createElement("div")
     this.optionsContainer.setAttribute("role", "listbox")
+    this.optionsContainer.className = this.searchableValue
+      ? "max-h-40 overflow-y-auto pb-2"
+      : "max-h-56 overflow-y-auto"
     this.menuTarget.append(this.optionsContainer)
 
     for (const child of this.nativeTarget.children) {
@@ -99,7 +102,7 @@ export default class extends Controller {
 
   addSearch() {
     const wrapper = document.createElement("div")
-    wrapper.className = "sticky top-0 z-10 border-b border-neutral-100 bg-white p-1"
+    wrapper.className = "border-b border-neutral-100 bg-white p-1 pb-2"
 
     this.searchInput = document.createElement("input")
     this.searchInput.type = "search"
