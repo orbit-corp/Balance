@@ -6,12 +6,10 @@
    ) %>
 
 <div data-journal-entry-lines-target="row" data-protected="<%= protected %>" class="grid grid-cols-[minmax(13rem,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_4.5rem] items-center gap-2 border-b border-neutral-200 py-2.5">
-  <%= form.select :account_id,
-      account_options,
-      { prompt: "Select account" },
-      required: true,
-      class: field_class,
-      data: { journal_entry_lines_target: "account", action: "change->journal-entry-lines#recalculate" } %>
+  <%= render "shared/select_menu", form: form, attribute: :account_id,
+      options: account_options, prompt: "Select account",
+      select_data: { journal_entry_lines_target: "account", action: "change->journal-entry-lines#recalculate" },
+      searchable: true, search_placeholder: "Search accounts…", empty_message: "No accounts found" %>
   <%= form.text_field :debit,
       value: form.object.debit&.nonzero?,
       placeholder: "0.00",
