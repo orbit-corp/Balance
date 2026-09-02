@@ -1,0 +1,68 @@
+<%= form_with model: expense,
+    class: "space-y-8",
+    data: { controller: "expense-lines" } do |form| %>
+  <div class="flex flex-col gap-4 border-b border-neutral-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-neutral-950"><%= expense.persisted? ? "Edit expense" : "New expense" %></h1>
+      <p class="mt-1 text-sm text-neutral-500">Describe what was paid for and the account that funded it.</p>
+    </div>
+    <div class="sm:text-right">
+      <p class="text-xs font-medium tracking-wide text-neutral-500 uppercase">Total</p>
+      <p class="mt-1 text-3xl font-semibold tabular-nums text-neutral-950">₦<span data-expense-lines-target="total">0.00</span></p>
+    </div>
+  </div>
+
+  <%= render "shared/form_errors", record: expense %>
+
+  <div class="grid gap-5 sm:grid-cols-2">
+    <div>
+      <%= form.label :payment_date, "Payment date", class: field_label_class %>
+      <%= form.text_field :payment_date,
+          value: expense.payment_date || Date.current,
+          required: true,
+          autocomplete: "off",
+          class: "#{field_class} cursor-pointer",
+          data: { controller: "date-picker" } %>
+    </div>
+    <div>
+      <%= form.label :payment_account_id, "Payment account", class: field_label_class %>
+      <%= render "shared/select_menu", form: form, attribute: :payment_account_id,
+          options: expense_account_options(current_workspace.accounts.expense_payment_accounts.ordered, expense.payment_account_id),
+          prompt: "Select payment account", searchable: true,
+          search_placeholder: "Search payment accounts…", empty_message: "No payment accounts found",
+          select_data: {} %>
+    </div>
+  </div>
+
+  <section>
+    <div class="overflow-x-auto">
+      <div class="grid min-w-[680px] grid-cols-[minmax(13rem,1.3fr)_minmax(15rem,1.7fr)_minmax(9rem,0.7fr)_3rem] gap-3 border-b border-neutral-200 pb-2">
+        <span class="text-xs font-medium text-neutral-500">Category</span>
+        <span class="text-xs font-medium text-neutral-500">Description</span>
+        <span class="text-right text-xs font-medium text-neutral-500">Amount</span>
+        <span></span>
+      </div>
+
+      <div class="min-w-[680px]" data-expense-lines-target="lines">
+        <%= form.fields_for :expense_lines do |line_form| %>
+          <%= render "expenses/line_fields", form: line_form %>
+        <% end %>
+      </div>
+    </div>
+
+    <template data-expense-lines-target="template">
+      <%= form.fields_for :expense_lines, ExpenseLine.new, child_index: "__INDEX__" do |line_form| %>
+        <%= render "expenses/line_fields", form: line_form %>
+      <% end %>
+    </template>
+
+    <button type="button" data-action="expense-lines#addLine" class="mt-3 <%= secondary_button_class(size: :sm) %>">
+      <%= inline_svg_tag "icons/plus.svg", class: "h-3.5 w-3.5" %>Add category
+    </button>
+  </section>
+
+  <div class="flex items-center justify-end gap-2 border-t border-neutral-200 pt-5">
+    <%= link_to "Cancel", expenses_path, class: secondary_button_class %>
+    <%= form.submit "Review expense", class: primary_button_class %>
+  </div>
+<% end %>

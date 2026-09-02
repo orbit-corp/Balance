@@ -3,12 +3,13 @@ class Accounting::PostingService
     def success? = errors.empty?
   end
 
-  def self.call(entry:, engine: Accounting::Engine)
-    new(entry, engine: engine).call
+  def self.call(entry:, source: nil, engine: Accounting::Engine)
+    new(entry, source: source, engine: engine).call
   end
 
-  def initialize(entry, engine:)
+  def initialize(entry, source:, engine:)
     @entry = entry
+    @source = source
     @engine = engine
   end
 
@@ -18,6 +19,12 @@ class Accounting::PostingService
     JournalEntry.transaction do
       # Serialize approvals that target the same original entry.
       entry.reverses_journal_entry&.lock!
+      source&.lock!
+      if source&.posted?
+        source.errors.add(:base, "has already been posted")
+        raise ActiveRecord::Rollback
+      end
+
       engine_result = engine.check(entry.journal_entry_lines)
       unless engine_result.ok?
         entry.valid?
@@ -28,6 +35,7 @@ class Accounting::PostingService
       end
 
       entry.save!
+      source.record_posting!(entry) if source
     end
 
     result(engine_result&.proof)
@@ -37,9 +45,11 @@ class Accounting::PostingService
 
   private
 
-  attr_reader :entry, :engine
+  attr_reader :entry, :source, :engine
 
   def result(proof)
-    Result.new(entry, entry.errors.full_messages.freeze, proof)
+    errors = entry.errors.full_messages
+    errors += source.errors.full_messages if source
+    Result.new(entry, errors.uniq.freeze, proof)
   end
 end

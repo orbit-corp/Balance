@@ -3,6 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["native", "button", "label", "menu"]
   static values = {
+    compact: Boolean,
     includeBlank: Boolean,
     searchable: Boolean,
     searchPlaceholder: String,
@@ -10,36 +11,49 @@ export default class extends Controller {
   }
 
   connect() {
+    this.menu = this.menuTarget
     this.refresh()
     this.outsideHandler = (event) => {
-      if (!this.element.contains(event.target)) this.close()
+      if (!this.element.contains(event.target) && !this.menu.contains(event.target)) this.close()
     }
     this.escapeHandler = (event) => {
       if (event.key === "Escape") this.close()
     }
+    this.repositionHandler = () => {
+      if (!this.menu.classList.contains("hidden")) this.positionMenu()
+    }
     document.addEventListener("click", this.outsideHandler)
     document.addEventListener("keydown", this.escapeHandler)
+    document.addEventListener("scroll", this.repositionHandler, true)
+    window.addEventListener("resize", this.repositionHandler)
   }
 
   disconnect() {
     document.removeEventListener("click", this.outsideHandler)
     document.removeEventListener("keydown", this.escapeHandler)
+    document.removeEventListener("scroll", this.repositionHandler, true)
+    window.removeEventListener("resize", this.repositionHandler)
+    this.menu.remove()
   }
 
   toggle(event) {
     event.stopPropagation()
-    this.menuTarget.classList.contains("hidden") ? this.open() : this.close()
+    this.menu.classList.contains("hidden") ? this.open() : this.close()
   }
 
   open() {
-    this.menuTarget.classList.remove("hidden")
+    document.body.append(this.menu)
+    this.menu.classList.remove("hidden")
+    this.positionMenu()
     this.buttonTarget.setAttribute("aria-expanded", "true")
     if (this.searchInput) requestAnimationFrame(() => this.searchInput.focus())
   }
 
   close() {
-    this.menuTarget.classList.add("hidden")
+    this.menu.classList.add("hidden")
     this.buttonTarget.setAttribute("aria-expanded", "false")
+    this.element.append(this.menu)
+    this.menu.removeAttribute("style")
   }
 
   select(event) {
@@ -51,7 +65,7 @@ export default class extends Controller {
   }
 
   refresh() {
-    this.menuTarget.replaceChildren()
+    this.menu.replaceChildren()
     this.searchInput = null
     this.emptyState = null
     if (this.searchableValue) this.addSearch()
@@ -61,7 +75,7 @@ export default class extends Controller {
     this.optionsContainer.className = this.searchableValue
       ? "max-h-40 overflow-y-auto pb-2"
       : "max-h-56 overflow-y-auto"
-    this.menuTarget.append(this.optionsContainer)
+    this.menu.append(this.optionsContainer)
 
     for (const child of this.nativeTarget.children) {
       if (child.tagName === "OPTGROUP") {
@@ -92,11 +106,11 @@ export default class extends Controller {
     item.type = "button"
     item.dataset.value = option.value
     item.dataset.selectMenuOption = ""
-    item.dataset.action = "select-menu#select"
     item.setAttribute("role", "option")
     item.setAttribute("aria-selected", option.selected ? "true" : "false")
     item.className = "flex w-full cursor-pointer items-center rounded px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-neutral-100 aria-selected:bg-neutral-100 aria-selected:font-medium aria-selected:text-neutral-950"
     item.textContent = option.textContent
+    item.addEventListener("click", this.select.bind(this))
     container.append(item)
   }
 
@@ -109,9 +123,29 @@ export default class extends Controller {
     this.searchInput.placeholder = this.searchPlaceholderValue
     this.searchInput.autocomplete = "off"
     this.searchInput.className = "block w-full rounded px-2 py-1.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:bg-neutral-50"
-    this.searchInput.dataset.action = "input->select-menu#search"
+    this.searchInput.addEventListener("input", this.search.bind(this))
     wrapper.append(this.searchInput)
-    this.menuTarget.append(wrapper)
+    this.menu.append(wrapper)
+  }
+
+  positionMenu() {
+    const rect = this.buttonTarget.getBoundingClientRect()
+    const gap = 4
+    const width = this.compactValue ? Math.max(rect.width, 256) : rect.width
+    const left = Math.min(rect.left, window.innerWidth - width - gap)
+
+    this.menu.style.left = `${Math.max(gap, left)}px`
+    this.menu.style.width = `${width}px`
+    this.menu.style.top = `${rect.bottom + gap}px`
+    this.menu.style.zIndex = "60"
+
+    const menuHeight = this.menu.getBoundingClientRect().height
+    const roomBelow = window.innerHeight - rect.bottom - gap
+    const roomAbove = rect.top - gap
+
+    if (menuHeight > roomBelow && roomAbove > roomBelow) {
+      this.menu.style.top = `${Math.max(gap, rect.top - menuHeight - gap)}px`
+    }
   }
 
   search(event) {

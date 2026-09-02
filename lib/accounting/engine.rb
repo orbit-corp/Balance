@@ -110,8 +110,8 @@ module Accounting
         raise ArgumentError, "line must provide account, debit_kobo, and credit_kobo"
       end
 
-      debit_kobo = raw.debit_kobo.to_i
-      credit_kobo = raw.credit_kobo.to_i
+      debit_kobo = integer_amount(raw.debit_kobo)
+      credit_kobo = integer_amount(raw.credit_kobo)
       unless debit_kobo.positive? ^ credit_kobo.positive?
         raise ArgumentError, "must have either a debit or a credit, not both or neither"
       end
@@ -121,6 +121,14 @@ module Accounting
         side: debit_kobo.positive? ? :debit : :credit,
         amount_kobo: debit_kobo.positive? ? debit_kobo : credit_kobo
       }
+    end
+
+    def integer_amount(value)
+      return value if value.is_a?(Integer)
+
+      Integer(value, 10)
+    rescue ArgumentError, TypeError
+      raise ArgumentError, "amount must be numbers"
     end
 
     def structural_errors(lines)

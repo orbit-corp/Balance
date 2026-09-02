@@ -18,6 +18,9 @@ Rails.application.routes.draw do
   resources :passwords, param: :token, only: [ :new, :create, :edit, :update ]
 
   resource :dashboard, only: [ :show ]
+  resources :expenses, only: %i[index new create show edit update] do
+    resource :posting, only: [ :create ], controller: "expense_postings"
+  end
   resources :journal_entries, only: %i[index new create]
   resources :accounts, only: %i[index new create edit update destroy]
 

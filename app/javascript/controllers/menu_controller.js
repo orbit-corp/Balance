@@ -4,6 +4,7 @@ const MARGIN = 8
 
 export default class extends Controller {
   static targets = ["button", "menu"]
+  static values = { matchTriggerWidth: Boolean }
 
   toggle(event) {
     event.stopPropagation()
@@ -17,6 +18,7 @@ export default class extends Controller {
   open() {
     const rect = this.buttonTarget.getBoundingClientRect()
     const menu = this.menuTarget
+    if (this.matchTriggerWidthValue) menu.style.width = `${rect.width}px`
     menu.style.position = "fixed"
     menu.style.visibility = "hidden"
     menu.classList.remove("hidden")

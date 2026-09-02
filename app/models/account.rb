@@ -1,4 +1,6 @@
 class Account < ApplicationRecord
+  include ExpenseAccount
+
   belongs_to :workspace
   has_many :journal_entry_lines, dependent: :restrict_with_error
 

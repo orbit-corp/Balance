@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -29,6 +29,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
     t.index ["workspace_id", "name"], name: "index_accounts_on_workspace_id_and_name", unique: true
     t.index ["workspace_id", "role"], name: "index_accounts_on_workspace_id_and_role", unique: true, where: "(role IS NOT NULL)"
     t.index ["workspace_id"], name: "index_accounts_on_workspace_id"
+  end
+
+  create_table "expense_lines", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "amount_kobo", null: false
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.bigint "expense_id", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_expense_lines_on_account_id"
+    t.index ["expense_id", "position"], name: "index_expense_lines_on_expense_id_and_position", unique: true
+    t.index ["expense_id"], name: "index_expense_lines_on_expense_id"
+  end
+
+  create_table "expenses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "journal_entry_id"
+    t.bigint "payment_account_id", null: false
+    t.date "payment_date", null: false
+    t.string "status", default: "draft", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "workspace_id", null: false
+    t.index ["journal_entry_id"], name: "index_expenses_on_journal_entry_id", unique: true, where: "(journal_entry_id IS NOT NULL)"
+    t.index ["payment_account_id"], name: "index_expenses_on_payment_account_id"
+    t.index ["workspace_id", "payment_date"], name: "index_expenses_on_workspace_id_and_payment_date"
+    t.index ["workspace_id", "status"], name: "index_expenses_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_expenses_on_workspace_id"
   end
 
   create_table "journal_entries", force: :cascade do |t|
@@ -218,6 +246,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
   end
 
   add_foreign_key "accounts", "workspaces"
+  add_foreign_key "expense_lines", "accounts"
+  add_foreign_key "expense_lines", "expenses"
+  add_foreign_key "expenses", "accounts", column: "payment_account_id"
+  add_foreign_key "expenses", "journal_entries"
+  add_foreign_key "expenses", "workspaces"
   add_foreign_key "journal_entries", "journal_entries", column: "reverses_journal_entry_id"
   add_foreign_key "journal_entries", "workspaces"
   add_foreign_key "journal_entry_lines", "accounts"
