@@ -14,7 +14,15 @@
 
   <%= render "shared/form_errors", record: expense %>
 
-  <div class="grid gap-5 sm:grid-cols-2">
+  <div class="grid gap-5 sm:grid-cols-3">
+    <div>
+      <%= form.label :payee_contact_id, "Vendor", class: field_label_class %>
+      <%= render "shared/select_menu", form: form, attribute: :payee_contact_id,
+          options: expense_payee_options(@payee_contacts, expense.payee_contact_id),
+          prompt: "Who did you pay to?", searchable: true, required: false,
+          search_placeholder: "Search contacts…", empty_message: "No contacts found",
+          select_data: {} %>
+    </div>
     <div>
       <%= form.label :payment_date, "Payment date", class: field_label_class %>
       <%= form.text_field :payment_date,
@@ -32,6 +40,11 @@
           search_placeholder: "Search payment accounts…", empty_message: "No payment accounts found",
           select_data: {} %>
     </div>
+  </div>
+
+  <div>
+    <%= form.label :memo, class: field_label_class %>
+    <%= form.text_field :memo, placeholder: "Add context about this expense", class: field_class %>
   </div>
 
   <section>

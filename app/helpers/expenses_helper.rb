@@ -12,4 +12,13 @@ module ExpensesHelper
     classes = expense.posted? ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
     tag.span(expense.status.humanize, class: "inline-flex rounded-full px-2 py-1 text-xs font-medium #{classes}")
   end
+
+  def expense_payee_options(contacts, selected = nil)
+    vendors, other_contacts = contacts.partition { |contact| contact.role_names.include?("vendor") }
+    groups = []
+    groups << [ "Vendors", vendors.map { |contact| [ contact.name, contact.id ] } ] if vendors.any?
+    groups << [ "Other contacts", other_contacts.map { |contact| [ contact.name, contact.id ] } ] if other_contacts.any?
+
+    grouped_options_for_select(groups, selected)
+  end
 end

@@ -17,18 +17,49 @@ class ExpensesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='expense[expense_lines_attributes][0][amount]']"
     assert_select "input[name='expense[payment_account_id]']", count: 0
     assert_select "input[name='expense[payee]']", count: 0
-    assert_select "input[name='expense[reference]']", count: 0
+    assert_select "input[name='expense[reference_number]']", count: 0
+    assert_select "input[name='expense[memo]']"
+  end
+
+  test "links to expense reports" do
+    get expenses_path
+
+    assert_response :success
+    assert_select "a[href='#{expense_report_path}']", text: "Reports"
+  end
+
+  test "shows possible duplicates within the review page" do
+    vendor = @workspace.contacts.create!(name: "Fuel Station", contact_kind: "business", email: "duplicate@example.com", role_names: %w[vendor])
+    params = expense_params
+    params[:expense][:payee_contact_id] = vendor.id
+    post expenses_path, params: params
+    original = @workspace.expenses.order(:id).last
+
+    post expenses_path, params: params
+    follow_redirect!
+
+    assert_response :success
+    assert_select "[role='alert']", text: /may already be recorded/
+    assert_select "a[href='#{expense_path(original)}']", text: "View expense"
+    assert_nil flash[:alert]
   end
 
   test "creates a draft for review" do
+    payee = @workspace.contacts.create!(name: "Fuel Station", contact_kind: "business", email: "fuel@example.com", role_names: %w[vendor])
+    params = expense_params
+    params[:expense][:payee_contact_id] = payee.id
+    params[:expense][:memo] = "Generator fuel"
+
     assert_difference("Expense.count", 1) do
-      post expenses_path, params: expense_params
+      post expenses_path, params: params
     end
 
     expense = @workspace.expenses.order(:id).last
     assert_redirected_to expense_path(expense)
     assert expense.draft?
     assert_nil expense.journal_entry
+    assert_equal payee, expense.payee_contact
+    assert_equal "Generator fuel", expense.memo
   end
 
   test "shows a validation error for a malformed amount" do

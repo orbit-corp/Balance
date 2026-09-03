@@ -6,6 +6,8 @@ class CreateExpenses < ActiveRecord::Migration[8.1]
       t.references :journal_entry, foreign_key: true, index: false
       t.date :payment_date, null: false
       t.string :status, null: false, default: "draft"
+      t.text :memo
+      t.bigint :total_kobo, null: false
 
       t.timestamps
     end

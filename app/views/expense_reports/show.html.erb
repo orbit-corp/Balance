@@ -1,0 +1,82 @@
+<% content_for :title, "Expense reports" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Expenses", path: expenses_path }, { label: "Reports" } ] %>
+<% end %>
+
+<%= render "shared/page_header",
+    title: "Expense reports",
+    description: "Understand posted spending by month, vendor, and category.",
+    action: link_to("Back to expenses", expenses_path, class: secondary_button_class) %>
+
+<%= form_with url: expense_report_path, method: :get,
+    class: "mt-4 grid gap-3 border-y border-neutral-200 py-4 sm:grid-cols-2 lg:grid-cols-4",
+    data: { controller: "date-range" } do |form| %>
+  <div class="relative">
+    <%= form.label :range, "Date range", class: field_label_class %>
+    <%= form.text_field :range,
+        value: [ @from, @to ].join(" to "),
+        placeholder: "Select date range",
+        autocomplete: "off",
+        class: "#{field_class} cursor-pointer",
+        data: { date_range_target: "input" } %>
+    <%= form.hidden_field :from, value: @from, data: { date_range_target: "from" } %>
+    <%= form.hidden_field :to, value: @to, data: { date_range_target: "to" } %>
+  </div>
+  <div>
+    <%= form.label :vendor_id, "Vendor", class: field_label_class %>
+    <%= form.select :vendor_id, options_from_collection_for_select(@vendors, :id, :name, @vendor_id), { include_blank: "All vendors" }, class: field_class %>
+  </div>
+  <div>
+    <%= form.label :category_id, "Category", class: field_label_class %>
+    <%= form.select :category_id, options_from_collection_for_select(@categories, :id, :name, @category_id), { include_blank: "All categories" }, class: field_class %>
+  </div>
+  <div class="flex items-end gap-2">
+    <%= form.submit "Apply", class: primary_button_class %>
+    <%= link_to "Clear", expense_report_path, class: ghost_button_class %>
+  </div>
+<% end %>
+
+<% monthly_totals = @report.monthly_totals %>
+<% if monthly_totals.empty? %>
+  <%= render "shared/empty_state",
+      icon: "icons/receipt.svg",
+      title: "No posted expenses in this period",
+      description: "Adjust the filters or post an expense to include it in reports." %>
+<% else %>
+  <section class="mt-6 border-b border-neutral-200 pb-6">
+    <p class="text-xs font-medium tracking-wide text-neutral-500 uppercase">Total expenses</p>
+    <p class="mt-1 text-3xl font-semibold tabular-nums text-neutral-950"><%= naira(@report.total_kobo) %></p>
+    <div class="mt-5 h-64">
+      <%= column_chart monthly_totals.transform_values { |amount| amount / 100.0 },
+          height: "250px",
+          colors: [ "#0f7082" ],
+          prefix: "₦",
+          thousands: ",",
+          legend: false %>
+    </div>
+  </section>
+
+  <div class="mt-7 grid gap-8 lg:grid-cols-2">
+    <%= render "ranking", title: "Top vendors", rows: @report.top_vendors, empty_message: "No vendor-linked expenses in this period." %>
+    <%= render "ranking", title: "Top categories", rows: @report.top_categories, empty_message: "No categories in this period." %>
+  </div>
+
+  <section class="mt-8">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <h2 class="text-base font-medium text-neutral-900">Category trends</h2>
+        <p class="mt-0.5 text-sm text-neutral-500">Monthly spending by category.</p>
+      </div>
+      <span class="text-xs text-neutral-400">Amounts in NGN</span>
+    </div>
+    <div class="mt-4 h-72 border-b border-neutral-200 pb-4">
+      <%= line_chart @report.category_trends,
+          height: "270px",
+          curve: false,
+          points: false,
+          prefix: "₦",
+          thousands: "," %>
+    </div>
+  </section>
+<% end %>

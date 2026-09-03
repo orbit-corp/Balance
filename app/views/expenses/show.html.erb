@@ -5,14 +5,49 @@
 <% end %>
 
 <div class="mx-auto max-w-4xl">
+  <% if @posting_errors.present? %>
+    <div class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+      <%= @posting_errors.to_sentence %>
+    </div>
+  <% end %>
+
+  <% if @possible_duplicates.any? %>
+    <div class="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="alert">
+      <p class="font-medium">This expense may already be recorded.</p>
+      <p class="mt-1 text-sm text-amber-800">Review the possible matches before posting. You can still post this expense if it is legitimate.</p>
+      <ul class="mt-3 divide-y divide-amber-200 border-y border-amber-200">
+        <% @possible_duplicates.each do |duplicate| %>
+          <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span>
+              <%= duplicate.payment_date.to_fs(:medium) %> · <%= naira(duplicate.total_kobo) %>
+            </span>
+            <%= link_to "View expense", expense_path(duplicate), class: "font-medium text-amber-950 underline" %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <div class="flex flex-col gap-4 border-b border-neutral-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="text-sm font-medium text-[#0f7082]"><%= @expense.posted? ? "Posted expense" : "Review expense" %></p>
       <h1 class="mt-1 text-2xl font-semibold tracking-tight text-neutral-950"><%= @expense.description %></h1>
-      <p class="mt-1 text-sm text-neutral-500"><%= @expense.payment_date.to_fs(:long) %> · Paid from <%= @expense.payment_account.name %></p>
+      <p class="mt-1 text-sm text-neutral-500">
+        <%= @expense.payment_date.to_fs(:long) %> · Paid from <%= @expense.payment_account.name %>
+        <% if @expense.payee_contact %>· Vendor <%= @expense.payee_contact.name %><% end %>
+      </p>
     </div>
     <p class="text-3xl font-semibold tabular-nums text-neutral-950"><%= naira(@expense.total_kobo) %></p>
   </div>
+
+  <% if @expense.memo.present? %>
+    <dl class="mt-5 border-b border-neutral-200 pb-5">
+      <div>
+        <dt class="text-xs font-medium text-neutral-500">Memo</dt>
+        <dd class="mt-1 text-sm text-neutral-900"><%= @expense.memo %></dd>
+      </div>
+    </dl>
+  <% end %>
 
   <section class="mt-7">
     <h2 class="text-sm font-semibold text-neutral-900">Expense details</h2>

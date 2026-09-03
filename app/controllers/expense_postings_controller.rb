@@ -8,7 +8,8 @@ class ExpensePostingsController < ApplicationController
     else
       @journal_entry = result.entry
       @engine_result = Accounting::Engine.check(@journal_entry.journal_entry_lines)
-      flash.now[:alert] = result.errors.to_sentence
+      @possible_duplicates = @expense.possible_duplicates.limit(5)
+      @posting_errors = result.errors
       render "expenses/show", status: :unprocessable_content
     end
   end

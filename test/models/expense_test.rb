@@ -17,6 +17,41 @@ class ExpenseTest < ActiveSupport::TestCase
     assert Accounting::Engine.check(entry.journal_entry_lines).ok?
   end
 
+  test "uses the expense memo as the journal entry description" do
+    expense = build_expense(memo: "Generator fuel")
+
+    assert_equal "Generator fuel", expense.journal_entry_draft.description
+  end
+
+  test "stores the total used for duplicate detection" do
+    expense = build_expense
+
+    expense.save!
+
+    assert_equal 4_000_000, expense.total_kobo
+  end
+
+  test "finds another expense with the same vendor date and total" do
+    vendor = @workspace.contacts.create!(name: "Fuel Station", contact_kind: "business", email: "fuel@example.com", role_names: %w[vendor])
+    original = build_expense(payee_contact: vendor)
+    original.save!
+    candidate = build_expense(payee_contact: vendor)
+    candidate.save!
+
+    assert_includes candidate.possible_duplicates, original
+  end
+
+  test "does not match the same transaction details for a different vendor" do
+    first_vendor = @workspace.contacts.create!(name: "First Vendor", contact_kind: "business", email: "first@example.com", role_names: %w[vendor])
+    second_vendor = @workspace.contacts.create!(name: "Second Vendor", contact_kind: "business", email: "second@example.com", role_names: %w[vendor])
+    original = build_expense(payee_contact: first_vendor)
+    original.save!
+    candidate = build_expense(payee_contact: second_vendor)
+    candidate.save!
+
+    assert_not_includes candidate.possible_duplicates, original
+  end
+
   test "supports split category lines" do
     uniforms = create_account(name: "Uniforms", base_type: "expense", account_type: "Personal Outflows", detail_type: "Living & Daily Needs")
     expense = build_expense
@@ -83,15 +118,35 @@ class ExpenseTest < ActiveSupport::TestCase
     assert_equal "Fuel", line.reload.description
   end
 
+  test "accepts an optional payee from the workspace" do
+    payee = @workspace.contacts.create!(name: "Fuel Station", contact_kind: "business", email: "fuel@example.com", role_names: %w[vendor])
+    expense = build_expense
+    expense.payee_contact = payee
+
+    assert expense.valid?
+    assert_equal payee, expense.payee_contact
+  end
+
+  test "rejects a payee from another workspace" do
+    payee = workspaces(:bola_shop).contacts.create!(name: "Other Vendor", contact_kind: "business", email: "other@example.com", role_names: %w[vendor])
+    expense = build_expense
+    expense.payee_contact = payee
+
+    assert_not expense.valid?
+    assert_includes expense.errors[:payee_contact], "must belong to the workspace"
+  end
+
   private
     def create_account(**attributes)
       @workspace.accounts.create!(attributes)
     end
 
-    def build_expense(payment_account: @bank, category: @fuel)
+    def build_expense(payment_account: @bank, category: @fuel, memo: nil, payee_contact: nil, payment_date: Date.current)
       @workspace.expenses.build(
-        payment_date: Date.current,
+        payment_date: payment_date,
         payment_account: payment_account,
+        memo: memo,
+        payee_contact: payee_contact,
         expense_lines_attributes: [
           { account: category, description: "Fuel", amount_kobo: 4_000_000, position: 0 }
         ]
