@@ -27,6 +27,8 @@ class ExpenseTest < ActiveSupport::TestCase
     assert_equal 3, entry.journal_entry_lines.size
     assert_equal 5_000_000, expense.total_kobo
     assert_equal 5_000_000, entry.journal_entry_lines.last.credit_kobo
+    assert_equal "Fuel and Uniform", expense.description
+    assert_equal "Fuel and Uniforms", expense.category_label
   end
 
   test "rejects an ineligible payment account" do
