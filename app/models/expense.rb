@@ -64,9 +64,10 @@ class Expense < ApplicationRecord
     end
 
     def payment_account_is_eligible
-      return if payment_account.blank? || payment_account.expense_payment_account?
+      return if payment_account.blank? || workspace.blank?
+      return if workspace.accounts.payment_accounts.exists?(payment_account.id)
 
-      errors.add(:payment_account, "must be a bank, cash, or credit-card account")
+      errors.add(:payment_account, "must be an asset or credit-card account")
     end
 
     def has_category_lines

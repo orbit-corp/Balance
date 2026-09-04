@@ -36,7 +36,7 @@ class ExpenseTest < ActiveSupport::TestCase
     expense = build_expense(payment_account: loan)
 
     assert_not expense.valid?
-    assert_includes expense.errors[:payment_account], "must be a bank, cash, or credit-card account"
+    assert_includes expense.errors[:payment_account], "must be an asset or credit-card account"
   end
 
   test "rejects an ineligible category account" do

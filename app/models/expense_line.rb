@@ -46,7 +46,7 @@ class ExpenseLine < ApplicationRecord
     end
 
     def account_is_eligible
-      return if account.blank? || account.expense_category_account?
+      return if account.blank? || account.base_type == "expense"
 
       errors.add(:account, "is not an eligible expense category")
     end
