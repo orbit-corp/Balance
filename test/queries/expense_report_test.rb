@@ -40,6 +40,23 @@ class ExpenseReportTest < ActiveSupport::TestCase
     assert_equal [ "Fuel" ], report.top_categories.map(&:label)
   end
 
+  test "identifies unusually large expenses within a category" do
+    create_posted_expense(amount_kobo: 10_000_00, category: @fuel)
+    create_posted_expense(amount_kobo: 10_000_00, category: @fuel)
+    unusual = create_posted_expense(amount_kobo: 100_000_00, category: @fuel)
+
+    findings = ExpenseReport.new(
+      @workspace,
+      date_range: Date.current.beginning_of_month..Date.current
+    ).unusual_spending
+
+    assert_equal 1, findings.size
+    assert_equal unusual, findings.first.expense
+    assert_equal "Fuel", findings.first.category
+    assert_equal 100_000_00, findings.first.amount_kobo
+    assert_equal 40_000_00, findings.first.average_kobo
+  end
+
   private
     def create_posted_expense(**attributes)
       create_expense(**attributes).tap do |expense|

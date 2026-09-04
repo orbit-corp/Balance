@@ -18,11 +18,6 @@ class Account < ApplicationRecord
 
   scope :ordered, -> { order(:name) }
   scope :expense_accounts, -> { where(base_type: "expense") }
-  scope :payment_accounts, -> {
-    where(base_type: "asset")
-      .or(where(base_type: "liability", account_type: "Credit Card"))
-      .or(where(base_type: "liability", detail_type: "Credit Cards"))
-  }
 
   def self.for_role!(workspace, role)
     spec = workspace.catalog.account_spec(role)

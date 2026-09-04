@@ -55,6 +55,18 @@ module AccountCatalogs
         find(account_type)&.fetch(:detail_types)&.map { |detail| detail_name(detail) }
       end
 
+      def account_type_names_for(key)
+        account_types.filter_map { |entry| entry[:key] == key ? entry[:account_type] : nil }
+      end
+
+      def detail_type_names_for(key)
+        account_types.flat_map do |entry|
+          entry.fetch(:detail_types).filter_map do |detail|
+            detail[:name] if detail.is_a?(Hash) && detail[:key] == key
+          end
+        end
+      end
+
       def as_hash
         account_types.to_h do |entry|
           [

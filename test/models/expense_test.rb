@@ -74,6 +74,20 @@ class ExpenseTest < ActiveSupport::TestCase
     assert_includes expense.errors[:payment_account], "must be an asset or credit-card account"
   end
 
+  test "accepts payment accounts identified by the workspace catalog" do
+    credit_card = create_account(name: "Card", base_type: "liability", account_type: "Short-Term Debt", detail_type: "Credit Cards")
+
+    assert build_expense(payment_account: credit_card).valid?
+  end
+
+  test "rejects payment dates too far in the past" do
+    expense = build_expense
+    expense.payment_date = 10.years.ago.to_date - 1.day
+
+    assert_not expense.valid?
+    assert_includes expense.errors[:payment_date], "is too far in the past"
+  end
+
   test "rejects an ineligible category account" do
     income = create_account(name: "Salary", base_type: "income", account_type: "Personal Inflows", detail_type: "Earned Salary & Wages")
     expense = build_expense(category: income)
@@ -96,6 +110,34 @@ class ExpenseTest < ActiveSupport::TestCase
     assert expense.reload.posted?
     assert_equal expense.journal_entry.workspace, @workspace
     assert_equal 2, expense.journal_entry.journal_entry_lines.count
+  end
+
+  test "builds the posted entry from locked current expense lines" do
+    expense = build_expense
+    expense.save!
+    expense.expense_lines.load
+    Expense.find(expense.id).update!(expense_lines_attributes: [
+      { id: expense.expense_lines.first.id, amount: "50000.00", position: 0 }
+    ])
+
+    result = expense.post
+
+    assert result.success?, result.errors.to_sentence
+    assert_equal 5_000_000, result.entry.journal_entry_lines.find_by(account: @fuel).debit_kobo
+    assert_equal 5_000_000, result.entry.journal_entry_lines.find_by(account: @bank).credit_kobo
+  end
+
+  test "rejects non-finite and sub-kobo amount input" do
+    expense = build_expense
+    line = expense.expense_lines.first
+
+    line.amount = "NaN"
+    assert_not expense.valid?
+    assert_includes line.errors[:amount], "must be a valid number"
+
+    line.amount = "1.999"
+    assert_not expense.valid?
+    assert_includes line.errors[:amount], "must be a valid number"
   end
 
   test "cannot be posted twice" do
@@ -136,6 +178,14 @@ class ExpenseTest < ActiveSupport::TestCase
 
     assert_not expense.valid?
     assert_includes expense.errors[:payee_contact], "must belong to the workspace"
+  end
+
+  test "rejects a customer-only payee" do
+    customer = @workspace.contacts.create!(name: "Retail Customer", contact_kind: "business", email: "customer@example.com", role_names: %w[customer])
+    expense = build_expense(payee_contact: customer)
+
+    assert_not expense.valid?
+    assert_includes expense.errors[:payee_contact], "must be a vendor"
   end
 
   private

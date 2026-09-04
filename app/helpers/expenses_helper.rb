@@ -14,11 +14,9 @@ module ExpensesHelper
   end
 
   def expense_payee_options(contacts, selected = nil)
-    vendors, other_contacts = contacts.partition { |contact| contact.role_names.include?("vendor") }
-    groups = []
-    groups << [ "Vendors", vendors.map { |contact| [ contact.name, contact.id ] } ] if vendors.any?
-    groups << [ "Other contacts", other_contacts.map { |contact| [ contact.name, contact.id ] } ] if other_contacts.any?
-
-    grouped_options_for_select(groups, selected)
+    grouped_options_for_select(
+      [ [ "Vendors", contacts.map { |contact| [ contact.name, contact.id ] } ] ],
+      selected
+    )
   end
 end

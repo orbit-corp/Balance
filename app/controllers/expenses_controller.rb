@@ -42,6 +42,7 @@ class ExpensesController < ApplicationController
     @journal_entry = @expense.posted? ? @expense.journal_entry : @expense.journal_entry_draft
     @engine_result = Accounting::Engine.check(@journal_entry.journal_entry_lines)
     @possible_duplicates = @expense.possible_duplicates.limit(5)
+    @can_post = @expense.draft? && @expense.valid? && @journal_entry.valid?
   end
 
   private
@@ -63,7 +64,7 @@ class ExpensesController < ApplicationController
     end
 
     def prepare_form
-      @payee_contacts = current_workspace.contacts.active.includes(:contact_roles).ordered.to_a
+      @payee_contacts = current_workspace.contacts.active.with_role("vendor").includes(:contact_roles).ordered.to_a
       if @expense.payee_contact && !@payee_contacts.include?(@expense.payee_contact)
         @payee_contacts << @expense.payee_contact
       end

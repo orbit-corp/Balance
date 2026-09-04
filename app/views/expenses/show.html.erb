@@ -107,7 +107,7 @@
       <%= link_to "Back to edit", edit_expense_path(@expense), class: secondary_button_class %>
       <%= button_to "Post expense", expense_posting_path(@expense), method: :post,
           class: primary_button_class,
-          disabled: !@engine_result.ok? %>
+          disabled: !@can_post %>
     <% else %>
       <%= link_to "Back to expenses", expenses_path, class: secondary_button_class %>
     <% end %>

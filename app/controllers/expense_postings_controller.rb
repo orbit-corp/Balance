@@ -10,6 +10,7 @@ class ExpensePostingsController < ApplicationController
       @engine_result = Accounting::Engine.check(@journal_entry.journal_entry_lines)
       @possible_duplicates = @expense.possible_duplicates.limit(5)
       @posting_errors = result.errors
+      @can_post = false
       render "expenses/show", status: :unprocessable_content
     end
   end

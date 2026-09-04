@@ -79,4 +79,38 @@
           thousands: "," %>
     </div>
   </section>
+
+  <% unusual_spending = @report.unusual_spending %>
+  <section class="mt-8">
+    <h2 class="text-base font-medium text-neutral-900">Unusual spending</h2>
+    <p class="mt-0.5 text-sm text-neutral-500">Expenses over twice their category average, when at least three expenses exist in that category.</p>
+    <% if unusual_spending.any? %>
+      <div class="mt-4 overflow-x-auto border-y border-neutral-200">
+        <table class="min-w-full">
+          <thead>
+            <tr>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500">Date</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500">Expense</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500">Category</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">Amount</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">Category average</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% unusual_spending.each do |finding| %>
+              <tr class="border-t border-neutral-200">
+                <td class="px-4 py-3 text-sm text-neutral-600"><%= finding.expense.payment_date.to_fs(:medium) %></td>
+                <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= link_to finding.expense.description, expense_path(finding.expense), class: "hover:underline" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-600"><%= finding.category %></td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-neutral-900"><%= naira(finding.amount_kobo) %></td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-neutral-500"><%= naira(finding.average_kobo) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="mt-4 border-y border-neutral-200 py-4 text-sm text-neutral-500">No unusual spending detected in this period.</p>
+    <% end %>
+  </section>
 <% end %>

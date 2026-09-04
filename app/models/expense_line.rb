@@ -23,8 +23,16 @@ class ExpenseLine < ApplicationRecord
   def amount=(value)
     @amount_input = value
     @invalid_amount_input = false
-    self.amount_kobo = value.blank? ? nil : (BigDecimal(value.to_s) * 100).round
-  rescue ArgumentError
+    if value.blank?
+      self.amount_kobo = nil
+    else
+      decimal = BigDecimal(value.to_s)
+      kobo = decimal * 100
+      raise ArgumentError unless decimal.finite? && kobo == kobo.to_i
+
+      self.amount_kobo = kobo.to_i
+    end
+  rescue ArgumentError, FloatDomainError
     @invalid_amount_input = true
     self.amount_kobo = nil
   end

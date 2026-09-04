@@ -40,6 +40,7 @@ module AccountCatalogs
         category: "LIABILITY",
         account_types: [
           {
+            key: :credit_card,
             account_type: "Credit Card",
             detail_types: [ "Credit Card" ],
             description: "Amounts owed on business credit cards for purchases and other charges."

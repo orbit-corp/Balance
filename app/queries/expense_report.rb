@@ -1,5 +1,6 @@
 class ExpenseReport
   Ranking = Data.define(:label, :amount_kobo)
+  UnusualExpense = Data.define(:expense, :category, :amount_kobo, :average_kobo)
 
   def initialize(workspace, date_range:, vendor_id: nil, category_id: nil)
     @workspace = workspace
@@ -55,13 +56,44 @@ class ExpenseReport
     end
   end
 
+  def unusual_spending(limit: 5)
+    category_averages = category_average_lines
+      .select("expense_lines.account_id, AVG(expense_lines.amount_kobo) AS average_kobo")
+      .group("expense_lines.account_id")
+      .having("COUNT(*) >= 3")
+
+    expense_lines
+      .joins(:account)
+      .joins("INNER JOIN (#{category_averages.to_sql}) category_averages ON category_averages.account_id = expense_lines.account_id")
+      .where("expense_lines.amount_kobo > category_averages.average_kobo * 2")
+      .select("expense_lines.*, category_averages.average_kobo AS category_average_kobo")
+      .preload(:account, expense: :payee_contact)
+      .order(amount_kobo: :desc)
+      .limit(limit)
+      .map do |line|
+        UnusualExpense.new(
+          expense: line.expense,
+          category: line.account.name,
+          amount_kobo: line.amount_kobo,
+          average_kobo: line.category_average_kobo.to_i
+        )
+      end
+  end
+
   private
     attr_reader :workspace, :date_range, :vendor_id, :category_id
 
     def expense_lines
-      @expense_lines ||= ExpenseLine.joins(:expense)
+      ExpenseLine.joins(:expense)
         .where(expenses: { workspace_id: workspace.id, status: "posted", payment_date: date_range })
         .then { |lines| vendor_id.present? ? lines.where(expenses: { payee_contact_id: vendor_id }) : lines }
+        .then { |lines| category_id.present? ? lines.where(account_id: category_id) : lines }
+    end
+
+    def category_average_lines
+      ExpenseLine.joins("INNER JOIN expenses category_expenses ON category_expenses.id = expense_lines.expense_id")
+        .where(category_expenses: { workspace_id: workspace.id, status: "posted", payment_date: date_range })
+        .then { |lines| vendor_id.present? ? lines.where(category_expenses: { payee_contact_id: vendor_id }) : lines }
         .then { |lines| category_id.present? ? lines.where(account_id: category_id) : lines }
     end
 end

@@ -21,6 +21,29 @@ class ExpensesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='expense[memo]']"
   end
 
+  test "only offers vendor contacts on the expense form" do
+    vendor = @workspace.contacts.create!(name: "Fuel Vendor", contact_kind: "business", email: "vendor@example.com", role_names: %w[vendor])
+    customer = @workspace.contacts.create!(name: "Retail Customer", contact_kind: "business", email: "customer@example.com", role_names: %w[customer])
+
+    get new_expense_path
+
+    assert_select "select#expense_payee_contact_id option[value='#{vendor.id}']", text: vendor.name
+    assert_select "select#expense_payee_contact_id option[value='#{customer.id}']", count: 0
+  end
+
+  test "rejects a customer-only contact as the vendor" do
+    customer = @workspace.contacts.create!(name: "Retail Customer", contact_kind: "business", email: "customer@example.com", role_names: %w[customer])
+    params = expense_params
+    params[:expense][:payee_contact_id] = customer.id
+
+    assert_no_difference("Expense.count") do
+      post expenses_path, params: params
+    end
+
+    assert_response :unprocessable_content
+    assert_match(/Payee contact must be a vendor/, response.body)
+  end
+
   test "links to expense reports" do
     get expenses_path
 
