@@ -10,6 +10,7 @@ class Expense < ApplicationRecord
 
   validates :payment_date, presence: true
   validate :payment_date_is_not_in_the_future
+  validate :payment_date_is_not_too_far_in_the_past
   validate :payment_account_belongs_to_workspace
   validate :payment_account_is_eligible
   validate :has_category_lines
@@ -42,7 +43,10 @@ class Expense < ApplicationRecord
   end
 
   def post
-    Accounting::PostingService.call(entry: journal_entry_draft, source: self)
+    Accounting::PostingService.call(source: self, entry_builder: -> {
+      expense_lines.lock.load
+      journal_entry_draft
+    })
   end
 
   def record_posting!(entry)
@@ -56,6 +60,12 @@ class Expense < ApplicationRecord
       errors.add(:payment_date, "cannot be in the future")
     end
 
+    def payment_date_is_not_too_far_in_the_past
+      return if payment_date.blank? || payment_date >= 10.years.ago.to_date
+
+      errors.add(:payment_date, "is too far in the past")
+    end
+
     def payment_account_belongs_to_workspace
       return if payment_account.blank? || workspace.blank?
       return if payment_account.workspace_id == workspace_id
@@ -65,7 +75,7 @@ class Expense < ApplicationRecord
 
     def payment_account_is_eligible
       return if payment_account.blank? || workspace.blank?
-      return if workspace.accounts.payment_accounts.exists?(payment_account.id)
+      return if workspace.payment_accounts.exists?(payment_account.id)
 
       errors.add(:payment_account, "must be an asset or credit-card account")
     end

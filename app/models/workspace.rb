@@ -16,6 +16,18 @@ class Workspace < ApplicationRecord
     AccountCatalog.for(workspace_type)
   end
 
+  def payment_accounts
+    credit_card_accounts = accounts.where(
+      base_type: "liability",
+      account_type: catalog.account_type_names_for(:credit_card)
+    ).or(accounts.where(
+      base_type: "liability",
+      detail_type: catalog.detail_type_names_for(:credit_card)
+    ))
+
+    accounts.where(base_type: "asset").or(credit_card_accounts)
+  end
+
   def seed_core_accounts!
     catalog.core.each_key { |role| Account.for_role!(self, role) }
   end

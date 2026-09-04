@@ -8,6 +8,7 @@ class ExpensePostingsController < ApplicationController
     else
       @journal_entry = result.entry
       @engine_result = Accounting::Engine.check(@journal_entry.journal_entry_lines)
+      @can_post = false
       flash.now[:alert] = result.errors.to_sentence
       render "expenses/show", status: :unprocessable_content
     end

@@ -37,6 +37,7 @@ class ExpensesController < ApplicationController
   def show
     @journal_entry = @expense.posted? ? @expense.journal_entry : @expense.journal_entry_draft
     @engine_result = Accounting::Engine.check(@journal_entry.journal_entry_lines)
+    @can_post = @expense.draft? && @expense.valid? && @journal_entry.valid?
   end
 
   private

@@ -37,6 +37,13 @@ class AccountCatalogs::CatalogTest < ActiveSupport::TestCase
     assert_nil catalog.detail_types_for("Bogus")
   end
 
+  test "payment account taxonomy is derived from stable catalog keys" do
+    assert_equal [], AccountCatalogs::Personal.account_type_names_for(:credit_card)
+    assert_equal [ "Credit Cards" ], AccountCatalogs::Personal.detail_type_names_for(:credit_card)
+    assert_equal [ "Credit Card" ], AccountCatalogs::Business.account_type_names_for(:credit_card)
+    assert_equal [], AccountCatalogs::Business.detail_type_names_for(:credit_card)
+  end
+
   test "as_hash maps every account type to its category and detail types" do
     hash = AccountCatalogs::Personal.as_hash
 

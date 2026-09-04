@@ -27,7 +27,7 @@
     <div>
       <%= form.label :payment_account_id, "Payment account", class: field_label_class %>
       <%= render "shared/select_menu", form: form, attribute: :payment_account_id,
-          options: expense_account_options(current_workspace.accounts.payment_accounts.ordered, expense.payment_account_id),
+          options: expense_account_options(current_workspace.payment_accounts.ordered, expense.payment_account_id),
           prompt: "Select payment account", searchable: true,
           search_placeholder: "Search payment accounts…", empty_message: "No payment accounts found",
           select_data: {} %>
