@@ -34,14 +34,14 @@ class Expense < ApplicationRecord
 
   def category_label
     lines = expense_lines.reject(&:marked_for_destruction?)
-    lines.one? ? lines.first.account.name : "Split (#{lines.size})"
+    lines.map { |line| line.account.name }.to_sentence
   end
 
   def description
     return memo if memo.present?
 
     lines = expense_lines.reject(&:marked_for_destruction?)
-    lines.one? ? lines.first.description : "Split expense"
+    lines.map(&:description).to_sentence
   end
 
   def journal_entry_draft

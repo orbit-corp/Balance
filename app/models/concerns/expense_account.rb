@@ -3,8 +3,6 @@ module ExpenseAccount
 
   PAYMENT_ACCOUNT_TYPES = [ "Bank", "Cash & Liquid Assets", "Credit Card" ].freeze
   PAYMENT_DETAIL_TYPES = [ "Credit Cards" ].freeze
-  CATEGORY_ACCOUNT_TYPES = [ "Fixed Assets" ].freeze
-  CATEGORY_DETAIL_TYPES = [ "Inventory", "Prepaid Expenses", "Personal Property & Equipment" ].freeze
 
   included do
     has_many :paid_expenses,
@@ -17,11 +15,7 @@ module ExpenseAccount
       where(account_type: PAYMENT_ACCOUNT_TYPES)
         .or(where(detail_type: PAYMENT_DETAIL_TYPES))
     }
-    scope :expense_category_accounts, -> {
-      where(base_type: "expense")
-        .or(where(account_type: CATEGORY_ACCOUNT_TYPES))
-        .or(where(detail_type: CATEGORY_DETAIL_TYPES))
-    }
+    scope :expense_category_accounts, -> { where(base_type: "expense") }
   end
 
   def expense_payment_account?
@@ -29,6 +23,6 @@ module ExpenseAccount
   end
 
   def expense_category_account?
-    base_type == "expense" || account_type.in?(CATEGORY_ACCOUNT_TYPES) || detail_type.in?(CATEGORY_DETAIL_TYPES)
+    base_type == "expense"
   end
 end
