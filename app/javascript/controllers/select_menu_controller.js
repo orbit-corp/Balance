@@ -6,8 +6,11 @@ export default class extends Controller {
     compact: Boolean,
     includeBlank: Boolean,
     searchable: Boolean,
+    searchInTrigger: Boolean,
     searchPlaceholder: String,
-    emptyMessage: String
+    emptyMessage: String,
+    footerLabel: String,
+    footerUrl: String
   }
 
   connect() {
@@ -22,8 +25,12 @@ export default class extends Controller {
     this.repositionHandler = () => {
       if (!this.menu.classList.contains("hidden")) this.positionMenu()
     }
+    this.openHandler = (event) => {
+      if (event.detail.controller !== this) this.close()
+    }
     document.addEventListener("click", this.outsideHandler)
     document.addEventListener("keydown", this.escapeHandler)
+    document.addEventListener("select-menu:open", this.openHandler)
     document.addEventListener("scroll", this.repositionHandler, true)
     window.addEventListener("resize", this.repositionHandler)
   }
@@ -31,6 +38,7 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("click", this.outsideHandler)
     document.removeEventListener("keydown", this.escapeHandler)
+    document.removeEventListener("select-menu:open", this.openHandler)
     document.removeEventListener("scroll", this.repositionHandler, true)
     window.removeEventListener("resize", this.repositionHandler)
     this.menu.remove()
@@ -41,7 +49,13 @@ export default class extends Controller {
     this.menu.classList.contains("hidden") ? this.open() : this.close()
   }
 
+  openFromInput(event) {
+    event.stopPropagation()
+    if (this.menu.classList.contains("hidden")) this.open()
+  }
+
   open() {
+    document.dispatchEvent(new CustomEvent("select-menu:open", { detail: { controller: this } }))
     document.body.append(this.menu)
     this.menu.classList.remove("hidden")
     this.positionMenu()
@@ -54,6 +68,7 @@ export default class extends Controller {
     this.buttonTarget.setAttribute("aria-expanded", "false")
     this.element.append(this.menu)
     this.menu.removeAttribute("style")
+    if (this.searchInTriggerValue) this.refreshLabel()
   }
 
   select(event) {
@@ -68,7 +83,8 @@ export default class extends Controller {
     this.menu.replaceChildren()
     this.searchInput = null
     this.emptyState = null
-    if (this.searchableValue) this.addSearch()
+    if (this.searchableValue && !this.searchInTriggerValue) this.addSearch()
+    if (this.hasFooterUrlValue && this.footerUrlValue) this.addFooter()
 
     this.optionsContainer = document.createElement("div")
     this.optionsContainer.setAttribute("role", "listbox")
@@ -91,11 +107,6 @@ export default class extends Controller {
   addGroup(group) {
     const section = document.createElement("div")
     section.dataset.selectMenuGroup = ""
-
-    const heading = document.createElement("div")
-    heading.className = "px-2 pb-1 pt-2 text-[11px] font-medium tracking-wide text-neutral-400 uppercase first:pt-1"
-    heading.textContent = group.label
-    section.append(heading)
 
     for (const option of group.children) this.addOption(option, section)
     this.optionsContainer.append(section)
@@ -128,6 +139,20 @@ export default class extends Controller {
     this.menu.append(wrapper)
   }
 
+  addFooter() {
+    const wrapper = document.createElement("div")
+    wrapper.className = "border-b border-neutral-100 p-1 pb-2"
+
+    const link = document.createElement("a")
+    link.href = this.footerUrlValue
+    link.dataset.turboFrame = "modal"
+    link.className = "flex w-full items-center rounded px-2 py-1.5 text-sm font-medium text-[#0f7082] hover:bg-neutral-50"
+    link.textContent = `+ ${this.footerLabelValue}`
+    link.addEventListener("click", this.close.bind(this))
+    wrapper.append(link)
+    this.menu.append(wrapper)
+  }
+
   positionMenu() {
     const rect = this.buttonTarget.getBoundingClientRect()
     const gap = 4
@@ -150,6 +175,16 @@ export default class extends Controller {
 
   search(event) {
     const query = event.currentTarget.value.trim().toLowerCase()
+    if (this.searchInTriggerValue) {
+      this.labelTarget.classList.toggle("text-neutral-400", !query)
+      this.labelTarget.classList.toggle("text-neutral-950", Boolean(query))
+      const selectedOption = this.nativeTarget.selectedOptions[0]
+      if (selectedOption?.value && selectedOption.textContent.trim().toLowerCase() !== query) {
+        this.nativeTarget.value = ""
+        this.nativeTarget.dispatchEvent(new Event("change", { bubbles: true }))
+      }
+      if (this.menu.classList.contains("hidden")) this.open()
+    }
     const options = [...this.optionsContainer.querySelectorAll("[data-select-menu-option]")]
 
     for (const option of options) {
@@ -176,8 +211,12 @@ export default class extends Controller {
   refreshLabel() {
     const option = this.nativeTarget.selectedOptions[0]
     const selected = option?.value
-    this.labelTarget.textContent = selected ? option.textContent : this.nativeTarget.options[0]?.textContent
+    if (this.searchInTriggerValue) {
+      this.labelTarget.value = selected ? option.textContent : ""
+    } else {
+      this.labelTarget.textContent = selected ? option.textContent : this.nativeTarget.options[0]?.textContent
+    }
     this.labelTarget.classList.toggle("text-neutral-400", !selected)
-    this.labelTarget.classList.toggle("text-neutral-900", Boolean(selected))
+    this.labelTarget.classList.toggle("text-neutral-950", Boolean(selected))
   }
 }

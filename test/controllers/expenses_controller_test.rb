@@ -19,6 +19,9 @@ class ExpensesControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='expense[payee]']", count: 0
     assert_select "input[name='expense[reference_number]']", count: 0
     assert_select "input[name='expense[memo]']"
+    assert_select "[data-select-menu-search-in-trigger-value='true'] input[role='combobox'][placeholder='Who did you pay to?']"
+    assert_select "[data-select-menu-footer-label-value='Add vendor'][data-select-menu-footer-url-value='#{new_contact_path(role: "vendor")}']"
+    assert_select "[data-controller='select-menu'][data-select-menu-search-in-trigger-value='true'] input[role='combobox']", count: 4
   end
 
   test "only offers vendor contacts on the expense form" do

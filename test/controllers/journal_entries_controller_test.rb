@@ -24,5 +24,6 @@ class JournalEntriesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-controller='select-menu'][data-select-menu-searchable-value='true']", count: 3
+    assert_select "[data-controller='select-menu'][data-select-menu-search-in-trigger-value='true'] input[role='combobox']", count: 3
   end
 end

@@ -40,6 +40,7 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "optgroup[label='ASSET'] option", text: "Cash & Liquid Assets"
     assert_select "optgroup[label='EXPENSE'] option", text: "Personal Outflows"
     assert_select "[data-controller='select-menu'][data-select-menu-searchable-value='true']", count: 2
+    assert_select "[data-controller='select-menu'][data-select-menu-search-in-trigger-value='true'] input[role='combobox']", count: 2
   end
 
   test "creates an account" do

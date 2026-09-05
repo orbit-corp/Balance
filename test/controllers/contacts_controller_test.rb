@@ -26,6 +26,14 @@ class ContactsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "business", contact.contact_kind
   end
 
+  test "prefills the vendor role from the new expense link" do
+    get new_contact_path(role: "vendor")
+
+    assert_response :success
+    assert_select "input#contact_role_names_vendor[checked]"
+    assert_select "input#contact_role_names_customer:not([checked])"
+  end
+
   test "filters the contact list by role" do
     vendor = @workspace.contacts.create!(name: "Vendor", contact_kind: "business", email: "vendor@example.com", role_names: %w[vendor])
     customer = @workspace.contacts.create!(name: "Customer", contact_kind: "individual", email: "customer@example.com", role_names: %w[customer])
