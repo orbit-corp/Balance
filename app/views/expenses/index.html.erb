@@ -1,0 +1,62 @@
+<% content_for :title, "Expenses" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Expenses" } ] %>
+<% end %>
+
+<% expense_actions = tag.div(class: "flex items-center gap-2") do %>
+  <%= link_to "Reports", expense_report_path, class: secondary_button_class %>
+  <%= link_to(new_expense_path, class: primary_button_class) do %>
+    <%= inline_svg_tag "icons/plus.svg", class: "h-4 w-4" %>New expense
+  <% end %>
+<% end %>
+
+<%= render "shared/page_header",
+    title: "Expenses",
+    description: "Paid costs and purchases recorded from the account that funded them.",
+    action: expense_actions %>
+
+<% if @expenses.empty? %>
+  <%= render "shared/empty_state",
+      icon: "icons/receipt.svg",
+      title: "No expenses yet",
+      description: "Record a paid expense and Balance will prepare the accounting entry for review.",
+      action: expense_actions %>
+<% else %>
+  <div class="mt-4 overflow-x-auto border-y border-neutral-200">
+    <table class="min-w-full">
+      <thead class="sticky top-0 z-10 bg-white">
+        <tr>
+          <% [ "Date", "Description", "Vendor", "Payment account", "Category", "Status" ].each do |label| %>
+            <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-neutral-500"><%= label %></th>
+          <% end %>
+          <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">Amount</th>
+          <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-neutral-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white">
+        <% @expenses.each do |expense| %>
+          <tr id="<%= dom_id(expense) %>" class="border-t border-neutral-200 transition-colors hover:bg-neutral-50/80">
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600">
+              <%= link_to expense.payment_date.to_fs(:medium), expense_path(expense), class: "font-medium text-neutral-900 hover:underline" %>
+            </td>
+            <td class="max-w-xs truncate px-4 py-3 text-sm text-neutral-600"><%= expense.description %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= expense.payee_contact&.name || blank_cell %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= expense.payment_account.name %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap text-neutral-600"><%= expense.category_label %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap"><%= expense_status(expense) %></td>
+            <td class="px-4 py-3 text-right text-sm font-medium tabular-nums whitespace-nowrap text-neutral-900"><%= naira(expense.total_kobo) %></td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-1">
+                <%= link_to "View", expense_path(expense), class: secondary_button_class(size: :sm) %>
+                <% if expense.draft? %>
+                  <%= link_to "Edit", edit_expense_path(expense), class: secondary_button_class(size: :sm) %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

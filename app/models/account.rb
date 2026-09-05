@@ -1,6 +1,11 @@
 class Account < ApplicationRecord
   belongs_to :workspace
   has_many :journal_entry_lines, dependent: :restrict_with_error
+  has_many :paid_expenses,
+    class_name: "Expense",
+    foreign_key: :payment_account_id,
+    dependent: :restrict_with_error
+  has_many :expense_lines, dependent: :restrict_with_error
 
   validates :name, presence: true, uniqueness: { scope: :workspace_id }
   validates :base_type, :account_type, :detail_type, presence: true
@@ -12,6 +17,7 @@ class Account < ApplicationRecord
   before_update { throw(:abort) if role.present? && taxonomy_changed? }
 
   scope :ordered, -> { order(:name) }
+  scope :expense_accounts, -> { where(base_type: "expense") }
 
   def self.for_role!(workspace, role)
     spec = workspace.catalog.account_spec(role)

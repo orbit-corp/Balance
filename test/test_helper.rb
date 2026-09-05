@@ -13,9 +13,9 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    def post_journal_entry!(workspace, debit_account:, credit_account:, amount_kobo:, entry_date: Date.current)
+    def post_journal_entry!(workspace, debit_account:, credit_account:, amount_kobo:, entry_date: Date.current, description: "Test entry")
       workspace.journal_entries.create!(
-        description: "Test entry",
+        description: description,
         entry_date: entry_date,
         journal_entry_lines_attributes: [
           { account_id: debit_account.id, debit_kobo: amount_kobo },

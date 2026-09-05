@@ -1,0 +1,9 @@
+<% content_for :title, "New expense" %>
+
+<%= content_for(:breadcrumb) do %>
+  <%= render "shared/breadcrumb", data: [ { label: "Expenses", path: expenses_path }, { label: "New expense" } ] %>
+<% end %>
+
+<div class="mx-auto max-w-5xl">
+  <%= render "expenses/form", expense: @expense %>
+</div>

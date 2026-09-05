@@ -51,6 +51,7 @@ module AccountCatalogs
             account_type: "Short-Term Debt",
             detail_types: [
               {
+                key: :credit_card,
                 name: "Credit Cards",
                 accounts: {
                   credit_card: { name: "Credit Card" }

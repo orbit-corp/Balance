@@ -8,6 +8,11 @@ module Accounting
     Account = Data.define(:id, :name, :base_type)
     ModelLine = Data.define(:account, :debit_kobo, :credit_kobo)
 
+    def self.test(description, &block)
+      name = "test_#{description.gsub(/[^a-z0-9]+/i, "_").downcase.sub(/_$/, "")}"
+      define_method(name, &block)
+    end
+
     def setup
       @cash = account("cash", "Cash", "asset")
       @bank = account("bank", "Bank", "asset")
@@ -16,7 +21,7 @@ module Accounting
       @expense = account("expense", "Expense", "expense")
     end
 
-    def test_derives_effects_from_account_base_types
+    test "derives effects from account base types" do
       result = check(line(@cash, :debit, 10_000), line(@income, :credit, 10_000))
 
       assert result.ok?, result.errors.join(" ")
@@ -24,7 +29,7 @@ module Accounting
       assert_equal :expansion, result.proof.relationships.first.law
     end
 
-    def test_recognizes_reallocation_between_debit_normal_accounts
+    test "recognizes reallocation between debit-normal accounts" do
       result = check(line(@cash, :debit, 10_000), line(@bank, :credit, 10_000))
 
       assert result.ok?
@@ -32,7 +37,7 @@ module Accounting
       assert_equal :reallocation, result.proof.relationships.first.law
     end
 
-    def test_recognizes_reallocation_between_credit_normal_accounts
+    test "recognizes reallocation between credit-normal accounts" do
       result = check(line(@payable, :debit, 10_000), line(@income, :credit, 10_000))
 
       assert result.ok?
@@ -40,7 +45,7 @@ module Accounting
       assert_equal :reallocation, result.proof.relationships.first.law
     end
 
-    def test_recognizes_contraction
+    test "recognizes contraction" do
       result = check(line(@payable, :debit, 10_000), line(@cash, :credit, 10_000))
 
       assert result.ok?
@@ -48,7 +53,7 @@ module Accounting
       assert_equal :contraction, result.proof.relationships.first.law
     end
 
-    def test_rejects_a_relationship_missing_from_the_rules_matrix
+    test "rejects a relationship missing from the rules matrix" do
       rejecting_rules = Object.new
       def rejecting_rules.relationship_for(debit:, credit:) = nil
 
@@ -61,21 +66,21 @@ module Accounting
       assert_includes result.errors, "Cash cannot be debited against Income"
     end
 
-    def test_rejects_unbalanced_entries
+    test "rejects unbalanced entries" do
       result = check(line(@expense, :debit, 10_000), line(@cash, :credit, 9_000))
 
       refute result.ok?
       assert_includes result.errors, "Total debits (100.00) must equal total credits (90.00)"
     end
 
-    def test_rejects_an_account_used_on_both_sides
+    test "rejects an account used on both sides" do
       result = check(line(@cash, :debit, 10_000), line(@cash, :credit, 10_000))
 
       refute result.ok?
       assert_includes result.errors, "Account(s) used on both sides: cash"
     end
 
-    def test_rejects_duplicate_lines
+    test "rejects duplicate lines" do
       result = check(
         line(@expense, :debit, 5_000),
         line(@expense, :debit, 5_000),
@@ -86,14 +91,14 @@ module Accounting
       assert_includes result.errors, "duplicate journal lines are not allowed"
     end
 
-    def test_rejects_single_line_entries
+    test "rejects single-line entries" do
       result = check(line(@cash, :debit, 10_000))
 
       refute result.ok?
       assert_includes result.errors, "An entry requires at least two lines"
     end
 
-    def test_reports_invalid_lines_without_a_proof
+    test "reports invalid lines without a proof" do
       result = check(
         { side: :debit, amount_kobo: 10_000 },
         line(@cash, :sideways, 10_000),
@@ -107,7 +112,7 @@ module Accounting
       assert_match(/Line 3: Amount must be a positive whole number of kobo/, result.errors[2])
     end
 
-    def test_rejects_unknown_account_base_types
+    test "rejects unknown account base types" do
       crypto = account("crypto", "Crypto", "crypto")
       result = check(line(crypto, :debit, 10_000), line(@cash, :credit, 10_000))
 
@@ -115,7 +120,7 @@ module Accounting
       assert_match(/Line 1: Unknown base type/, result.errors.first)
     end
 
-    def test_accepts_model_lines_and_derives_their_sides
+    test "accepts model lines and derives their sides" do
       result = Engine.check([
         ModelLine.new(@expense, 25_000, 0),
         ModelLine.new(@cash, 0, 25_000)
@@ -127,7 +132,7 @@ module Accounting
       assert result.proof.balanced?
     end
 
-    def test_rejects_model_lines_with_both_sides
+    test "rejects model lines with both sides" do
       result = Engine.check([
         ModelLine.new(@expense, 25_000, 25_000),
         ModelLine.new(@cash, 0, 25_000)
@@ -137,7 +142,17 @@ module Accounting
       assert_match(/either a debit or a credit/, result.errors.first)
     end
 
-    def test_has_no_persistence_api
+    test "rejects malformed model-line amounts" do
+      result = Engine.check([
+        ModelLine.new(@expense, "3ooo", 0),
+        ModelLine.new(@cash, 0, 3_000)
+      ])
+
+      refute result.ok?
+      assert_match(/amount must be numbers/, result.errors.first)
+    end
+
+    test "has no persistence API" do
       refute_respond_to Engine.new([]), :post
       refute_respond_to Engine.new([]), :post_lines
       refute_respond_to Engine.new([]), :journal
