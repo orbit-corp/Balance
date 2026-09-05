@@ -20,7 +20,8 @@
       <%= render "shared/select_menu", form: form, attribute: :payee_contact_id,
           options: expense_payee_options(@payee_contacts, expense.payee_contact_id),
           prompt: "Who did you pay to?", searchable: true, required: false,
-          search_placeholder: "Search contacts…", empty_message: "No contacts found",
+          search_in_trigger: true, empty_message: "No contacts found",
+          footer_label: "Add vendor", footer_url: new_contact_path(role: "vendor"),
           select_data: {} %>
     </div>
     <div>

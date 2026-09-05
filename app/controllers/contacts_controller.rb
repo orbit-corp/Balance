@@ -8,7 +8,8 @@ class ContactsController < ApplicationController
   end
 
   def new
-    @contact = current_workspace.contacts.build(active: true)
+    role_names = Array(params[:role].presence_in(Contact::ROLE_NAMES))
+    @contact = current_workspace.contacts.build(active: true, role_names: role_names)
   end
 
   def create
